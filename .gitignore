@@ -1,0 +1,146 @@
+# OS files
+.DS_Store
+.DS_Store?
+._*
+Thumbs.db
+
+# IDE and editor settings
+.idea/
+.vs/
+.vscode/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Thoughts directory (local notes)
+thoughts/
+
+# =========================
+# .NET
+# =========================
+
+# Build results
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+[Bb]uild/
+bld/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+
+# NuGet
+*.nupkg
+*.snupkg
+.nuget/
+packages/
+**/[Pp]ackages/*
+
+# User-specific files
+*.rsuser
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.userprefs
+*.[Cc]ache
+
+# Auto-generated files
+*_i.c
+*_p.c
+*_h.h
+*.ilk
+*.meta
+*.obj
+*.iobj
+*.pch
+*.pdb
+*.ipdb
+*.pgc
+*.pgd
+*.rsp
+*.sbr
+*.tlb
+*.tli
+*.tlh
+*.tmp
+*.tmp_proj
+*_wpftmp.csproj
+*.log
+*.vspscc
+*.vssscc
+.builds
+*.pidb
+*.svclog
+*.scc
+
+# Test Results
+[Tt]est[Rr]esult*/
+[Bb]uild[Ll]og.*
+TestResult.xml
+nunit-*.xml
+
+# Sensitive configuration files - DO NOT COMMIT
+**/appsettings.json
+**/appsettings.Production.json
+**/appsettings.Staging.json
+!**/appsettings.json.example
+# appsettings.Development.json is safe to commit (no secrets, just logging)
+
+# =========================
+# Node.js / React
+# =========================
+
+# Dependencies
+node_modules/
+jspm_packages/
+
+# Build output
+dist/
+build/
+out/
+
+# Environment files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env*.local
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage
+coverage/
+*.lcov
+.nyc_output/
+
+# Misc
+.eslintcache
+*.tsbuildinfo
+.npm
+.yarn-integrity
+
+# =========================
+# Secrets and credentials
+# =========================
+*.pem
+*.key
+*.pfx
+*.p12
+credentials.json
+secrets.json

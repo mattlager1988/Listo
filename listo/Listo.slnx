@@ -1,0 +1,5 @@
+<Solution>
+  <Folder Name="/listo-api/">
+    <Project Path="listo-api/Listo.Api.csproj" />
+  </Folder>
+</Solution>

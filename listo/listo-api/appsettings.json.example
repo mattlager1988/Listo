@@ -1,0 +1,26 @@
+{
+  "ConnectionStrings": {
+    "DefaultConnection": "Server=localhost;Database=listo;User=listo;Password=YOUR_PASSWORD_HERE;"
+  },
+  "Jwt": {
+    "Secret": "YOUR-SECRET-KEY-MIN-32-CHARS-CHANGE-IN-PRODUCTION",
+    "Issuer": "Listo",
+    "Audience": "Listo",
+    "AccessTokenExpirationMinutes": 15,
+    "RefreshTokenExpirationDays": 2
+  },
+  "InitialAdmin": {
+    "Email": "admin@example.com",
+    "Password": "CHANGE_THIS_PASSWORD_16_CHARS_MIN",
+    "FirstName": "Admin",
+    "LastName": "User"
+  },
+  "AppVersion": "1.0.0",
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  },
+  "AllowedHosts": "*"
+}

@@ -1,0 +1,6 @@
+@Listo.Api_HostAddress = http://localhost:5286
+
+GET {{Listo.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
