@@ -1,63 +1,22 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { ConfigProvider, Spin } from 'antd';
-import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { ConfigProvider } from 'antd';
+import { AuthProvider } from './contexts/AuthContext';
 import { listoTheme } from './theme/theme';
+import ProtectedRoute from './components/ProtectedRoute';
 import MainLayout from './layouts/MainLayout';
-
-// Placeholder pages - will be implemented in Phase 6
-const Login = () => <div>Login Page (Coming in Phase 6)</div>;
-const Dashboard = () => <div>Dashboard - Welcome to Listo!</div>;
-
-const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { isAuthenticated, isLoading } = useAuth();
-
-  if (isLoading) {
-    return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-        <Spin size="large" />
-      </div>
-    );
-  }
-
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
-
-  return <>{children}</>;
-};
-
-const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { isAuthenticated, isLoading } = useAuth();
-
-  if (isLoading) {
-    return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-        <Spin size="large" />
-      </div>
-    );
-  }
-
-  if (isAuthenticated) {
-    return <Navigate to="/" replace />;
-  }
-
-  return <>{children}</>;
-};
+import Login from './pages/Login';
+import Dashboard from './pages/Dashboard';
+import Profile from './pages/Profile';
+import Settings from './pages/Settings';
+import UserManagement from './pages/UserManagement';
 
 function App() {
   return (
     <ConfigProvider theme={listoTheme}>
-      <BrowserRouter>
-        <AuthProvider>
+      <AuthProvider>
+        <BrowserRouter>
           <Routes>
-            <Route
-              path="/login"
-              element={
-                <PublicRoute>
-                  <Login />
-                </PublicRoute>
-              }
-            />
+            <Route path="/login" element={<Login />} />
             <Route
               path="/"
               element={
@@ -67,10 +26,21 @@ function App() {
               }
             >
               <Route index element={<Dashboard />} />
+              <Route path="profile" element={<Profile />} />
+              <Route path="settings" element={<Settings />} />
+              <Route
+                path="users"
+                element={
+                  <ProtectedRoute requiredRole="admin">
+                    <UserManagement />
+                  </ProtectedRoute>
+                }
+              />
             </Route>
+            <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
-        </AuthProvider>
-      </BrowserRouter>
+        </BrowserRouter>
+      </AuthProvider>
     </ConfigProvider>
   );
 }
