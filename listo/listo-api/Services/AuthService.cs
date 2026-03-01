@@ -2,6 +2,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
+using ClaimTypes = System.Security.Claims.ClaimTypes;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using OtpNet;
@@ -188,9 +189,9 @@ public class AuthService : IAuthService
 
         var claims = new[]
         {
-            new Claim("sub", user.SysId.ToString()),
-            new Claim("email", user.Email),
-            new Claim("role", user.Role),
+            new Claim(JwtRegisteredClaimNames.Sub, user.SysId.ToString()),
+            new Claim(JwtRegisteredClaimNames.Email, user.Email),
+            new Claim(ClaimTypes.Role, user.Role),
             new Claim("firstName", user.FirstName),
             new Claim("lastName", user.LastName)
         };

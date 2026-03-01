@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Listo.Api.DTOs;
@@ -65,7 +66,7 @@ public class AuthController : ControllerBase
     [HttpGet("mfa/setup")]
     public async Task<ActionResult<MfaSetupResponse>> SetupMfa()
     {
-        var userId = long.Parse(User.FindFirst("sub")!.Value);
+        var userId = long.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
         var response = await _authService.SetupMfaAsync(userId);
         return Ok(response);
     }
@@ -74,7 +75,7 @@ public class AuthController : ControllerBase
     [HttpPost("mfa/enable")]
     public async Task<IActionResult> EnableMfa([FromBody] MfaEnableRequest request)
     {
-        var userId = long.Parse(User.FindFirst("sub")!.Value);
+        var userId = long.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
         var success = await _authService.EnableMfaAsync(userId, request.Code);
         if (!success)
             return BadRequest(new { message = "Invalid verification code" });

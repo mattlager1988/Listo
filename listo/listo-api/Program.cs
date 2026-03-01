@@ -41,6 +41,7 @@ builder.Services.AddAuthorization();
 
 // Services
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IUserService, UserService>();
 
 var app = builder.Build();
 
@@ -55,7 +56,6 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
-app.MapGet("/api/system/health", () => new { status = "healthy" });
 
 // Seed initial admin user
 using (var scope = app.Services.CreateScope())
