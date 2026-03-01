@@ -44,6 +44,12 @@ builder.Services.AddAuthorization();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IUserService, UserService>();
 
+// LKSEM Services
+builder.Services.AddSingleton<IEncryptionService, EncryptionService>();
+builder.Services.AddScoped<IAccountTypeService, AccountTypeService>();
+builder.Services.AddScoped<IAccountOwnerService, AccountOwnerService>();
+builder.Services.AddScoped<IAccountService, AccountService>();
+
 // CORS
 builder.Services.AddCors(options =>
 {

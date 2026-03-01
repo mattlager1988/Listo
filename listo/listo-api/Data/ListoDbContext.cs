@@ -15,6 +15,9 @@ public class ListoDbContext : DbContext
 
     public DbSet<User> Users => Set<User>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+    public DbSet<Account> Accounts => Set<Account>();
+    public DbSet<AccountType> AccountTypes => Set<AccountType>();
+    public DbSet<AccountOwner> AccountOwners => Set<AccountOwner>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -56,6 +59,73 @@ public class ListoDbContext : DbContext
             entity.HasOne(e => e.User)
                 .WithMany(u => u.RefreshTokens)
                 .HasForeignKey(e => e.UsersSysId);
+        });
+
+        // AccountType configuration
+        modelBuilder.Entity<AccountType>(entity =>
+        {
+            entity.ToTable("account_types");
+            entity.HasKey(e => e.SysId);
+            entity.Property(e => e.SysId).HasColumnName("sys_id");
+            entity.Property(e => e.Name).HasColumnName("name").IsRequired().HasMaxLength(100);
+            entity.Property(e => e.Description).HasColumnName("description").HasMaxLength(500);
+            entity.Property(e => e.IsActive).HasColumnName("is_active");
+            entity.Property(e => e.SortOrder).HasColumnName("sort_order");
+            entity.Property(e => e.CreateTimestamp).HasColumnName("create_timestamp");
+            entity.Property(e => e.ModifyTimestamp).HasColumnName("modify_timestamp");
+            entity.Property(e => e.CreateUser).HasColumnName("create_user");
+            entity.Property(e => e.ModifyUser).HasColumnName("modify_user");
+            entity.HasIndex(e => e.Name).IsUnique();
+        });
+
+        // AccountOwner configuration
+        modelBuilder.Entity<AccountOwner>(entity =>
+        {
+            entity.ToTable("account_owners");
+            entity.HasKey(e => e.SysId);
+            entity.Property(e => e.SysId).HasColumnName("sys_id");
+            entity.Property(e => e.Name).HasColumnName("name").IsRequired().HasMaxLength(100);
+            entity.Property(e => e.Description).HasColumnName("description").HasMaxLength(500);
+            entity.Property(e => e.IsActive).HasColumnName("is_active");
+            entity.Property(e => e.SortOrder).HasColumnName("sort_order");
+            entity.Property(e => e.CreateTimestamp).HasColumnName("create_timestamp");
+            entity.Property(e => e.ModifyTimestamp).HasColumnName("modify_timestamp");
+            entity.Property(e => e.CreateUser).HasColumnName("create_user");
+            entity.Property(e => e.ModifyUser).HasColumnName("modify_user");
+            entity.HasIndex(e => e.Name).IsUnique();
+        });
+
+        // Account configuration
+        modelBuilder.Entity<Account>(entity =>
+        {
+            entity.ToTable("accounts");
+            entity.HasKey(e => e.SysId);
+            entity.Property(e => e.SysId).HasColumnName("sys_id");
+            entity.Property(e => e.Name).HasColumnName("name").IsRequired().HasMaxLength(200);
+            entity.Property(e => e.AccountTypeSysId).HasColumnName("account_type_sys_id");
+            entity.Property(e => e.AccountOwnerSysId).HasColumnName("account_owner_sys_id");
+            entity.Property(e => e.AmountDue).HasColumnName("amount_due").HasColumnType("decimal(18,2)");
+            entity.Property(e => e.DueDate).HasColumnName("due_date");
+            entity.Property(e => e.AccountNumber).HasColumnName("account_number").HasMaxLength(100);
+            entity.Property(e => e.PhoneNumber).HasColumnName("phone_number").HasMaxLength(20);
+            entity.Property(e => e.WebAddress).HasColumnName("web_address").HasMaxLength(500);
+            entity.Property(e => e.Username).HasColumnName("username").HasMaxLength(100);
+            entity.Property(e => e.EncryptedPassword).HasColumnName("encrypted_password").HasMaxLength(500);
+            entity.Property(e => e.AutoPay).HasColumnName("auto_pay");
+            entity.Property(e => e.ResetAmountDue).HasColumnName("reset_amount_due");
+            entity.Property(e => e.AccountFlag).HasColumnName("account_flag").HasMaxLength(20);
+            entity.Property(e => e.CreateTimestamp).HasColumnName("create_timestamp");
+            entity.Property(e => e.ModifyTimestamp).HasColumnName("modify_timestamp");
+            entity.Property(e => e.CreateUser).HasColumnName("create_user");
+            entity.Property(e => e.ModifyUser).HasColumnName("modify_user");
+
+            entity.HasOne(e => e.AccountType)
+                .WithMany(t => t.Accounts)
+                .HasForeignKey(e => e.AccountTypeSysId);
+
+            entity.HasOne(e => e.AccountOwner)
+                .WithMany(o => o.Accounts)
+                .HasForeignKey(e => e.AccountOwnerSysId);
         });
     }
 

@@ -15,6 +15,9 @@
     "FirstName": "Admin",
     "LastName": "User"
   },
+  "Encryption": {
+    "Key": "YOUR_BASE64_ENCODED_32_BYTE_KEY_HERE"
+  },
   "AppVersion": "1.0.0",
   "Logging": {
     "LogLevel": {

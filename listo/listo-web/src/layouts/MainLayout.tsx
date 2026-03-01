@@ -8,6 +8,9 @@ import {
   SettingOutlined,
   LogoutOutlined,
   TeamOutlined,
+  BankOutlined,
+  CreditCardOutlined,
+  UnorderedListOutlined,
 } from '@ant-design/icons';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -35,6 +38,23 @@ const MainLayout: React.FC = () => {
       key: '/',
       icon: <HomeOutlined />,
       label: 'Dashboard',
+    },
+    {
+      key: 'lksem',
+      icon: <BankOutlined />,
+      label: 'LKSEM',
+      children: [
+        {
+          key: '/lksem/accounts',
+          icon: <CreditCardOutlined />,
+          label: 'Accounts',
+        },
+        {
+          key: '/lksem/lists',
+          icon: <UnorderedListOutlined />,
+          label: 'List Manager',
+        },
+      ],
     },
     ...(user?.role === 'admin' ? [{
       key: '/users',
@@ -103,7 +123,9 @@ const MainLayout: React.FC = () => {
           mode="inline"
           selectedKeys={[location.pathname]}
           items={menuItems}
-          onClick={({ key }) => navigate(key)}
+          onClick={({ key }) => {
+            if (key !== 'lksem') navigate(key);
+          }}
         />
       </Sider>
       <Layout style={{ marginLeft: collapsed ? 80 : 200, transition: 'margin-left 0.2s' }}>
