@@ -9,8 +9,6 @@ import Dashboard from './pages/Dashboard';
 import Profile from './pages/Profile';
 import Settings from './pages/Settings';
 import UserManagement from './pages/UserManagement';
-import Accounts from './pages/lksem/Accounts';
-import ListManager from './pages/lksem/ListManager';
 
 function App() {
   return (
@@ -30,8 +28,6 @@ function App() {
               <Route index element={<Dashboard />} />
               <Route path="profile" element={<Profile />} />
               <Route path="settings" element={<Settings />} />
-              <Route path="lksem/accounts" element={<Accounts />} />
-              <Route path="lksem/lists" element={<ListManager />} />
               <Route
                 path="users"
                 element={
