@@ -3,8 +3,9 @@ import { Typography, Card, Button, Modal, Form, Input, message, Alert, Space, Ta
 import { SafetyOutlined, CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../services/api';
+import PageHeader from '../components/PageHeader';
 
-const { Title, Text, Paragraph } = Typography;
+const { Text, Paragraph } = Typography;
 
 const Settings: React.FC = () => {
   const { user, refreshUser } = useAuth();
@@ -46,7 +47,7 @@ const Settings: React.FC = () => {
 
   return (
     <div>
-      <Title level={2}>Settings</Title>
+      <PageHeader title="Settings" />
 
       <Card title="Security" style={{ marginBottom: 24 }}>
         <Space direction="vertical" size="large" style={{ width: '100%' }}>

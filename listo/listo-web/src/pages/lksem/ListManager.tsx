@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  Typography,
   Table,
   Button,
   Space,
@@ -22,8 +21,7 @@ import {
   ClearOutlined,
 } from '@ant-design/icons';
 import api from '../../services/api';
-
-const { Title } = Typography;
+import PageHeader from '../../components/PageHeader';
 
 interface ListItem {
   sysId: number;
@@ -199,9 +197,7 @@ const ListManager: React.FC = () => {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
-        <Title level={2} style={{ margin: 0 }}>List Manager</Title>
-      </div>
+      <PageHeader title="List Manager" />
 
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
         <Segmented

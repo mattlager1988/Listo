@@ -17,7 +17,6 @@ import {
   Tooltip,
   Dropdown,
   Radio,
-  Typography,
 } from 'antd';
 import type { MenuProps, TableProps } from 'antd';
 import type { SorterResult, FilterValue } from 'antd/es/table/interface';
@@ -34,8 +33,7 @@ import {
 import dayjs from 'dayjs';
 import api from '../../services/api';
 import PhoneInput from '../../components/PhoneInput';
-
-const { Title } = Typography;
+import PageHeader from '../../components/PageHeader';
 
 interface Account {
   sysId: number;
@@ -480,7 +478,7 @@ const Accounts: React.FC = () => {
 
   return (
     <div>
-      <Title level={2} style={{ margin: 0, marginBottom: 16 }}>Accounts</Title>
+      <PageHeader title="Accounts" />
       <ProTable<Account>
         actionRef={actionRef}
         rowKey="sysId"

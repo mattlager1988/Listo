@@ -1,14 +1,15 @@
 import React from 'react';
 import { Typography, Card, Row, Col, Empty } from 'antd';
 import { AppstoreOutlined } from '@ant-design/icons';
+import PageHeader from '../components/PageHeader';
 
-const { Title, Text, Paragraph } = Typography;
+const { Text, Paragraph } = Typography;
 
 const Dashboard: React.FC = () => {
   return (
     <div>
-      <Title level={2}>Dashboard</Title>
-      <Paragraph type="secondary">
+      <PageHeader title="Dashboard" />
+      <Paragraph type="secondary" style={{ marginTop: -16, marginBottom: 24 }}>
         Welcome to Listo! Your personal life management platform.
       </Paragraph>
 

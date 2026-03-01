@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  Typography,
   Table,
   Button,
   Space,
@@ -22,8 +21,7 @@ import {
   CloseCircleOutlined,
 } from '@ant-design/icons';
 import api from '../services/api';
-
-const { Title } = Typography;
+import PageHeader from '../components/PageHeader';
 
 interface User {
   sysId: number;
@@ -213,12 +211,14 @@ const UserManagement: React.FC = () => {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 24 }}>
-        <Title level={2} style={{ margin: 0 }}>User Management</Title>
-        <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
-          Add User
-        </Button>
-      </div>
+      <PageHeader
+        title="User Management"
+        actions={
+          <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
+            Add User
+          </Button>
+        }
+      />
 
       <Table
         columns={columns}

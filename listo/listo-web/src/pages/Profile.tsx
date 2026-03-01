@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
-import { Typography, Card, Form, Input, Button, message } from 'antd';
+import { Card, Form, Input, Button, message } from 'antd';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../services/api';
-
-const { Title } = Typography;
+import PageHeader from '../components/PageHeader';
 
 const Profile: React.FC = () => {
   const { user, refreshUser } = useAuth();
@@ -45,7 +44,7 @@ const Profile: React.FC = () => {
 
   return (
     <div>
-      <Title level={2}>Edit Profile</Title>
+      <PageHeader title="Edit Profile" />
 
       <Card title="Personal Information" style={{ marginBottom: 24 }}>
         <Form
