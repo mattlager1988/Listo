@@ -15,6 +15,10 @@ public class ListoDbContext : DbContext
 
     public DbSet<User> Users => Set<User>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+    public DbSet<AccountType> AccountTypes => Set<AccountType>();
+    public DbSet<AccountOwner> AccountOwners => Set<AccountOwner>();
+    public DbSet<Account> Accounts => Set<Account>();
+    public DbSet<SavedView> SavedViews => Set<SavedView>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -57,6 +61,85 @@ public class ListoDbContext : DbContext
                 .WithMany(u => u.RefreshTokens)
                 .HasForeignKey(e => e.UsersSysId);
         });
+
+        modelBuilder.Entity<AccountType>(entity =>
+        {
+            entity.ToTable("account_types");
+            entity.HasKey(e => e.SysId);
+            entity.Property(e => e.SysId).HasColumnName("sys_id");
+            entity.Property(e => e.Name).HasColumnName("name").IsRequired();
+            entity.Property(e => e.IsDeleted).HasColumnName("is_deleted");
+            entity.Property(e => e.CreateTimestamp).HasColumnName("create_timestamp");
+            entity.Property(e => e.ModifyTimestamp).HasColumnName("modify_timestamp");
+            entity.Property(e => e.CreateUser).HasColumnName("create_user");
+            entity.Property(e => e.ModifyUser).HasColumnName("modify_user");
+            entity.HasIndex(e => e.Name).IsUnique();
+        });
+
+        modelBuilder.Entity<AccountOwner>(entity =>
+        {
+            entity.ToTable("account_owners");
+            entity.HasKey(e => e.SysId);
+            entity.Property(e => e.SysId).HasColumnName("sys_id");
+            entity.Property(e => e.Name).HasColumnName("name").IsRequired();
+            entity.Property(e => e.IsDeleted).HasColumnName("is_deleted");
+            entity.Property(e => e.CreateTimestamp).HasColumnName("create_timestamp");
+            entity.Property(e => e.ModifyTimestamp).HasColumnName("modify_timestamp");
+            entity.Property(e => e.CreateUser).HasColumnName("create_user");
+            entity.Property(e => e.ModifyUser).HasColumnName("modify_user");
+            entity.HasIndex(e => e.Name).IsUnique();
+        });
+
+        modelBuilder.Entity<Account>(entity =>
+        {
+            entity.ToTable("accounts");
+            entity.HasKey(e => e.SysId);
+            entity.Property(e => e.SysId).HasColumnName("sys_id");
+            entity.Property(e => e.Name).HasColumnName("name").IsRequired();
+            entity.Property(e => e.AccountTypeSysId).HasColumnName("account_type_sys_id");
+            entity.Property(e => e.AccountOwnerSysId).HasColumnName("account_owner_sys_id");
+            entity.Property(e => e.AmountDue).HasColumnName("amount_due").HasPrecision(18, 2);
+            entity.Property(e => e.DueDate).HasColumnName("due_date");
+            entity.Property(e => e.AccountNumber).HasColumnName("account_number");
+            entity.Property(e => e.PhoneNumber).HasColumnName("phone_number");
+            entity.Property(e => e.WebAddress).HasColumnName("web_address");
+            entity.Property(e => e.Username).HasColumnName("username");
+            entity.Property(e => e.EncryptedPassword).HasColumnName("encrypted_password");
+            entity.Property(e => e.AutoPay).HasColumnName("auto_pay");
+            entity.Property(e => e.ResetAmountDue).HasColumnName("reset_amount_due");
+            entity.Property(e => e.AccountFlag).HasColumnName("account_flag")
+                .HasConversion<string>();
+            entity.Property(e => e.CreateTimestamp).HasColumnName("create_timestamp");
+            entity.Property(e => e.ModifyTimestamp).HasColumnName("modify_timestamp");
+            entity.Property(e => e.CreateUser).HasColumnName("create_user");
+            entity.Property(e => e.ModifyUser).HasColumnName("modify_user");
+            entity.HasOne(e => e.AccountType)
+                .WithMany(t => t.Accounts)
+                .HasForeignKey(e => e.AccountTypeSysId);
+            entity.HasOne(e => e.AccountOwner)
+                .WithMany(o => o.Accounts)
+                .HasForeignKey(e => e.AccountOwnerSysId);
+        });
+
+        modelBuilder.Entity<SavedView>(entity =>
+        {
+            entity.ToTable("saved_views");
+            entity.HasKey(e => e.SysId);
+            entity.Property(e => e.SysId).HasColumnName("sys_id");
+            entity.Property(e => e.Name).HasColumnName("name").IsRequired();
+            entity.Property(e => e.ViewType).HasColumnName("view_type").IsRequired();
+            entity.Property(e => e.Configuration).HasColumnName("configuration").IsRequired();
+            entity.Property(e => e.UserSysId).HasColumnName("user_sys_id");
+            entity.Property(e => e.IsDefault).HasColumnName("is_default");
+            entity.Property(e => e.CreateTimestamp).HasColumnName("create_timestamp");
+            entity.Property(e => e.ModifyTimestamp).HasColumnName("modify_timestamp");
+            entity.Property(e => e.CreateUser).HasColumnName("create_user");
+            entity.Property(e => e.ModifyUser).HasColumnName("modify_user");
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserSysId);
+            entity.HasIndex(e => new { e.UserSysId, e.ViewType, e.Name }).IsUnique();
+        });
     }
 
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
@@ -85,8 +168,10 @@ public class ListoDbContext : DbContext
 
     private long? GetCurrentUserId()
     {
-        var userIdClaim = _httpContextAccessor.HttpContext?.User
-            .FindFirst("sub")?.Value;
+        var user = _httpContextAccessor.HttpContext?.User;
+        // Check multiple claim types - JWT "sub" may be mapped to NameIdentifier by ASP.NET Core
+        var userIdClaim = user?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+            ?? user?.FindFirst("sub")?.Value;
         return long.TryParse(userIdClaim, out var userId) ? userId : null;
     }
 }

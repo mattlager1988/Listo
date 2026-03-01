@@ -8,6 +8,7 @@ import {
   SettingOutlined,
   LogoutOutlined,
   TeamOutlined,
+  BankOutlined,
 } from '@ant-design/icons';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -22,6 +23,16 @@ const MainLayout: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [version, setVersion] = useState<string>('');
+  const [openKeys, setOpenKeys] = useState<string[]>(
+    location.pathname.startsWith('/lksem') ? ['/lksem'] : []
+  );
+
+  // Update openKeys when pathname changes
+  React.useEffect(() => {
+    if (location.pathname.startsWith('/lksem')) {
+      setOpenKeys(prev => prev.includes('/lksem') ? prev : [...prev, '/lksem']);
+    }
+  }, [location.pathname]);
 
   React.useEffect(() => {
     fetch('/api/system/version')
@@ -35,6 +46,21 @@ const MainLayout: React.FC = () => {
       key: '/',
       icon: <HomeOutlined />,
       label: 'Dashboard',
+    },
+    {
+      key: '/lksem',
+      icon: <BankOutlined />,
+      label: 'LKSEM',
+      children: [
+        {
+          key: '/lksem/accounts',
+          label: 'Accounts',
+        },
+        {
+          key: '/lksem/lists',
+          label: 'List Manager',
+        },
+      ],
     },
     ...(user?.role === 'admin' ? [{
       key: '/users',
@@ -102,6 +128,8 @@ const MainLayout: React.FC = () => {
           theme="dark"
           mode="inline"
           selectedKeys={[location.pathname]}
+          openKeys={openKeys}
+          onOpenChange={setOpenKeys}
           items={menuItems}
           onClick={({ key }) => navigate(key)}
         />

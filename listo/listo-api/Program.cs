@@ -43,6 +43,11 @@ builder.Services.AddAuthorization();
 // Services
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddSingleton<IEncryptionService, EncryptionService>();
+builder.Services.AddScoped<IAccountService, AccountService>();
+builder.Services.AddScoped<IAccountTypeService, AccountTypeService>();
+builder.Services.AddScoped<IAccountOwnerService, AccountOwnerService>();
+builder.Services.AddScoped<ISavedViewService, SavedViewService>();
 
 // CORS
 builder.Services.AddCors(options =>

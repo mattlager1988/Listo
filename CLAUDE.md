@@ -60,6 +60,15 @@ Start API first, then frontend. The frontend proxies `/api` requests to the API 
 - Primary key field: `sys_id` (BIGINT AUTO_INCREMENT)
 - Audit fields: create_timestamp, modify_timestamp, create_user, modify_user
 
+### Audit Fields Pattern
+All entities extend `BaseEntity` which includes audit fields automatically populated by `ListoDbContext.SaveChangesAsync()`:
+- `create_timestamp`: Set to UTC now on insert
+- `modify_timestamp`: Set to UTC now on insert and update
+- `create_user`: Set to current user's `sys_id` on insert (from JWT claim)
+- `modify_user`: Set to current user's `sys_id` on insert and update (from JWT claim)
+
+The user ID is extracted from the JWT token's `sub` claim (mapped to `ClaimTypes.NameIdentifier` by ASP.NET Core). This happens automatically - no manual population needed in services or controllers.
+
 ## Configuration
 
 ### Backend (appsettings.json)
