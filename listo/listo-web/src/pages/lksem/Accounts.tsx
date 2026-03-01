@@ -17,6 +17,7 @@ import {
   Tooltip,
   Dropdown,
   Radio,
+  Typography,
 } from 'antd';
 import type { MenuProps, TableProps } from 'antd';
 import type { SorterResult, FilterValue } from 'antd/es/table/interface';
@@ -33,6 +34,8 @@ import {
 import dayjs from 'dayjs';
 import api from '../../services/api';
 import PhoneInput from '../../components/PhoneInput';
+
+const { Title } = Typography;
 
 interface Account {
   sysId: number;
@@ -197,7 +200,7 @@ const Accounts: React.FC = () => {
   const handleDelete = async (id: number) => {
     try {
       await api.delete(`/lksem/accounts/${id}`);
-      message.success('Account deleted');
+      message.success('Account deleted successfully');
       fetchAccounts();
     } catch {
       message.error('Failed to delete account');
@@ -244,10 +247,10 @@ const Accounts: React.FC = () => {
 
       if (values.saveMode === 'update' && currentView) {
         await api.put(`/lksem/savedviews/${currentView.sysId}`, payload);
-        message.success('View updated');
+        message.success('View updated successfully');
       } else {
         const response = await api.post('/lksem/savedviews', payload);
-        message.success('View saved');
+        message.success('View saved successfully');
         // Set the newly created view as current
         setCurrentView(response.data);
       }
@@ -266,7 +269,7 @@ const Accounts: React.FC = () => {
   const handleDeleteView = async (id: number) => {
     try {
       await api.delete(`/lksem/savedviews/${id}`);
-      message.success('View deleted');
+      message.success('View deleted successfully');
       if (currentView?.sysId === id) {
         setCurrentView(null);
         setColumnsState({});
@@ -284,7 +287,7 @@ const Accounts: React.FC = () => {
     setColumnsState({});
     setSorterState(undefined);
     setFiltersState({});
-    message.success('View reset to default');
+    message.success('View reset to default successfully');
   };
 
   // Get filtered values for a column from state
@@ -477,8 +480,8 @@ const Accounts: React.FC = () => {
 
   return (
     <div>
+      <Title level={2} style={{ margin: 0, marginBottom: 16 }}>Accounts</Title>
       <ProTable<Account>
-        headerTitle="Accounts"
         actionRef={actionRef}
         rowKey="sysId"
         columns={columns}
@@ -611,11 +614,11 @@ const Accounts: React.FC = () => {
             </Form.Item>
           </Space>
 
-          <Form.Item name="accountNumber" label="Account #">
+          <Form.Item name="accountNumber" label="Account Number">
             <Input />
           </Form.Item>
 
-          <Form.Item name="phoneNumber" label="Phone #">
+          <Form.Item name="phoneNumber" label="Phone Number">
             <PhoneInput />
           </Form.Item>
 

@@ -94,7 +94,7 @@ const ListManager: React.FC = () => {
   const handleDelete = async (id: number) => {
     try {
       await api.delete(`/lksem/${endpoint}/${id}`);
-      message.success(`${itemLabel} deleted`);
+      message.success(`${itemLabel} deleted successfully`);
       fetchItems();
     } catch {
       message.error(`Failed to delete ${itemLabel.toLowerCase()}`);
@@ -104,7 +104,7 @@ const ListManager: React.FC = () => {
   const handleRestore = async (id: number) => {
     try {
       await api.post(`/lksem/${endpoint}/${id}/restore`);
-      message.success(`${itemLabel} restored`);
+      message.success(`${itemLabel} restored successfully`);
       fetchItems();
     } catch {
       message.error(`Failed to restore ${itemLabel.toLowerCase()}`);
@@ -114,7 +114,7 @@ const ListManager: React.FC = () => {
   const handlePurge = async (id: number) => {
     try {
       await api.delete(`/lksem/${endpoint}/${id}/purge`);
-      message.success(`${itemLabel} permanently deleted`);
+      message.success(`${itemLabel} permanently deleted successfully`);
       fetchItems();
     } catch (err: unknown) {
       const error = err as { response?: { data?: { message?: string } } };
@@ -200,7 +200,7 @@ const ListManager: React.FC = () => {
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
-        <Title level={3} style={{ margin: 0 }}>List Manager</Title>
+        <Title level={2} style={{ margin: 0 }}>List Manager</Title>
       </div>
 
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
