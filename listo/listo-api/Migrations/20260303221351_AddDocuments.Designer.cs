@@ -4,6 +4,7 @@ using Listo.Api.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Listo.Api.Migrations
 {
     [DbContext(typeof(ListoDbContext))]
-    partial class ListoDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260303221351_AddDocuments")]
+    partial class AddDocuments
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -195,53 +198,6 @@ namespace Listo.Api.Migrations
                     b.ToTable("account_types", (string)null);
                 });
 
-            modelBuilder.Entity("Listo.Api.Models.Aircraft", b =>
-                {
-                    b.Property<long>("SysId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasColumnName("sys_id");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("SysId"));
-
-                    b.Property<DateTime>("CreateTimestamp")
-                        .HasColumnType("datetime(6)")
-                        .HasColumnName("create_timestamp");
-
-                    b.Property<long?>("CreateUser")
-                        .HasColumnType("bigint")
-                        .HasColumnName("create_user");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("tinyint(1)")
-                        .HasColumnName("is_deleted");
-
-                    b.Property<DateTime>("ModifyTimestamp")
-                        .HasColumnType("datetime(6)")
-                        .HasColumnName("modify_timestamp");
-
-                    b.Property<long?>("ModifyUser")
-                        .HasColumnType("bigint")
-                        .HasColumnName("modify_user");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("longtext")
-                        .HasColumnName("name");
-
-                    b.Property<string>("PlaneId")
-                        .IsRequired()
-                        .HasColumnType("varchar(255)")
-                        .HasColumnName("plane_id");
-
-                    b.HasKey("SysId");
-
-                    b.HasIndex("PlaneId")
-                        .IsUnique();
-
-                    b.ToTable("aircraft", (string)null);
-                });
-
             modelBuilder.Entity("Listo.Api.Models.Document", b =>
                 {
                     b.Property<long>("SysId")
@@ -263,10 +219,6 @@ namespace Listo.Api.Migrations
                         .IsRequired()
                         .HasColumnType("longtext")
                         .HasColumnName("description");
-
-                    b.Property<long?>("DocumentTypeSysId")
-                        .HasColumnType("bigint")
-                        .HasColumnName("document_type_sys_id");
 
                     b.Property<long?>("EntitySysId")
                         .HasColumnType("bigint")
@@ -320,55 +272,11 @@ namespace Listo.Api.Migrations
 
                     b.HasKey("SysId");
 
-                    b.HasIndex("DocumentTypeSysId");
-
                     b.HasIndex("UploadedBySysId");
 
                     b.HasIndex("Module", "EntityType", "EntitySysId");
 
                     b.ToTable("documents", (string)null);
-                });
-
-            modelBuilder.Entity("Listo.Api.Models.DocumentType", b =>
-                {
-                    b.Property<long>("SysId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasColumnName("sys_id");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("SysId"));
-
-                    b.Property<DateTime>("CreateTimestamp")
-                        .HasColumnType("datetime(6)")
-                        .HasColumnName("create_timestamp");
-
-                    b.Property<long?>("CreateUser")
-                        .HasColumnType("bigint")
-                        .HasColumnName("create_user");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("tinyint(1)")
-                        .HasColumnName("is_deleted");
-
-                    b.Property<DateTime>("ModifyTimestamp")
-                        .HasColumnType("datetime(6)")
-                        .HasColumnName("modify_timestamp");
-
-                    b.Property<long?>("ModifyUser")
-                        .HasColumnType("bigint")
-                        .HasColumnName("modify_user");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("varchar(255)")
-                        .HasColumnName("name");
-
-                    b.HasKey("SysId");
-
-                    b.HasIndex("Name")
-                        .IsUnique();
-
-                    b.ToTable("document_types", (string)null);
                 });
 
             modelBuilder.Entity("Listo.Api.Models.RefreshToken", b =>
@@ -476,112 +384,6 @@ namespace Listo.Api.Migrations
                     b.ToTable("saved_views", (string)null);
                 });
 
-            modelBuilder.Entity("Listo.Api.Models.TrainingLog", b =>
-                {
-                    b.Property<long>("SysId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasColumnName("sys_id");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("SysId"));
-
-                    b.Property<long?>("AircraftSysId")
-                        .HasColumnType("bigint")
-                        .HasColumnName("aircraft_sys_id");
-
-                    b.Property<DateTime>("CreateTimestamp")
-                        .HasColumnType("datetime(6)")
-                        .HasColumnName("create_timestamp");
-
-                    b.Property<long?>("CreateUser")
-                        .HasColumnType("bigint")
-                        .HasColumnName("create_user");
-
-                    b.Property<DateTime>("Date")
-                        .HasColumnType("datetime(6)")
-                        .HasColumnName("date");
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("description");
-
-                    b.Property<decimal>("HoursFlown")
-                        .HasPrecision(5, 2)
-                        .HasColumnType("decimal(5,2)")
-                        .HasColumnName("hours_flown");
-
-                    b.Property<DateTime>("ModifyTimestamp")
-                        .HasColumnType("datetime(6)")
-                        .HasColumnName("modify_timestamp");
-
-                    b.Property<long?>("ModifyUser")
-                        .HasColumnType("bigint")
-                        .HasColumnName("modify_user");
-
-                    b.Property<long>("TrainingTypeSysId")
-                        .HasColumnType("bigint")
-                        .HasColumnName("training_type_sys_id");
-
-                    b.Property<long>("UserSysId")
-                        .HasColumnType("bigint")
-                        .HasColumnName("user_sys_id");
-
-                    b.HasKey("SysId");
-
-                    b.HasIndex("AircraftSysId");
-
-                    b.HasIndex("Date");
-
-                    b.HasIndex("TrainingTypeSysId");
-
-                    b.HasIndex("UserSysId");
-
-                    b.ToTable("training_logs", (string)null);
-                });
-
-            modelBuilder.Entity("Listo.Api.Models.TrainingType", b =>
-                {
-                    b.Property<long>("SysId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasColumnName("sys_id");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("SysId"));
-
-                    b.Property<DateTime>("CreateTimestamp")
-                        .HasColumnType("datetime(6)")
-                        .HasColumnName("create_timestamp");
-
-                    b.Property<long?>("CreateUser")
-                        .HasColumnType("bigint")
-                        .HasColumnName("create_user");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("tinyint(1)")
-                        .HasColumnName("is_deleted");
-
-                    b.Property<DateTime>("ModifyTimestamp")
-                        .HasColumnType("datetime(6)")
-                        .HasColumnName("modify_timestamp");
-
-                    b.Property<long?>("ModifyUser")
-                        .HasColumnType("bigint")
-                        .HasColumnName("modify_user");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("varchar(255)")
-                        .HasColumnName("name");
-
-                    b.HasKey("SysId");
-
-                    b.HasIndex("Name")
-                        .IsUnique();
-
-                    b.ToTable("training_types", (string)null);
-                });
-
             modelBuilder.Entity("Listo.Api.Models.User", b =>
                 {
                     b.Property<long>("SysId")
@@ -681,17 +483,11 @@ namespace Listo.Api.Migrations
 
             modelBuilder.Entity("Listo.Api.Models.Document", b =>
                 {
-                    b.HasOne("Listo.Api.Models.DocumentType", "DocumentType")
-                        .WithMany("Documents")
-                        .HasForeignKey("DocumentTypeSysId");
-
                     b.HasOne("Listo.Api.Models.User", "UploadedBy")
                         .WithMany()
                         .HasForeignKey("UploadedBySysId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.Navigation("DocumentType");
 
                     b.Navigation("UploadedBy");
                 });
@@ -718,31 +514,6 @@ namespace Listo.Api.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("Listo.Api.Models.TrainingLog", b =>
-                {
-                    b.HasOne("Listo.Api.Models.Aircraft", "Aircraft")
-                        .WithMany("TrainingLogs")
-                        .HasForeignKey("AircraftSysId");
-
-                    b.HasOne("Listo.Api.Models.TrainingType", "TrainingType")
-                        .WithMany("TrainingLogs")
-                        .HasForeignKey("TrainingTypeSysId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Listo.Api.Models.User", "User")
-                        .WithMany()
-                        .HasForeignKey("UserSysId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Aircraft");
-
-                    b.Navigation("TrainingType");
-
-                    b.Navigation("User");
-                });
-
             modelBuilder.Entity("Listo.Api.Models.AccountOwner", b =>
                 {
                     b.Navigation("Accounts");
@@ -751,21 +522,6 @@ namespace Listo.Api.Migrations
             modelBuilder.Entity("Listo.Api.Models.AccountType", b =>
                 {
                     b.Navigation("Accounts");
-                });
-
-            modelBuilder.Entity("Listo.Api.Models.Aircraft", b =>
-                {
-                    b.Navigation("TrainingLogs");
-                });
-
-            modelBuilder.Entity("Listo.Api.Models.DocumentType", b =>
-                {
-                    b.Navigation("Documents");
-                });
-
-            modelBuilder.Entity("Listo.Api.Models.TrainingType", b =>
-                {
-                    b.Navigation("TrainingLogs");
                 });
 
             modelBuilder.Entity("Listo.Api.Models.User", b =>

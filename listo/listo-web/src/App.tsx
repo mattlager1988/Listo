@@ -13,7 +13,11 @@ import Settings from './pages/Settings';
 import UserManagement from './pages/UserManagement';
 import LksemLayout from './pages/lksem';
 import Accounts from './pages/lksem/Accounts';
-import ListManager from './pages/lksem/ListManager';
+import AdminLayout from './pages/admin';
+import ListManager from './pages/admin/ListManager';
+import AviationLayout from './pages/aviation';
+import TrainingTracker from './pages/aviation/TrainingTracker';
+import AviationDocuments from './pages/aviation/Documents';
 
 function App() {
   return (
@@ -37,16 +41,24 @@ function App() {
               <Route path="lksem" element={<LksemLayout />}>
                 <Route index element={<Accounts />} />
                 <Route path="accounts" element={<Accounts />} />
-                <Route path="lists" element={<ListManager />} />
+              </Route>
+              <Route path="aviation" element={<AviationLayout />}>
+                <Route index element={<TrainingTracker />} />
+                <Route path="training" element={<TrainingTracker />} />
+                <Route path="documents" element={<AviationDocuments />} />
               </Route>
               <Route
-                path="users"
+                path="admin"
                 element={
                   <ProtectedRoute requiredRole="admin">
-                    <UserManagement />
+                    <AdminLayout />
                   </ProtectedRoute>
                 }
-              />
+              >
+                <Route index element={<Navigate to="/admin/users" replace />} />
+                <Route path="users" element={<UserManagement />} />
+                <Route path="lists" element={<ListManager />} />
+              </Route>
             </Route>
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

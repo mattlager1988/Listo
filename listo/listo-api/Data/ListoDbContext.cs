@@ -19,6 +19,11 @@ public class ListoDbContext : DbContext
     public DbSet<AccountOwner> AccountOwners => Set<AccountOwner>();
     public DbSet<Account> Accounts => Set<Account>();
     public DbSet<SavedView> SavedViews => Set<SavedView>();
+    public DbSet<Document> Documents => Set<Document>();
+    public DbSet<TrainingType> TrainingTypes => Set<TrainingType>();
+    public DbSet<Aircraft> Aircraft => Set<Aircraft>();
+    public DbSet<TrainingLog> TrainingLogs => Set<TrainingLog>();
+    public DbSet<DocumentType> DocumentTypes => Set<DocumentType>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -139,6 +144,114 @@ public class ListoDbContext : DbContext
                 .WithMany()
                 .HasForeignKey(e => e.UserSysId);
             entity.HasIndex(e => new { e.UserSysId, e.ViewType, e.Name }).IsUnique();
+        });
+
+        modelBuilder.Entity<Document>(entity =>
+        {
+            entity.ToTable("documents");
+            entity.HasKey(e => e.SysId);
+            entity.Property(e => e.SysId).HasColumnName("sys_id");
+            entity.Property(e => e.FileName).HasColumnName("file_name").IsRequired();
+            entity.Property(e => e.OriginalFileName).HasColumnName("original_file_name").IsRequired();
+            entity.Property(e => e.Description).HasColumnName("description");
+            entity.Property(e => e.MimeType).HasColumnName("mime_type").IsRequired();
+            entity.Property(e => e.FileSize).HasColumnName("file_size");
+            entity.Property(e => e.StoragePath).HasColumnName("storage_path").IsRequired();
+            entity.Property(e => e.Module).HasColumnName("module").IsRequired();
+            entity.Property(e => e.EntityType).HasColumnName("entity_type").IsRequired();
+            entity.Property(e => e.EntitySysId).HasColumnName("entity_sys_id");
+            entity.Property(e => e.UploadedBySysId).HasColumnName("uploaded_by_sys_id");
+            entity.Property(e => e.CreateTimestamp).HasColumnName("create_timestamp");
+            entity.Property(e => e.ModifyTimestamp).HasColumnName("modify_timestamp");
+            entity.Property(e => e.CreateUser).HasColumnName("create_user");
+            entity.Property(e => e.ModifyUser).HasColumnName("modify_user");
+
+            entity.Property(e => e.DocumentTypeSysId).HasColumnName("document_type_sys_id");
+
+            entity.HasOne(e => e.UploadedBy)
+                .WithMany()
+                .HasForeignKey(e => e.UploadedBySysId);
+
+            entity.HasOne(e => e.DocumentType)
+                .WithMany(t => t.Documents)
+                .HasForeignKey(e => e.DocumentTypeSysId);
+
+            entity.HasIndex(e => new { e.Module, e.EntityType, e.EntitySysId });
+        });
+
+        modelBuilder.Entity<DocumentType>(entity =>
+        {
+            entity.ToTable("document_types");
+            entity.HasKey(e => e.SysId);
+            entity.Property(e => e.SysId).HasColumnName("sys_id");
+            entity.Property(e => e.Name).HasColumnName("name").IsRequired();
+            entity.Property(e => e.IsDeleted).HasColumnName("is_deleted");
+            entity.Property(e => e.CreateTimestamp).HasColumnName("create_timestamp");
+            entity.Property(e => e.ModifyTimestamp).HasColumnName("modify_timestamp");
+            entity.Property(e => e.CreateUser).HasColumnName("create_user");
+            entity.Property(e => e.ModifyUser).HasColumnName("modify_user");
+            entity.HasIndex(e => e.Name).IsUnique();
+        });
+
+        modelBuilder.Entity<TrainingType>(entity =>
+        {
+            entity.ToTable("training_types");
+            entity.HasKey(e => e.SysId);
+            entity.Property(e => e.SysId).HasColumnName("sys_id");
+            entity.Property(e => e.Name).HasColumnName("name").IsRequired();
+            entity.Property(e => e.IsDeleted).HasColumnName("is_deleted");
+            entity.Property(e => e.CreateTimestamp).HasColumnName("create_timestamp");
+            entity.Property(e => e.ModifyTimestamp).HasColumnName("modify_timestamp");
+            entity.Property(e => e.CreateUser).HasColumnName("create_user");
+            entity.Property(e => e.ModifyUser).HasColumnName("modify_user");
+            entity.HasIndex(e => e.Name).IsUnique();
+        });
+
+        modelBuilder.Entity<Aircraft>(entity =>
+        {
+            entity.ToTable("aircraft");
+            entity.HasKey(e => e.SysId);
+            entity.Property(e => e.SysId).HasColumnName("sys_id");
+            entity.Property(e => e.PlaneId).HasColumnName("plane_id").IsRequired();
+            entity.Property(e => e.Name).HasColumnName("name").IsRequired();
+            entity.Property(e => e.IsDeleted).HasColumnName("is_deleted");
+            entity.Property(e => e.CreateTimestamp).HasColumnName("create_timestamp");
+            entity.Property(e => e.ModifyTimestamp).HasColumnName("modify_timestamp");
+            entity.Property(e => e.CreateUser).HasColumnName("create_user");
+            entity.Property(e => e.ModifyUser).HasColumnName("modify_user");
+            entity.HasIndex(e => e.PlaneId).IsUnique();
+        });
+
+        modelBuilder.Entity<TrainingLog>(entity =>
+        {
+            entity.ToTable("training_logs");
+            entity.HasKey(e => e.SysId);
+            entity.Property(e => e.SysId).HasColumnName("sys_id");
+            entity.Property(e => e.Date).HasColumnName("date");
+            entity.Property(e => e.Description).HasColumnName("description").HasColumnType("text");
+            entity.Property(e => e.HoursFlown).HasColumnName("hours_flown").HasPrecision(5, 2);
+            entity.Property(e => e.UserSysId).HasColumnName("user_sys_id");
+            entity.Property(e => e.TrainingTypeSysId).HasColumnName("training_type_sys_id");
+            entity.Property(e => e.AircraftSysId).HasColumnName("aircraft_sys_id");
+            entity.Property(e => e.CreateTimestamp).HasColumnName("create_timestamp");
+            entity.Property(e => e.ModifyTimestamp).HasColumnName("modify_timestamp");
+            entity.Property(e => e.CreateUser).HasColumnName("create_user");
+            entity.Property(e => e.ModifyUser).HasColumnName("modify_user");
+
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserSysId);
+
+            entity.HasOne(e => e.TrainingType)
+                .WithMany(t => t.TrainingLogs)
+                .HasForeignKey(e => e.TrainingTypeSysId);
+
+            entity.HasOne(e => e.Aircraft)
+                .WithMany(a => a.TrainingLogs)
+                .HasForeignKey(e => e.AircraftSysId);
+
+            entity.HasIndex(e => e.UserSysId);
+            entity.HasIndex(e => e.Date);
         });
     }
 

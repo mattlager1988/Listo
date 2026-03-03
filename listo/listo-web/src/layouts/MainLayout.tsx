@@ -7,8 +7,9 @@ import {
   UserOutlined,
   SettingOutlined,
   LogoutOutlined,
-  TeamOutlined,
   BankOutlined,
+  ToolOutlined,
+  RocketOutlined,
 } from '@ant-design/icons';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -23,16 +24,24 @@ const MainLayout: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [version, setVersion] = useState<string>('');
-  const [openKeys, setOpenKeys] = useState<string[]>(
-    location.pathname.startsWith('/lksem') ? ['/lksem'] : []
-  );
+  const [openKeys, setOpenKeys] = useState<string[]>(() => {
+    if (location.pathname.startsWith('/lksem')) return ['/lksem'];
+    if (location.pathname.startsWith('/aviation')) return ['/aviation'];
+    if (location.pathname.startsWith('/admin')) return ['/admin'];
+    return [];
+  });
 
   // Update openKeys when pathname changes
   React.useEffect(() => {
-    if (location.pathname.startsWith('/lksem')) {
-      setOpenKeys(prev => prev.includes('/lksem') ? prev : [...prev, '/lksem']);
+    const path = location.pathname;
+    if (path.startsWith('/lksem') && !openKeys.includes('/lksem')) {
+      setOpenKeys(prev => [...prev, '/lksem']);
+    } else if (path.startsWith('/aviation') && !openKeys.includes('/aviation')) {
+      setOpenKeys(prev => [...prev, '/aviation']);
+    } else if (path.startsWith('/admin') && !openKeys.includes('/admin')) {
+      setOpenKeys(prev => [...prev, '/admin']);
     }
-  }, [location.pathname]);
+  }, [location.pathname, openKeys]);
 
   React.useEffect(() => {
     fetch('/api/system/version')
@@ -56,16 +65,37 @@ const MainLayout: React.FC = () => {
           key: '/lksem/accounts',
           label: 'Accounts',
         },
+      ],
+    },
+    {
+      key: '/aviation',
+      icon: <RocketOutlined />,
+      label: 'Aviation',
+      children: [
         {
-          key: '/lksem/lists',
-          label: 'List Manager',
+          key: '/aviation/training',
+          label: 'Training Tracker',
+        },
+        {
+          key: '/aviation/documents',
+          label: 'Documents',
         },
       ],
     },
     ...(user?.role === 'admin' ? [{
-      key: '/users',
-      icon: <TeamOutlined />,
-      label: 'User Management',
+      key: '/admin',
+      icon: <ToolOutlined />,
+      label: 'Admin',
+      children: [
+        {
+          key: '/admin/users',
+          label: 'User Management',
+        },
+        {
+          key: '/admin/lists',
+          label: 'List Manager',
+        },
+      ],
     }] : []),
   ];
 

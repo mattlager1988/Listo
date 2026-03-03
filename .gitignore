@@ -150,3 +150,6 @@ secrets.json
 # =========================
 .dev-pids
 .dev-logs/
+
+# Uploaded documents
+listo/listo-api/uploads/

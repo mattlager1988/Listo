@@ -48,6 +48,11 @@ builder.Services.AddScoped<IAccountService, AccountService>();
 builder.Services.AddScoped<IAccountTypeService, AccountTypeService>();
 builder.Services.AddScoped<IAccountOwnerService, AccountOwnerService>();
 builder.Services.AddScoped<ISavedViewService, SavedViewService>();
+builder.Services.AddScoped<IDocumentService, DocumentService>();
+builder.Services.AddScoped<ITrainingTypeService, TrainingTypeService>();
+builder.Services.AddScoped<IAircraftService, AircraftService>();
+builder.Services.AddScoped<ITrainingLogService, TrainingLogService>();
+builder.Services.AddScoped<IDocumentTypeService, DocumentTypeService>();
 
 // CORS
 builder.Services.AddCors(options =>
