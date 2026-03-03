@@ -59,6 +59,7 @@ const Login: React.FC = () => {
       <Card style={{ width: 400, boxShadow: '0 8px 24px rgba(0,0,0,0.15)' }}>
         <Space direction="vertical" size="large" style={{ width: '100%' }}>
           <div style={{ textAlign: 'center' }}>
+            <img src="/logo-128.png" alt="Listo" style={{ width: 80, height: 80, marginBottom: 8 }} />
             <Title level={2} style={{ margin: 0, color: '#1890ff' }}>LISTO</Title>
             <Text type="secondary">
               {mfaRequired ? 'Enter your verification code' : 'Sign in to your account'}

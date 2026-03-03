@@ -117,12 +117,18 @@ const MainLayout: React.FC = () => {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          color: '#fff',
-          fontSize: collapsed ? 16 : 24,
-          fontWeight: 700,
-          letterSpacing: 2,
+          gap: 8,
         }}>
-          {collapsed ? 'L' : 'LISTO'}
+          <img
+            src={collapsed ? '/logo-32.png' : '/logo-64.png'}
+            alt="Listo"
+            style={{ width: collapsed ? 32 : 40, height: collapsed ? 32 : 40 }}
+          />
+          {!collapsed && (
+            <span style={{ color: '#fff', fontSize: 24, fontWeight: 700, letterSpacing: 2 }}>
+              LISTO
+            </span>
+          )}
         </div>
         <Menu
           theme="dark"
