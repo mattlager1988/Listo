@@ -270,7 +270,12 @@ server {
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_cache_bypass $http_upgrade;
-        proxy_read_timeout 90;
+
+        # Large file upload support (250MB)
+        client_max_body_size 260M;
+        proxy_read_timeout 600;
+        proxy_send_timeout 600;
+        proxy_connect_timeout 60;
     }
 
     # Swagger UI (optional - consider disabling in production)

@@ -8,12 +8,12 @@ using Listo.Api.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Configure Kestrel for large file uploads (100MB)
+// Configure Kestrel for large file uploads (250MB)
 builder.WebHost.ConfigureKestrel(options =>
 {
-    options.Limits.MaxRequestBodySize = 104_857_600; // 100MB
-    options.Limits.KeepAliveTimeout = TimeSpan.FromMinutes(5);
-    options.Limits.RequestHeadersTimeout = TimeSpan.FromMinutes(5);
+    options.Limits.MaxRequestBodySize = 262_144_000; // 250MB
+    options.Limits.KeepAliveTimeout = TimeSpan.FromMinutes(10);
+    options.Limits.RequestHeadersTimeout = TimeSpan.FromMinutes(10);
 });
 
 // Add services to the container.
@@ -23,7 +23,7 @@ builder.Services.AddEndpointsApiExplorer();
 // Configure form options for large file uploads
 builder.Services.Configure<FormOptions>(options =>
 {
-    options.MultipartBodyLengthLimit = 104_857_600; // 100MB
+    options.MultipartBodyLengthLimit = 262_144_000; // 250MB
 });
 builder.Services.AddSwaggerGen();
 builder.Services.AddHttpContextAccessor();
