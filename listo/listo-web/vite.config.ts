@@ -10,6 +10,12 @@ export default defineConfig({
       '/api': {
         target: 'http://localhost:5286',
         changeOrigin: true,
+        configure: (proxy) => {
+          proxy.on('proxyReq', (proxyReq) => {
+            // Remove timeout for large uploads
+            proxyReq.setTimeout(0);
+          });
+        },
       },
     },
   },

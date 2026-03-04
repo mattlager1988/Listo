@@ -57,6 +57,8 @@ public class DocumentsController : ControllerBase
     }
 
     [HttpPost]
+    [RequestSizeLimit(52_428_800)] // 50MB
+    [RequestFormLimits(MultipartBodyLengthLimit = 52_428_800)]
     public async Task<IActionResult> Upload(
         IFormFile file,
         [FromForm] string description,

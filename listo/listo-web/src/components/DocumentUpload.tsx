@@ -65,6 +65,7 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({
     try {
       await api.post('/documents', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
+        timeout: 300000, // 5 minutes for large uploads
         onUploadProgress: (progressEvent) => {
           const percent = progressEvent.total
             ? Math.round((progressEvent.loaded * 100) / progressEvent.total)
