@@ -1,5 +1,6 @@
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Listo.Api.Data;
@@ -7,9 +8,21 @@ using Listo.Api.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Configure Kestrel for large file uploads (50MB)
+builder.WebHost.ConfigureKestrel(options =>
+{
+    options.Limits.MaxRequestBodySize = 52_428_800; // 50MB
+});
+
 // Add services to the container.
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
+
+// Configure form options for large file uploads
+builder.Services.Configure<FormOptions>(options =>
+{
+    options.MultipartBodyLengthLimit = 52_428_800; // 50MB
+});
 builder.Services.AddSwaggerGen();
 builder.Services.AddHttpContextAccessor();
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Upload, Button, message, Modal, Form, Input, Select } from 'antd';
+import { Upload, Button, message, Modal, Form, Input, Select, Progress } from 'antd';
 import { UploadOutlined, InboxOutlined } from '@ant-design/icons';
 import type { UploadFile, UploadProps } from 'antd';
 import api from '../services/api';
@@ -29,6 +29,7 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({
   const [modalVisible, setModalVisible] = useState(false);
   const [fileList, setFileList] = useState<UploadFile[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [documentTypes, setDocumentTypes] = useState<DocumentType[]>([]);
   const [form] = Form.useForm();
 
@@ -60,9 +61,16 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({
     }
 
     setUploading(true);
+    setUploadProgress(0);
     try {
       await api.post('/documents', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
+        onUploadProgress: (progressEvent) => {
+          const percent = progressEvent.total
+            ? Math.round((progressEvent.loaded * 100) / progressEvent.total)
+            : 0;
+          setUploadProgress(percent);
+        },
       });
       message.success('Document uploaded successfully');
       setFileList([]);
@@ -74,6 +82,7 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({
       message.error(error.response?.data?.message || 'Upload failed');
     } finally {
       setUploading(false);
+      setUploadProgress(0);
     }
   };
 
@@ -134,6 +143,11 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({
                 allowClear
                 options={documentTypes.map(dt => ({ value: dt.sysId, label: dt.name }))}
               />
+            </Form.Item>
+          )}
+          {uploading && (
+            <Form.Item label="Upload Progress">
+              <Progress percent={uploadProgress} status="active" />
             </Form.Item>
           )}
         </Form>

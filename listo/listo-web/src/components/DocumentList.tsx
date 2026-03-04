@@ -10,6 +10,9 @@ import {
   FileWordOutlined,
   EyeOutlined,
   SearchOutlined,
+  EditOutlined,
+  CheckOutlined,
+  CloseOutlined,
 } from '@ant-design/icons';
 import api from '../services/api';
 import DocumentUpload from './DocumentUpload';
@@ -55,6 +58,8 @@ const DocumentList: React.FC<DocumentListProps> = ({
   const [searchText, setSearchText] = useState('');
   const [selectedType, setSelectedType] = useState<number | null>(null);
   const [documentTypes, setDocumentTypes] = useState<DocumentType[]>([]);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editingName, setEditingName] = useState('');
 
   const fetchDocuments = useCallback(async () => {
     setLoading(true);
@@ -123,6 +128,29 @@ const DocumentList: React.FC<DocumentListProps> = ({
     }
   };
 
+  const startEditing = (doc: Document) => {
+    setEditingId(doc.sysId);
+    setEditingName(doc.description || doc.originalFileName);
+  };
+
+  const cancelEditing = () => {
+    setEditingId(null);
+    setEditingName('');
+  };
+
+  const saveEditing = async () => {
+    if (editingId === null) return;
+    try {
+      await api.put(`/documents/${editingId}`, { description: editingName });
+      message.success('Document name updated');
+      setEditingId(null);
+      setEditingName('');
+      fetchDocuments();
+    } catch {
+      message.error('Failed to update document name');
+    }
+  };
+
   const handleView = async (doc: Document) => {
     if (doc.mimeType === 'application/pdf') {
       try {
@@ -181,12 +209,36 @@ const DocumentList: React.FC<DocumentListProps> = ({
       title: 'Name',
       key: 'name',
       ellipsis: true,
-      render: (_: unknown, record: Document) => (
-        <Space>
-          {getFileIcon(record.mimeType)}
-          <span>{record.description || record.originalFileName}</span>
-        </Space>
-      ),
+      render: (_: unknown, record: Document) => {
+        if (editingId === record.sysId) {
+          return (
+            <Space>
+              {getFileIcon(record.mimeType)}
+              <Input
+                size="small"
+                value={editingName}
+                onChange={(e) => setEditingName(e.target.value)}
+                onPressEnter={saveEditing}
+                onKeyDown={(e) => e.key === 'Escape' && cancelEditing()}
+                style={{ width: 200 }}
+                autoFocus
+              />
+              <Tooltip title="Save">
+                <Button type="text" size="small" icon={<CheckOutlined />} onClick={saveEditing} />
+              </Tooltip>
+              <Tooltip title="Cancel">
+                <Button type="text" size="small" icon={<CloseOutlined />} onClick={cancelEditing} />
+              </Tooltip>
+            </Space>
+          );
+        }
+        return (
+          <Space>
+            {getFileIcon(record.mimeType)}
+            <span>{record.description || record.originalFileName}</span>
+          </Space>
+        );
+      },
     },
     ...(showDocumentType ? [{
       title: 'Type',
@@ -217,9 +269,17 @@ const DocumentList: React.FC<DocumentListProps> = ({
     {
       title: 'Actions',
       key: 'actions',
-      width: 130,
+      width: 160,
       render: (_: unknown, record: Document) => (
         <Space>
+          <Tooltip title="Edit Name">
+            <Button
+              type="text"
+              icon={<EditOutlined />}
+              onClick={() => startEditing(record)}
+              disabled={editingId !== null}
+            />
+          </Tooltip>
           {canView(record) && (
             <Tooltip title="View">
               <Button
