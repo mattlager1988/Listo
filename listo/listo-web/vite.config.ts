@@ -10,10 +10,17 @@ export default defineConfig({
       '/api': {
         target: 'http://localhost:5286',
         changeOrigin: true,
+        timeout: 300000, // 5 minutes
+        proxyTimeout: 300000, // 5 minutes
         configure: (proxy) => {
-          proxy.on('proxyReq', (proxyReq) => {
-            // Remove timeout for large uploads
+          proxy.on('proxyReq', (proxyReq, req, res) => {
+            // Remove timeouts for large uploads
             proxyReq.setTimeout(0);
+            req.setTimeout(0);
+            res.setTimeout(0);
+          });
+          proxy.on('proxyRes', (proxyRes, req, res) => {
+            res.setTimeout(0);
           });
         },
       },

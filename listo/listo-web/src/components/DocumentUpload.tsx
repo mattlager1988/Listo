@@ -66,6 +66,8 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({
       await api.post('/documents', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
         timeout: 300000, // 5 minutes for large uploads
+        maxBodyLength: Infinity,
+        maxContentLength: Infinity,
         onUploadProgress: (progressEvent) => {
           const percent = progressEvent.total
             ? Math.round((progressEvent.loaded * 100) / progressEvent.total)
@@ -79,8 +81,10 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({
       setModalVisible(false);
       onUploadComplete?.();
     } catch (err: unknown) {
-      const error = err as { response?: { data?: { message?: string } } };
-      message.error(error.response?.data?.message || 'Upload failed');
+      console.error('Upload error:', err);
+      const error = err as { response?: { data?: { message?: string } }, message?: string, code?: string };
+      const errorMessage = error.response?.data?.message || error.message || error.code || 'Upload failed';
+      message.error(errorMessage);
     } finally {
       setUploading(false);
       setUploadProgress(0);
