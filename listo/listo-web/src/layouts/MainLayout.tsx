@@ -164,8 +164,8 @@ const MainLayout: React.FC = () => {
           theme="dark"
           mode="inline"
           selectedKeys={[location.pathname]}
-          openKeys={openKeys}
-          onOpenChange={setOpenKeys}
+          openKeys={collapsed ? [] : openKeys}
+          onOpenChange={collapsed ? undefined : setOpenKeys}
           items={menuItems}
           onClick={({ key }) => navigate(key)}
         />
