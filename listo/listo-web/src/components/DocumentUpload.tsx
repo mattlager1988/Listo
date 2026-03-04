@@ -134,7 +134,7 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({
               </p>
               <p className="ant-upload-text">Click or drag file to upload</p>
               <p className="ant-upload-hint">
-                Supported: PDF, DOC, DOCX, XLS, XLSX, PNG, JPG, GIF, TXT (max 50MB)
+                Supported: PDF, DOC, DOCX, XLS, XLSX, PNG, JPG, GIF, TXT (max 100MB)
               </p>
             </Dragger>
           </Form.Item>
