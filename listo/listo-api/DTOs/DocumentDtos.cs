@@ -14,7 +14,8 @@ public record DocumentResponse(
     string? DocumentTypeName,
     long UploadedBySysId,
     string UploadedByName,
-    DateTime CreateTimestamp
+    DateTime CreateTimestamp,
+    DateTime ModifyTimestamp
 );
 
 public record CreateDocumentRequest(

@@ -10,7 +10,7 @@ public interface IDocumentService
     Task<IEnumerable<DocumentResponse>> GetDocumentsAsync(string module, string entityType, long? entitySysId);
     Task<DocumentResponse?> GetByIdAsync(long id);
     Task<DocumentResponse> UploadAsync(Stream fileStream, string fileName, CreateDocumentRequest request, long userId);
-    Task<DocumentResponse?> UpdateAsync(long id, UpdateDocumentRequest request);
+    Task<DocumentResponse?> UpdateAsync(long id, UpdateDocumentRequest request, Stream? newFileStream = null, string? newFileName = null);
     Task<bool> DeleteAsync(long id);
     Task<(Stream stream, string fileName, string mimeType)?> DownloadAsync(long id);
 }
@@ -103,7 +103,7 @@ public class DocumentService : IDocumentService
         return MapToResponse(document);
     }
 
-    public async Task<DocumentResponse?> UpdateAsync(long id, UpdateDocumentRequest request)
+    public async Task<DocumentResponse?> UpdateAsync(long id, UpdateDocumentRequest request, Stream? newFileStream = null, string? newFileName = null)
     {
         var document = await _context.Documents
             .Include(d => d.UploadedBy)
@@ -116,6 +116,37 @@ public class DocumentService : IDocumentService
             document.Description = request.Description;
         if (request.DocumentTypeSysId.HasValue)
             document.DocumentTypeSysId = request.DocumentTypeSysId;
+
+        // Handle file replacement
+        if (newFileStream != null && !string.IsNullOrEmpty(newFileName))
+        {
+            // Delete old file from disk
+            if (File.Exists(document.StoragePath))
+            {
+                File.Delete(document.StoragePath);
+            }
+
+            // Generate new unique filename
+            var extension = Path.GetExtension(newFileName);
+            var uniqueFileName = $"{Guid.NewGuid()}{extension}";
+            var storagePath = Path.Combine(_basePath, uniqueFileName);
+
+            // Save new file to disk
+            using (var outputStream = File.Create(storagePath))
+            {
+                await newFileStream.CopyToAsync(outputStream);
+            }
+
+            var fileInfo = new FileInfo(storagePath);
+            var mimeType = GetMimeType(extension);
+
+            // Update document properties
+            document.FileName = uniqueFileName;
+            document.OriginalFileName = newFileName;
+            document.MimeType = mimeType;
+            document.FileSize = fileInfo.Length;
+            document.StoragePath = storagePath;
+        }
 
         await _context.SaveChangesAsync();
 
@@ -167,7 +198,8 @@ public class DocumentService : IDocumentService
         d.DocumentType?.Name,
         d.UploadedBySysId,
         $"{d.UploadedBy.FirstName} {d.UploadedBy.LastName}",
-        d.CreateTimestamp
+        d.CreateTimestamp,
+        d.ModifyTimestamp
     );
 
     private static string GetMimeType(string extension) => extension.ToLowerInvariant() switch

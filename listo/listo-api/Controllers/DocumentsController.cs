@@ -95,11 +95,47 @@ public class DocumentsController : ControllerBase
     }
 
     [HttpPut("{id}")]
-    public async Task<IActionResult> Update(long id, [FromBody] UpdateDocumentRequest request)
+    [RequestSizeLimit(262_144_000)] // 250MB
+    [RequestFormLimits(MultipartBodyLengthLimit = 262_144_000)]
+    public async Task<IActionResult> Update(
+        long id,
+        [FromForm] string? description,
+        [FromForm] long? documentTypeSysId,
+        IFormFile? file)
     {
-        var document = await _documentService.UpdateAsync(id, request);
-        if (document == null) return NotFound();
-        return Ok(document);
+        // Validate file if provided
+        if (file != null)
+        {
+            var maxSizeMB = _configuration.GetValue<int>("DocumentStorage:MaxFileSizeMB", 50);
+            if (file.Length > maxSizeMB * 1024 * 1024)
+            {
+                return BadRequest(new { message = $"File size exceeds {maxSizeMB}MB limit" });
+            }
+
+            var allowedExtensions = _configuration.GetSection("DocumentStorage:AllowedExtensions")
+                .Get<string[]>() ?? new[] { ".pdf", ".doc", ".docx", ".png", ".jpg" };
+            var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
+            if (!allowedExtensions.Contains(extension))
+            {
+                return BadRequest(new { message = $"File type {extension} is not allowed" });
+            }
+        }
+
+        var request = new UpdateDocumentRequest(description, documentTypeSysId);
+
+        if (file != null)
+        {
+            using var stream = file.OpenReadStream();
+            var document = await _documentService.UpdateAsync(id, request, stream, file.FileName);
+            if (document == null) return NotFound();
+            return Ok(document);
+        }
+        else
+        {
+            var document = await _documentService.UpdateAsync(id, request);
+            if (document == null) return NotFound();
+            return Ok(document);
+        }
     }
 
     [HttpDelete("{id}")]

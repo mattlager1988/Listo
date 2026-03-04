@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Table, Button, Space, Tooltip, Popconfirm, message, Modal, Tag, Input, Select, Row, Col } from 'antd';
+import { Table, Button, Space, Tooltip, Popconfirm, message, Modal, Tag, Input, Select, Row, Col, Form, Upload } from 'antd';
+import type { UploadFile } from 'antd';
 import {
   DownloadOutlined,
   DeleteOutlined,
@@ -11,8 +12,7 @@ import {
   EyeOutlined,
   SearchOutlined,
   EditOutlined,
-  CheckOutlined,
-  CloseOutlined,
+  UploadOutlined,
 } from '@ant-design/icons';
 import api from '../services/api';
 import DocumentUpload from './DocumentUpload';
@@ -34,6 +34,7 @@ interface Document {
   documentTypeName?: string;
   uploadedByName: string;
   createTimestamp: string;
+  modifyTimestamp: string;
 }
 
 interface DocumentListProps {
@@ -58,8 +59,10 @@ const DocumentList: React.FC<DocumentListProps> = ({
   const [searchText, setSearchText] = useState('');
   const [selectedType, setSelectedType] = useState<number | null>(null);
   const [documentTypes, setDocumentTypes] = useState<DocumentType[]>([]);
-  const [editingId, setEditingId] = useState<number | null>(null);
-  const [editingName, setEditingName] = useState('');
+  const [editingDoc, setEditingDoc] = useState<Document | null>(null);
+  const [editForm] = Form.useForm();
+  const [editFileList, setEditFileList] = useState<UploadFile[]>([]);
+  const [editSaving, setEditSaving] = useState(false);
 
   const fetchDocuments = useCallback(async () => {
     setLoading(true);
@@ -128,26 +131,49 @@ const DocumentList: React.FC<DocumentListProps> = ({
     }
   };
 
-  const startEditing = (doc: Document) => {
-    setEditingId(doc.sysId);
-    setEditingName(doc.description || doc.originalFileName);
+  const openEditModal = (doc: Document) => {
+    setEditingDoc(doc);
+    editForm.setFieldsValue({
+      description: doc.description || doc.originalFileName,
+      documentTypeSysId: doc.documentTypeSysId,
+    });
+    setEditFileList([]);
   };
 
-  const cancelEditing = () => {
-    setEditingId(null);
-    setEditingName('');
+  const closeEditModal = () => {
+    setEditingDoc(null);
+    editForm.resetFields();
+    setEditFileList([]);
   };
 
-  const saveEditing = async () => {
-    if (editingId === null) return;
+  const handleEditSave = async () => {
+    if (!editingDoc) return;
+    setEditSaving(true);
     try {
-      await api.put(`/documents/${editingId}`, { description: editingName });
-      message.success('Document name updated');
-      setEditingId(null);
-      setEditingName('');
+      const values = editForm.getFieldsValue();
+      const formData = new FormData();
+
+      if (values.description !== undefined) {
+        formData.append('description', values.description || '');
+      }
+      if (values.documentTypeSysId !== undefined) {
+        formData.append('documentTypeSysId', values.documentTypeSysId?.toString() || '');
+      }
+      if (editFileList.length > 0 && editFileList[0].originFileObj) {
+        formData.append('file', editFileList[0].originFileObj);
+      }
+
+      await api.put(`/documents/${editingDoc.sysId}`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        timeout: 300000, // 5 minute timeout for large files
+      });
+      message.success('Document updated');
+      closeEditModal();
       fetchDocuments();
     } catch {
-      message.error('Failed to update document name');
+      message.error('Failed to update document');
+    } finally {
+      setEditSaving(false);
     }
   };
 
@@ -210,36 +236,12 @@ const DocumentList: React.FC<DocumentListProps> = ({
       key: 'name',
       width: 300,
       ellipsis: true,
-      render: (_: unknown, record: Document) => {
-        if (editingId === record.sysId) {
-          return (
-            <Space>
-              {getFileIcon(record.mimeType)}
-              <Input
-                size="small"
-                value={editingName}
-                onChange={(e) => setEditingName(e.target.value)}
-                onPressEnter={saveEditing}
-                onKeyDown={(e) => e.key === 'Escape' && cancelEditing()}
-                style={{ width: 200 }}
-                autoFocus
-              />
-              <Tooltip title="Save">
-                <Button type="text" size="small" icon={<CheckOutlined />} onClick={saveEditing} />
-              </Tooltip>
-              <Tooltip title="Cancel">
-                <Button type="text" size="small" icon={<CloseOutlined />} onClick={cancelEditing} />
-              </Tooltip>
-            </Space>
-          );
-        }
-        return (
-          <Space>
-            {getFileIcon(record.mimeType)}
-            <span>{record.description || record.originalFileName}</span>
-          </Space>
-        );
-      },
+      render: (_: unknown, record: Document) => (
+        <Space>
+          {getFileIcon(record.mimeType)}
+          <span>{record.description || record.originalFileName}</span>
+        </Space>
+      ),
     },
     ...(showDocumentType ? [{
       title: 'Type',
@@ -255,11 +257,18 @@ const DocumentList: React.FC<DocumentListProps> = ({
       render: (_: unknown, record: Document) => formatFileSize(record.fileSize),
     },
     {
-      title: 'Date',
-      key: 'date',
+      title: 'Uploaded',
+      key: 'uploaded',
       width: 120,
       render: (_: unknown, record: Document) =>
         new Date(record.createTimestamp).toLocaleDateString(),
+    },
+    {
+      title: 'Modified',
+      key: 'modified',
+      width: 120,
+      render: (_: unknown, record: Document) =>
+        new Date(record.modifyTimestamp).toLocaleDateString(),
     },
     {
       title: 'Actions',
@@ -267,12 +276,11 @@ const DocumentList: React.FC<DocumentListProps> = ({
       width: 160,
       render: (_: unknown, record: Document) => (
         <Space>
-          <Tooltip title="Edit Name">
+          <Tooltip title="Edit">
             <Button
               type="text"
               icon={<EditOutlined />}
-              onClick={() => startEditing(record)}
-              disabled={editingId !== null}
+              onClick={() => openEditModal(record)}
             />
           </Tooltip>
           {canView(record) && (
@@ -377,6 +385,42 @@ const DocumentList: React.FC<DocumentListProps> = ({
             />
           </div>
         )}
+      </Modal>
+      <Modal
+        title="Edit Document"
+        open={!!editingDoc}
+        onCancel={closeEditModal}
+        onOk={handleEditSave}
+        okText="Save"
+        confirmLoading={editSaving}
+      >
+        <Form form={editForm} layout="vertical">
+          <Form.Item name="description" label="Name / Description">
+            <Input placeholder="Enter document name or description" />
+          </Form.Item>
+          {showDocumentType && (
+            <Form.Item name="documentTypeSysId" label="Document Type">
+              <Select
+                placeholder="Select document type"
+                allowClear
+                options={documentTypes.map(dt => ({ value: dt.sysId, label: dt.name }))}
+              />
+            </Form.Item>
+          )}
+          <Form.Item label="Replace File">
+            <Upload
+              maxCount={1}
+              beforeUpload={() => false}
+              fileList={editFileList}
+              onChange={({ fileList }) => setEditFileList(fileList)}
+            >
+              <Button icon={<UploadOutlined />}>Select New File</Button>
+            </Upload>
+            <div style={{ marginTop: 8, color: '#888', fontSize: 12 }}>
+              Leave empty to keep current file: {editingDoc?.originalFileName}
+            </div>
+          </Form.Item>
+        </Form>
       </Modal>
     </div>
   );
