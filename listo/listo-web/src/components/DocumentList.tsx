@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Table, Button, Space, Tooltip, Popconfirm, message, Modal, Tag, Input, Select, Row, Col, Form, Upload } from 'antd';
+import { Table, Button, Space, Tooltip, Popconfirm, message, Modal, Tag, Input, Select, Row, Col, Form, Upload, Progress } from 'antd';
 import type { UploadFile } from 'antd';
 import {
   DownloadOutlined,
@@ -63,6 +63,7 @@ const DocumentList: React.FC<DocumentListProps> = ({
   const [editForm] = Form.useForm();
   const [editFileList, setEditFileList] = useState<UploadFile[]>([]);
   const [editSaving, setEditSaving] = useState(false);
+  const [editUploadProgress, setEditUploadProgress] = useState(0);
 
   const fetchDocuments = useCallback(async () => {
     setLoading(true);
@@ -149,6 +150,7 @@ const DocumentList: React.FC<DocumentListProps> = ({
   const handleEditSave = async () => {
     if (!editingDoc) return;
     setEditSaving(true);
+    setEditUploadProgress(0);
     try {
       const values = editForm.getFieldsValue();
       const formData = new FormData();
@@ -166,6 +168,12 @@ const DocumentList: React.FC<DocumentListProps> = ({
       await api.put(`/documents/${editingDoc.sysId}`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
         timeout: 300000, // 5 minute timeout for large files
+        onUploadProgress: (progressEvent) => {
+          const percent = progressEvent.total
+            ? Math.round((progressEvent.loaded * 100) / progressEvent.total)
+            : 0;
+          setEditUploadProgress(percent);
+        },
       });
       message.success('Document updated');
       closeEditModal();
@@ -174,6 +182,7 @@ const DocumentList: React.FC<DocumentListProps> = ({
       message.error('Failed to update document');
     } finally {
       setEditSaving(false);
+      setEditUploadProgress(0);
     }
   };
 
@@ -420,6 +429,11 @@ const DocumentList: React.FC<DocumentListProps> = ({
               Leave empty to keep current file: {editingDoc?.originalFileName}
             </div>
           </Form.Item>
+          {editSaving && editFileList.length > 0 && (
+            <Form.Item label="Upload Progress">
+              <Progress percent={editUploadProgress} status="active" />
+            </Form.Item>
+          )}
         </Form>
       </Modal>
     </div>

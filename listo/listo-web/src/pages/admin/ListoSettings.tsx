@@ -144,7 +144,7 @@ const ListoSettings: React.FC = () => {
   return (
     <div>
       <PageHeader
-        title="Listo Settings"
+        title="Settings"
         actions={
           <Button
             type="primary"

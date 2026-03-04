@@ -101,7 +101,7 @@ const MainLayout: React.FC = () => {
         },
         {
           key: '/admin/settings',
-          label: 'Listo Settings',
+          label: 'Settings',
         },
       ],
     }] : []),
