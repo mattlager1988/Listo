@@ -15,6 +15,7 @@ import LksemLayout from './pages/lksem';
 import Accounts from './pages/lksem/Accounts';
 import AdminLayout from './pages/admin';
 import ListManager from './pages/admin/ListManager';
+import ListoSettings from './pages/admin/ListoSettings';
 import AviationLayout from './pages/aviation';
 import TrainingTracker from './pages/aviation/TrainingTracker';
 import AviationDocuments from './pages/aviation/Documents';
@@ -60,6 +61,7 @@ function App() {
                 <Route index element={<Navigate to="/admin/users" replace />} />
                 <Route path="users" element={<UserManagement />} />
                 <Route path="lists" element={<ListManager />} />
+                <Route path="settings" element={<ListoSettings />} />
               </Route>
             </Route>
             <Route path="*" element={<Navigate to="/" replace />} />

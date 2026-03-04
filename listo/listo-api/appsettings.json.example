@@ -1,4 +1,5 @@
 {
+  "_comment": "OpenAI and DocumentStorage settings are now managed in Admin > Listo Settings (stored in database)",
   "ConnectionStrings": {
     "DefaultConnection": "Server=localhost;Database=listo;User=listo;Password=YOUR_PASSWORD_HERE;"
   },
@@ -14,6 +15,9 @@
     "Password": "CHANGE_THIS_PASSWORD_16_CHARS_MIN",
     "FirstName": "Admin",
     "LastName": "User"
+  },
+  "Encryption": {
+    "Key": "YOUR-ENCRYPTION-KEY-MIN-32-CHARS"
   },
   "AppVersion": "1.0.0",
   "Logging": {

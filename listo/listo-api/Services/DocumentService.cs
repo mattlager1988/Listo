@@ -18,17 +18,23 @@ public interface IDocumentService
 public class DocumentService : IDocumentService
 {
     private readonly ListoDbContext _context;
-    private readonly IConfiguration _configuration;
-    private readonly string _basePath;
+    private readonly ISettingsService _settingsService;
+    private string? _basePath;
 
-    public DocumentService(ListoDbContext context, IConfiguration configuration)
+    public DocumentService(ListoDbContext context, ISettingsService settingsService)
     {
         _context = context;
-        _configuration = configuration;
-        _basePath = configuration["DocumentStorage:BasePath"] ?? "./uploads";
+        _settingsService = settingsService;
+    }
 
-        // Ensure upload directory exists
-        Directory.CreateDirectory(_basePath);
+    private async Task<string> GetBasePathAsync()
+    {
+        if (_basePath == null)
+        {
+            _basePath = await _settingsService.GetValueAsync("DocumentStorage:BasePath", "./uploads");
+            Directory.CreateDirectory(_basePath!);
+        }
+        return _basePath!;
     }
 
     public async Task<IEnumerable<DocumentResponse>> GetDocumentsAsync(string module, string entityType, long? entitySysId)
@@ -63,10 +69,12 @@ public class DocumentService : IDocumentService
 
     public async Task<DocumentResponse> UploadAsync(Stream fileStream, string fileName, CreateDocumentRequest request, long userId)
     {
+        var basePath = await GetBasePathAsync();
+
         // Generate unique filename
         var extension = Path.GetExtension(fileName);
         var uniqueFileName = $"{Guid.NewGuid()}{extension}";
-        var storagePath = Path.Combine(_basePath, uniqueFileName);
+        var storagePath = Path.Combine(basePath, uniqueFileName);
 
         // Save file to disk
         using (var outputStream = File.Create(storagePath))
@@ -120,6 +128,8 @@ public class DocumentService : IDocumentService
         // Handle file replacement
         if (newFileStream != null && !string.IsNullOrEmpty(newFileName))
         {
+            var basePath = await GetBasePathAsync();
+
             // Delete old file from disk
             if (File.Exists(document.StoragePath))
             {
@@ -129,7 +139,7 @@ public class DocumentService : IDocumentService
             // Generate new unique filename
             var extension = Path.GetExtension(newFileName);
             var uniqueFileName = $"{Guid.NewGuid()}{extension}";
-            var storagePath = Path.Combine(_basePath, uniqueFileName);
+            var storagePath = Path.Combine(basePath, uniqueFileName);
 
             // Save new file to disk
             using (var outputStream = File.Create(storagePath))

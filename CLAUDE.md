@@ -71,10 +71,37 @@ The user ID is extracted from the JWT token's `sub` claim (mapped to `ClaimTypes
 
 ## Configuration
 
+### Settings Architecture
+The application uses a two-tier settings system:
+
+**appsettings.json (infrastructure settings)**
+- `ConnectionStrings`: Database connection
+- `Jwt`: JWT secret, issuer, audience, token expiration
+- `InitialAdmin`: Seed admin user credentials
+- `Encryption.Key`: AES encryption key for sensitive data
+- `AppVersion`: Application version number
+
+**Database settings (configurable via Admin > Listo Settings)**
+- `OpenAI:ApiKey`: OpenAI API key (encrypted)
+- `OpenAI:Model`: OpenAI model to use
+- `DocumentStorage:BasePath`: File upload directory
+- `DocumentStorage:MaxFileSizeMB`: Max upload size
+- `DocumentStorage:AllowedExtensions`: Allowed file types
+
+Use `ISettingsService` to read database settings:
+```csharp
+var apiKey = await _settingsService.GetValueAsync("OpenAI:ApiKey");
+var maxSize = await _settingsService.GetIntValueAsync("DocumentStorage:MaxFileSizeMB", 250);
+var extensions = await _settingsService.GetArrayValueAsync("DocumentStorage:AllowedExtensions");
+```
+
+Settings are cached in memory (30-minute TTL) and automatically invalidated when updated.
+
 ### Backend (appsettings.json)
 Copy `appsettings.json.example` to `appsettings.json` and configure:
 - ConnectionStrings.DefaultConnection: MySQL connection string
 - Jwt.Secret: Min 32 character secret key
+- Encryption.Key: Min 32 character encryption key
 - InitialAdmin: Credentials for seeded admin user
 
 ### Key Dependencies

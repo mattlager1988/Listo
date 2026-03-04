@@ -99,6 +99,10 @@ const MainLayout: React.FC = () => {
           key: '/admin/lists',
           label: 'List Manager',
         },
+        {
+          key: '/admin/settings',
+          label: 'Listo Settings',
+        },
       ],
     }] : []),
   ];

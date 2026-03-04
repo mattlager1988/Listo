@@ -12,12 +12,12 @@ namespace Listo.Api.Controllers;
 public class DocumentsController : ControllerBase
 {
     private readonly IDocumentService _documentService;
-    private readonly IConfiguration _configuration;
+    private readonly ISettingsService _settingsService;
 
-    public DocumentsController(IDocumentService documentService, IConfiguration configuration)
+    public DocumentsController(IDocumentService documentService, ISettingsService settingsService)
     {
         _documentService = documentService;
-        _configuration = configuration;
+        _settingsService = settingsService;
     }
 
     private long? GetCurrentUserId()
@@ -71,15 +71,16 @@ public class DocumentsController : ControllerBase
         if (!userId.HasValue) return Unauthorized();
 
         // Validate file size
-        var maxSizeMB = _configuration.GetValue<int>("DocumentStorage:MaxFileSizeMB", 50);
+        var maxSizeMB = await _settingsService.GetIntValueAsync("DocumentStorage:MaxFileSizeMB", 250);
         if (file.Length > maxSizeMB * 1024 * 1024)
         {
             return BadRequest(new { message = $"File size exceeds {maxSizeMB}MB limit" });
         }
 
         // Validate extension
-        var allowedExtensions = _configuration.GetSection("DocumentStorage:AllowedExtensions")
-            .Get<string[]>() ?? new[] { ".pdf", ".doc", ".docx", ".png", ".jpg" };
+        var allowedExtensions = await _settingsService.GetArrayValueAsync(
+            "DocumentStorage:AllowedExtensions",
+            new[] { ".pdf", ".doc", ".docx", ".png", ".jpg" });
         var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
         if (!allowedExtensions.Contains(extension))
         {
@@ -106,14 +107,15 @@ public class DocumentsController : ControllerBase
         // Validate file if provided
         if (file != null)
         {
-            var maxSizeMB = _configuration.GetValue<int>("DocumentStorage:MaxFileSizeMB", 50);
+            var maxSizeMB = await _settingsService.GetIntValueAsync("DocumentStorage:MaxFileSizeMB", 250);
             if (file.Length > maxSizeMB * 1024 * 1024)
             {
                 return BadRequest(new { message = $"File size exceeds {maxSizeMB}MB limit" });
             }
 
-            var allowedExtensions = _configuration.GetSection("DocumentStorage:AllowedExtensions")
-                .Get<string[]>() ?? new[] { ".pdf", ".doc", ".docx", ".png", ".jpg" };
+            var allowedExtensions = await _settingsService.GetArrayValueAsync(
+                "DocumentStorage:AllowedExtensions",
+                new[] { ".pdf", ".doc", ".docx", ".png", ".jpg" });
             var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
             if (!allowedExtensions.Contains(extension))
             {

@@ -27,6 +27,7 @@ builder.Services.Configure<FormOptions>(options =>
 });
 builder.Services.AddSwaggerGen();
 builder.Services.AddHttpContextAccessor();
+builder.Services.AddMemoryCache();
 
 // Database
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
@@ -69,6 +70,8 @@ builder.Services.AddScoped<IAircraftService, AircraftService>();
 builder.Services.AddScoped<ITrainingLogService, TrainingLogService>();
 builder.Services.AddScoped<IDocumentTypeService, DocumentTypeService>();
 builder.Services.AddScoped<INoteService, NoteService>();
+builder.Services.AddScoped<ISettingsService, SettingsService>();
+builder.Services.AddScoped<IOpenAIService, OpenAIService>();
 
 // CORS
 builder.Services.AddCors(options =>
