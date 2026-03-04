@@ -146,6 +146,9 @@ const TrainingTracker: React.FC = () => {
               h1 { font-size: 18px; margin-bottom: 10px; }
               .meta { color: #666; margin-bottom: 20px; }
               .description { line-height: 1.6; }
+              .description p { margin: 0 0 0.5em 0; }
+              .description ul, .description ol { padding-left: 1.5em; margin: 0.5em 0; }
+              .description li { margin: 0.25em 0; }
             </style>
           </head>
           <body>
@@ -429,12 +432,14 @@ const TrainingTracker: React.FC = () => {
               </Col>
             </Row>
             <div
+              className="rich-text-content"
               style={{
                 padding: 16,
                 background: '#fafafa',
                 borderRadius: 6,
                 border: '1px solid #d9d9d9',
                 minHeight: 200,
+                lineHeight: 1.6,
               }}
               dangerouslySetInnerHTML={{ __html: viewingLog.description }}
             />
