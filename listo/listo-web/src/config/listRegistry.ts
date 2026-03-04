@@ -13,9 +13,10 @@ export interface ListConfig {
   formFields?: {
     name: string;
     label: string;
-    type: 'text' | 'number';
+    type: 'text' | 'number' | 'textarea';
     required?: boolean;
     placeholder?: string;
+    rows?: number;
   }[];
   // How to calculate usage count - property name on response
   usageCountField?: string;
@@ -78,6 +79,15 @@ export const listRegistry: ModuleConfig[] = [
         endpoint: '/aviation/documenttypes',
         singularLabel: 'Document Type',
         usageCountField: 'documentCount',
+      },
+      {
+        key: 'aiprompts',
+        label: 'AI Prompts',
+        endpoint: '/aviation/aiprompts',
+        singularLabel: 'AI Prompt',
+        formFields: [
+          { name: 'promptText', label: 'Prompt Text', type: 'textarea', required: true, rows: 8 },
+        ],
       },
     ],
   },

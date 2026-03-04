@@ -334,6 +334,8 @@ const ListManager: React.FC = () => {
             >
               {field.type === 'number' ? (
                 <InputNumber style={{ width: '100%' }} placeholder={field.placeholder} />
+              ) : field.type === 'textarea' ? (
+                <Input.TextArea rows={field.rows || 4} placeholder={field.placeholder} />
               ) : (
                 <Input placeholder={field.placeholder} />
               )}

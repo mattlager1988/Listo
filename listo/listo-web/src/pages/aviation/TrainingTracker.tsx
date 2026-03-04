@@ -21,12 +21,14 @@ import {
   DeleteOutlined,
   EyeOutlined,
   PrinterOutlined,
+  RobotOutlined,
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { Column } from '@ant-design/charts';
 import api from '../../services/api';
 import PageHeader from '../../components/PageHeader';
 import RichTextEditor from '../../components/RichTextEditor';
+import AiAnalysisModal from '../../components/AiAnalysisModal';
 
 interface TrainingLog {
   sysId: number;
@@ -67,6 +69,8 @@ const TrainingTracker: React.FC = () => {
   const [viewModalVisible, setViewModalVisible] = useState(false);
   const [editingLog, setEditingLog] = useState<TrainingLog | null>(null);
   const [viewingLog, setViewingLog] = useState<TrainingLog | null>(null);
+  const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
+  const [analysisModalVisible, setAnalysisModalVisible] = useState(false);
   const [form] = Form.useForm();
 
   const fetchLogs = useCallback(async () => {
@@ -283,9 +287,19 @@ const TrainingTracker: React.FC = () => {
       <PageHeader
         title="Training Tracker"
         actions={
-          <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
-            Log Training
-          </Button>
+          <Space>
+            {selectedRowKeys.length > 0 && (
+              <Button
+                icon={<RobotOutlined />}
+                onClick={() => setAnalysisModalVisible(true)}
+              >
+                Analyze with AI ({selectedRowKeys.length})
+              </Button>
+            )}
+            <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
+              Log Training
+            </Button>
+          </Space>
         }
       />
 
@@ -325,6 +339,10 @@ const TrainingTracker: React.FC = () => {
         size="small"
         pagination={{ pageSize: 25, size: 'small' }}
         style={{ fontSize: 13 }}
+        rowSelection={{
+          selectedRowKeys,
+          onChange: setSelectedRowKeys,
+        }}
       />
 
       {/* Create/Edit Modal */}
@@ -446,6 +464,13 @@ const TrainingTracker: React.FC = () => {
           </div>
         )}
       </Modal>
+
+      {/* AI Analysis Modal */}
+      <AiAnalysisModal
+        open={analysisModalVisible}
+        onClose={() => setAnalysisModalVisible(false)}
+        selectedLogIds={selectedRowKeys.map(k => Number(k))}
+      />
     </div>
   );
 };

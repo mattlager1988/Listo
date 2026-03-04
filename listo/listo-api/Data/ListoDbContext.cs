@@ -26,6 +26,7 @@ public class ListoDbContext : DbContext
     public DbSet<DocumentType> DocumentTypes => Set<DocumentType>();
     public DbSet<Note> Notes => Set<Note>();
     public DbSet<Setting> Settings => Set<Setting>();
+    public DbSet<AiPrompt> AiPrompts => Set<AiPrompt>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -294,6 +295,21 @@ public class ListoDbContext : DbContext
             entity.Property(e => e.CreateUser).HasColumnName("create_user");
             entity.Property(e => e.ModifyUser).HasColumnName("modify_user");
             entity.HasIndex(e => e.Key).IsUnique();
+        });
+
+        modelBuilder.Entity<AiPrompt>(entity =>
+        {
+            entity.ToTable("ai_prompts");
+            entity.HasKey(e => e.SysId);
+            entity.Property(e => e.SysId).HasColumnName("sys_id");
+            entity.Property(e => e.Name).HasColumnName("name").IsRequired();
+            entity.Property(e => e.PromptText).HasColumnName("prompt_text").HasColumnType("text").IsRequired();
+            entity.Property(e => e.IsDeleted).HasColumnName("is_deleted");
+            entity.Property(e => e.CreateTimestamp).HasColumnName("create_timestamp");
+            entity.Property(e => e.ModifyTimestamp).HasColumnName("modify_timestamp");
+            entity.Property(e => e.CreateUser).HasColumnName("create_user");
+            entity.Property(e => e.ModifyUser).HasColumnName("modify_user");
+            entity.HasIndex(e => e.Name).IsUnique();
         });
     }
 
