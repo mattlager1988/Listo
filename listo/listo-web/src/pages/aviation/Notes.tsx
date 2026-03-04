@@ -1,0 +1,199 @@
+import React, { useState, useEffect, useCallback } from 'react';
+import {
+  Table,
+  Button,
+  Space,
+  Modal,
+  Form,
+  Input,
+  message,
+  Popconfirm,
+  Tooltip,
+} from 'antd';
+import {
+  PlusOutlined,
+  EditOutlined,
+  DeleteOutlined,
+} from '@ant-design/icons';
+import dayjs from 'dayjs';
+import api from '../../services/api';
+import PageHeader from '../../components/PageHeader';
+
+interface Note {
+  sysId: number;
+  subject: string;
+  description: string;
+  createTimestamp: string;
+  modifyTimestamp: string;
+}
+
+const Notes: React.FC = () => {
+  const [notes, setNotes] = useState<Note[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [editingNote, setEditingNote] = useState<Note | null>(null);
+  const [form] = Form.useForm();
+
+  const fetchNotes = useCallback(async () => {
+    setLoading(true);
+    try {
+      const response = await api.get('/aviation/notes');
+      setNotes(response.data);
+    } catch {
+      message.error('Failed to fetch notes');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchNotes();
+  }, [fetchNotes]);
+
+  const handleCreate = () => {
+    setEditingNote(null);
+    form.resetFields();
+    setModalVisible(true);
+  };
+
+  const handleEdit = (note: Note) => {
+    setEditingNote(note);
+    form.setFieldsValue({
+      subject: note.subject,
+      description: note.description,
+    });
+    setModalVisible(true);
+  };
+
+  const handleSubmit = async (values: { subject: string; description: string }) => {
+    try {
+      if (editingNote) {
+        await api.put(`/aviation/notes/${editingNote.sysId}`, values);
+        message.success('Note updated successfully');
+      } else {
+        await api.post('/aviation/notes', values);
+        message.success('Note created successfully');
+      }
+      setModalVisible(false);
+      fetchNotes();
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } } };
+      message.error(error.response?.data?.message || 'Operation failed');
+    }
+  };
+
+  const handleDelete = async (id: number) => {
+    try {
+      await api.delete(`/aviation/notes/${id}`);
+      message.success('Note deleted successfully');
+      fetchNotes();
+    } catch {
+      message.error('Failed to delete note');
+    }
+  };
+
+  const columns = [
+    {
+      title: 'Subject',
+      dataIndex: 'subject',
+      key: 'subject',
+    },
+    {
+      title: 'Date',
+      dataIndex: 'createTimestamp',
+      key: 'createTimestamp',
+      width: 150,
+      render: (date: string) => dayjs(date).format('MMM D, YYYY'),
+      sorter: (a: Note, b: Note) =>
+        dayjs(a.createTimestamp).unix() - dayjs(b.createTimestamp).unix(),
+      defaultSortOrder: 'descend' as const,
+    },
+    {
+      title: 'Actions',
+      key: 'actions',
+      width: 100,
+      render: (_: unknown, record: Note) => (
+        <Space size={0}>
+          <Tooltip title="Edit">
+            <Button
+              type="text"
+              size="small"
+              icon={<EditOutlined />}
+              onClick={() => handleEdit(record)}
+            />
+          </Tooltip>
+          <Tooltip title="Delete">
+            <Popconfirm
+              title="Delete this note?"
+              onConfirm={() => handleDelete(record.sysId)}
+            >
+              <Button type="text" size="small" danger icon={<DeleteOutlined />} />
+            </Popconfirm>
+          </Tooltip>
+        </Space>
+      ),
+    },
+  ];
+
+  return (
+    <div>
+      <PageHeader
+        title="Notes"
+        actions={
+          <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
+            Add Note
+          </Button>
+        }
+      />
+
+      <Table
+        columns={columns}
+        dataSource={notes}
+        rowKey="sysId"
+        loading={loading}
+        size="small"
+        pagination={{ pageSize: 25, size: 'small' }}
+      />
+
+      <Modal
+        title={editingNote ? 'Edit Note' : 'Add Note'}
+        open={modalVisible}
+        onCancel={() => setModalVisible(false)}
+        footer={null}
+        width={600}
+      >
+        <Form form={form} layout="vertical" onFinish={handleSubmit}>
+          <Form.Item
+            name="subject"
+            label="Subject"
+            rules={[{ required: true, message: 'Subject is required' }]}
+          >
+            <Input placeholder="Enter note subject" />
+          </Form.Item>
+
+          <Form.Item
+            name="description"
+            label="Description"
+            rules={[{ required: true, message: 'Description is required' }]}
+          >
+            <Input.TextArea
+              rows={6}
+              placeholder="Enter note description"
+            />
+          </Form.Item>
+
+          <Form.Item>
+            <Space>
+              <Button type="primary" htmlType="submit">
+                {editingNote ? 'Update' : 'Create'}
+              </Button>
+              <Button onClick={() => setModalVisible(false)}>Cancel</Button>
+            </Space>
+          </Form.Item>
+        </Form>
+      </Modal>
+    </div>
+  );
+};
+
+export default Notes;

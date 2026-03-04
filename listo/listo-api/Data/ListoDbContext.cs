@@ -24,6 +24,7 @@ public class ListoDbContext : DbContext
     public DbSet<Aircraft> Aircraft => Set<Aircraft>();
     public DbSet<TrainingLog> TrainingLogs => Set<TrainingLog>();
     public DbSet<DocumentType> DocumentTypes => Set<DocumentType>();
+    public DbSet<Note> Notes => Set<Note>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -252,6 +253,26 @@ public class ListoDbContext : DbContext
 
             entity.HasIndex(e => e.UserSysId);
             entity.HasIndex(e => e.Date);
+        });
+
+        modelBuilder.Entity<Note>(entity =>
+        {
+            entity.ToTable("notes");
+            entity.HasKey(e => e.SysId);
+            entity.Property(e => e.SysId).HasColumnName("sys_id");
+            entity.Property(e => e.Subject).HasColumnName("subject").IsRequired();
+            entity.Property(e => e.Description).HasColumnName("description").HasColumnType("text");
+            entity.Property(e => e.UserSysId).HasColumnName("user_sys_id");
+            entity.Property(e => e.CreateTimestamp).HasColumnName("create_timestamp");
+            entity.Property(e => e.ModifyTimestamp).HasColumnName("modify_timestamp");
+            entity.Property(e => e.CreateUser).HasColumnName("create_user");
+            entity.Property(e => e.ModifyUser).HasColumnName("modify_user");
+
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserSysId);
+
+            entity.HasIndex(e => e.UserSysId);
         });
     }
 

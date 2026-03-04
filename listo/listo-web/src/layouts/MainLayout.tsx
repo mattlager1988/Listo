@@ -80,6 +80,10 @@ const MainLayout: React.FC = () => {
           key: '/aviation/documents',
           label: 'Documents',
         },
+        {
+          key: '/aviation/notes',
+          label: 'Notes',
+        },
       ],
     },
     ...(user?.role === 'admin' ? [{

@@ -68,6 +68,7 @@ builder.Services.AddScoped<ITrainingTypeService, TrainingTypeService>();
 builder.Services.AddScoped<IAircraftService, AircraftService>();
 builder.Services.AddScoped<ITrainingLogService, TrainingLogService>();
 builder.Services.AddScoped<IDocumentTypeService, DocumentTypeService>();
+builder.Services.AddScoped<INoteService, NoteService>();
 
 // CORS
 builder.Services.AddCors(options =>

@@ -13,7 +13,6 @@ import {
   Card,
   Row,
   Col,
-  Statistic,
   Tooltip,
 } from 'antd';
 import {
@@ -287,46 +286,32 @@ const TrainingTracker: React.FC = () => {
         }
       />
 
-      {/* Summary Cards */}
+      {/* Hours by Type Chart */}
       {summary && (
-        <Row gutter={16} style={{ marginBottom: 24 }}>
-          <Col span={4}>
-            <Card>
-              <Statistic title="Total Hours" value={summary.totalHours} precision={1} />
-            </Card>
-          </Col>
-          <Col span={4}>
-            <Card>
-              <Statistic title="Total Entries" value={summary.totalEntries} />
-            </Card>
-          </Col>
-          <Col span={16}>
-            <Card title="Hours by Type" size="small">
-              {Object.keys(summary.hoursByType).length > 0 ? (
-                <Column
-                  data={Object.entries(summary.hoursByType).map(([type, hours]) => ({
-                    type,
-                    hours,
-                  }))}
-                  xField="type"
-                  yField="hours"
-                  height={200}
-                  label={{
-                    text: (d: { hours: number }) => `${d.hours.toFixed(1)}h`,
-                    position: 'inside',
-                  }}
-                  axis={{
-                    y: { title: 'Hours' },
-                  }}
-                />
-              ) : (
-                <div style={{ height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#999' }}>
-                  No training logged yet
-                </div>
-              )}
-            </Card>
-          </Col>
-        </Row>
+        <Card title="Hours by Type" size="small" style={{ marginBottom: 24 }}>
+          {Object.keys(summary.hoursByType).length > 0 ? (
+            <Column
+              data={Object.entries(summary.hoursByType).map(([type, hours]) => ({
+                type,
+                hours,
+              }))}
+              xField="type"
+              yField="hours"
+              height={200}
+              label={{
+                text: (d: { hours: number }) => `${d.hours.toFixed(1)}h`,
+                position: 'inside',
+              }}
+              axis={{
+                y: { title: 'Hours' },
+              }}
+            />
+          ) : (
+            <div style={{ height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#999' }}>
+              No training logged yet
+            </div>
+          )}
+        </Card>
       )}
 
       <Table
@@ -374,7 +359,7 @@ const TrainingTracker: React.FC = () => {
               </Form.Item>
             </Col>
             <Col span={8}>
-              <Form.Item name="hoursFlown" label="Hours Flown" rules={[{ required: true }]}>
+              <Form.Item name="hoursFlown" label="Hours" rules={[{ required: true }]}>
                 <InputNumber
                   min={0}
                   max={24}

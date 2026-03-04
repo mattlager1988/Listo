@@ -73,3 +73,16 @@ public record TrainingLogSummary(
     int TotalEntries,
     Dictionary<string, decimal> HoursByType
 );
+
+// Note DTOs
+public record NoteResponse(
+    long SysId,
+    string Subject,
+    string Description,
+    DateTime CreateTimestamp,
+    DateTime ModifyTimestamp
+);
+
+public record CreateNoteRequest(string Subject, string Description);
+
+public record UpdateNoteRequest(string? Subject, string? Description);

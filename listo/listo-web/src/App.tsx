@@ -18,6 +18,7 @@ import ListManager from './pages/admin/ListManager';
 import AviationLayout from './pages/aviation';
 import TrainingTracker from './pages/aviation/TrainingTracker';
 import AviationDocuments from './pages/aviation/Documents';
+import Notes from './pages/aviation/Notes';
 
 function App() {
   return (
@@ -46,6 +47,7 @@ function App() {
                 <Route index element={<TrainingTracker />} />
                 <Route path="training" element={<TrainingTracker />} />
                 <Route path="documents" element={<AviationDocuments />} />
+                <Route path="notes" element={<Notes />} />
               </Route>
               <Route
                 path="admin"
