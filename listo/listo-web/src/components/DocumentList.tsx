@@ -208,6 +208,7 @@ const DocumentList: React.FC<DocumentListProps> = ({
     {
       title: 'Name',
       key: 'name',
+      width: 300,
       ellipsis: true,
       render: (_: unknown, record: Document) => {
         if (editingId === record.sysId) {
@@ -252,12 +253,6 @@ const DocumentList: React.FC<DocumentListProps> = ({
       key: 'size',
       width: 100,
       render: (_: unknown, record: Document) => formatFileSize(record.fileSize),
-    },
-    {
-      title: 'Uploaded By',
-      dataIndex: 'uploadedByName',
-      key: 'uploadedByName',
-      width: 150,
     },
     {
       title: 'Date',
@@ -333,7 +328,7 @@ const DocumentList: React.FC<DocumentListProps> = ({
                 allowClear
                 style={{ width: 180 }}
                 value={selectedType}
-                onChange={setSelectedType}
+                onChange={(value) => setSelectedType(value ?? null)}
                 options={documentTypes.map(dt => ({ value: dt.sysId, label: dt.name }))}
               />
             )}
