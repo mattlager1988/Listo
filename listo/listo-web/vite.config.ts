@@ -13,13 +13,12 @@ export default defineConfig({
         timeout: 300000, // 5 minutes
         proxyTimeout: 300000, // 5 minutes
         configure: (proxy) => {
-          proxy.on('proxyReq', (proxyReq, req, res) => {
+          proxy.on('proxyReq', (proxyReq, _req, res) => {
             // Remove timeouts for large uploads
             proxyReq.setTimeout(0);
-            req.setTimeout(0);
             res.setTimeout(0);
           });
-          proxy.on('proxyRes', (proxyRes, req, res) => {
+          proxy.on('proxyRes', (_proxyRes, _req, res) => {
             res.setTimeout(0);
           });
         },
