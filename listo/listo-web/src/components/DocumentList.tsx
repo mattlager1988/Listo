@@ -178,12 +178,13 @@ const DocumentList: React.FC<DocumentListProps> = ({
 
   const columns = [
     {
-      title: 'File',
-      key: 'file',
+      title: 'Name',
+      key: 'name',
+      ellipsis: true,
       render: (_: unknown, record: Document) => (
         <Space>
           {getFileIcon(record.mimeType)}
-          <span>{record.originalFileName}</span>
+          <span>{record.description || record.originalFileName}</span>
         </Space>
       ),
     },
@@ -194,12 +195,6 @@ const DocumentList: React.FC<DocumentListProps> = ({
       render: (_: unknown, record: Document) =>
         record.documentTypeName ? <Tag>{record.documentTypeName}</Tag> : '-',
     }] : []),
-    {
-      title: 'Name',
-      dataIndex: 'description',
-      key: 'description',
-      ellipsis: true,
-    },
     {
       title: 'Size',
       key: 'size',
