@@ -94,6 +94,7 @@ const Accounts: React.FC = () => {
   const [columnsState, setColumnsState] = useState<Record<string, { show?: boolean; fixed?: 'left' | 'right'; order?: number }>>({});
   const [sorterState, setSorterState] = useState<{ field: string; order: 'ascend' | 'descend' } | undefined>();
   const [filtersState, setFiltersState] = useState<Record<string, FilterValue | null>>({});
+  const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [form] = Form.useForm();
   const [saveViewForm] = Form.useForm();
   const actionRef = useRef<ActionType>(null);
@@ -171,6 +172,7 @@ const Accounts: React.FC = () => {
       dueDate: account.dueDate ? dayjs(account.dueDate) : null,
     });
     setModalVisible(true);
+    setSelectedRowKeys([]);
   };
 
   const handleSubmit = async (values: Record<string, unknown>) => {
@@ -188,6 +190,7 @@ const Accounts: React.FC = () => {
         message.success('Account created successfully');
       }
       setModalVisible(false);
+      setSelectedRowKeys([]);
       fetchAccounts();
     } catch (err: unknown) {
       const error = err as { response?: { data?: { message?: string } } };
@@ -195,13 +198,14 @@ const Accounts: React.FC = () => {
     }
   };
 
-  const handleDelete = async (id: number) => {
+  const handleBulkDelete = async () => {
     try {
-      await api.delete(`/lksem/accounts/${id}`);
-      message.success('Account deleted successfully');
+      await Promise.all(selectedRowKeys.map(id => api.delete(`/lksem/accounts/${id}`)));
+      message.success(`${selectedRowKeys.length} account${selectedRowKeys.length > 1 ? 's' : ''} deleted successfully`);
+      setSelectedRowKeys([]);
       fetchAccounts();
     } catch {
-      message.error('Failed to delete account');
+      message.error('Failed to delete accounts');
     }
   };
 
@@ -363,33 +367,6 @@ const Accounts: React.FC = () => {
       ),
       width: 90,
     },
-    {
-      title: 'Actions',
-      key: 'actions',
-      fixed: 'right',
-      width: 80,
-      render: (_, record) => (
-        <Space size="small">
-          <Tooltip title="Edit">
-            <Button
-              type="text"
-              size="small"
-              icon={<EditOutlined />}
-              onClick={() => handleEdit(record)}
-            />
-          </Tooltip>
-          <Tooltip title="Delete">
-            <Popconfirm
-              title="Delete account?"
-              description="This action cannot be undone."
-              onConfirm={() => handleDelete(record.sysId)}
-            >
-              <Button type="text" size="small" danger icon={<DeleteOutlined />} />
-            </Popconfirm>
-          </Tooltip>
-        </Space>
-      ),
-    },
   ];
 
   // Apply client-side sorting when sorterState is set
@@ -479,9 +456,74 @@ const Accounts: React.FC = () => {
   return (
     <div>
       <PageHeader title="Accounts" />
+
+      {/* Action Toolbar */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          padding: '8px 12px',
+          marginBottom: 16,
+          background: '#fafafa',
+          border: '1px solid #e8e8e8',
+          borderRadius: 6,
+          gap: 4,
+        }}
+      >
+        <Tooltip title="Add Account">
+          <Button
+            type="text"
+            size="small"
+            icon={<PlusOutlined />}
+            onClick={handleCreate}
+          />
+        </Tooltip>
+        <Tooltip title="Edit">
+          <Button
+            type="text"
+            size="small"
+            icon={<EditOutlined />}
+            disabled={selectedRowKeys.length !== 1}
+            onClick={() => {
+              const account = accounts.find(a => a.sysId === selectedRowKeys[0]);
+              if (account) handleEdit(account);
+            }}
+          />
+        </Tooltip>
+        <Tooltip title="Delete">
+          <Popconfirm
+            title={`Delete ${selectedRowKeys.length} account${selectedRowKeys.length > 1 ? 's' : ''}?`}
+            description="This action cannot be undone."
+            onConfirm={handleBulkDelete}
+            disabled={selectedRowKeys.length === 0}
+          >
+            <Button
+              type="text"
+              size="small"
+              danger
+              icon={<DeleteOutlined />}
+              disabled={selectedRowKeys.length === 0}
+            />
+          </Popconfirm>
+        </Tooltip>
+        <div style={{ marginLeft: 'auto', fontSize: 12, color: '#8c8c8c' }}>
+          {selectedRowKeys.length > 0
+            ? `${selectedRowKeys.length} selected`
+            : 'Select rows to perform actions'}
+        </div>
+      </div>
+
       <ProTable<Account>
         actionRef={actionRef}
         rowKey="sysId"
+        rowSelection={{
+          selectedRowKeys,
+          onChange: (keys) => setSelectedRowKeys(keys),
+        }}
+        onRow={(record) => ({
+          onDoubleClick: () => handleEdit(record),
+          style: { cursor: 'pointer' },
+        })}
         columns={columns}
         dataSource={filteredAccounts}
         loading={loading}
@@ -508,9 +550,6 @@ const Accounts: React.FC = () => {
               {currentView ? currentView.name : 'Views'} <DownOutlined />
             </Button>
           </Dropdown>,
-          <Button key="add" type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
-            Add Account
-          </Button>,
         ]}
         pagination={{
           pageSize: 50,
