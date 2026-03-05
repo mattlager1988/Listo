@@ -388,9 +388,15 @@ const Accounts: React.FC = () => {
       sortOrder: sorterState?.field === 'amountDue' ? sorterState.order : undefined,
       render: (_, record) => {
         if ('isGroupHeader' in record && record.isGroupHeader) {
-          return <strong>${record.totalAmountDue.toFixed(2)}</strong>;
+          return <Tag style={{ fontWeight: 600 }}>${record.totalAmountDue.toFixed(2)}</Tag>;
         }
-        return `$${(record as Account).amountDue.toFixed(2)}`;
+        const account = record as Account;
+        const isZeroStandard = account.accountFlag === 'Standard' && account.amountDue === 0;
+        return (
+          <Tag color={isZeroStandard ? 'error' : 'default'}>
+            ${account.amountDue.toFixed(2)}
+          </Tag>
+        );
       },
       align: 'right',
       width: 100,
