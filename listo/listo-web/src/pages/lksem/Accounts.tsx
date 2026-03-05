@@ -95,6 +95,7 @@ const Accounts: React.FC = () => {
   const [sorterState, setSorterState] = useState<{ field: string; order: 'ascend' | 'descend' } | undefined>();
   const [filtersState, setFiltersState] = useState<Record<string, FilterValue | null>>({});
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
+  const [showOnHold, setShowOnHold] = useState(true);
   const [form] = Form.useForm();
   const [saveViewForm] = Form.useForm();
   const actionRef = useRef<ActionType>(null);
@@ -396,6 +397,11 @@ const Accounts: React.FC = () => {
   const filteredAccounts = React.useMemo(() => {
     let result = sortedAccounts;
 
+    // Filter out On Hold items if toggle is off
+    if (!showOnHold) {
+      result = result.filter(account => account.accountFlag !== 'OnHold');
+    }
+
     Object.entries(filtersState).forEach(([key, values]) => {
       if (values && values.length > 0) {
         result = result.filter(account => {
@@ -406,7 +412,7 @@ const Accounts: React.FC = () => {
     });
 
     return result;
-  }, [sortedAccounts, filtersState]);
+  }, [sortedAccounts, filtersState, showOnHold]);
 
   const viewMenuItems: MenuProps['items'] = [
     ...savedViews.map(view => ({
@@ -513,6 +519,15 @@ const Accounts: React.FC = () => {
             />
           </Popconfirm>
         </Tooltip>
+        <div style={{ borderLeft: '1px solid #d9d9d9', height: 16, margin: '0 8px' }} />
+        <Space size="small">
+          <Switch
+            size="small"
+            checked={showOnHold}
+            onChange={setShowOnHold}
+          />
+          <span style={{ fontSize: 12, color: '#595959' }}>On Hold</span>
+        </Space>
         <div style={{ marginLeft: 'auto', fontSize: 12, color: '#8c8c8c' }}>
           {selectedRowKeys.length > 0
             ? `${selectedRowKeys.length} selected`
