@@ -32,6 +32,9 @@ import {
   DollarOutlined,
   InboxOutlined,
   UndoOutlined,
+  LoginOutlined,
+  MinusSquareOutlined,
+  PlusSquareOutlined,
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import api from '../../services/api';
@@ -300,6 +303,27 @@ const Accounts: React.FC = () => {
     document.body.removeChild(textArea);
 
     setTotalModalVisible(true);
+  };
+
+  const handleLaunchAccount = () => {
+    const account = accounts.find(a => a.sysId.toString() === selectedRowKeys[0]?.toString());
+    if (!account || !account.webAddress) return;
+
+    // Copy password to clipboard first (before opening URL changes focus)
+    if (account.password) {
+      const textArea = document.createElement('textarea');
+      textArea.value = account.password;
+      textArea.style.position = 'fixed';
+      textArea.style.left = '-9999px';
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
+    }
+
+    // Open URL in new tab
+    window.open(account.webAddress, '_blank', 'noopener,noreferrer');
   };
 
   const handleTableChange: TableProps<TableRecord>['onChange'] = (_pagination, filters, sorter) => {
@@ -676,7 +700,33 @@ const Accounts: React.FC = () => {
             onClick={handleTotalSelected}
           />
         </Tooltip>
+        <Tooltip title="Launch & Copy Password">
+          <Button
+            type="text"
+            size="small"
+            icon={<LoginOutlined />}
+            disabled={
+              selectedRowKeys.length !== 1 ||
+              !accounts.find(a => a.sysId.toString() === selectedRowKeys[0]?.toString())?.webAddress
+            }
+            onClick={handleLaunchAccount}
+          />
+        </Tooltip>
         <div style={{ borderLeft: '1px solid #d9d9d9', height: 16, margin: '0 8px' }} />
+        <Tooltip title={expandedGroups.length > 0 ? 'Collapse All' : 'Expand All'}>
+          <Button
+            type="text"
+            size="small"
+            icon={expandedGroups.length > 0 ? <MinusSquareOutlined /> : <PlusSquareOutlined />}
+            onClick={() => {
+              if (expandedGroups.length > 0) {
+                setExpandedGroups([]);
+              } else {
+                setExpandedGroups(FLAG_ORDER.map(f => `group-${f}`));
+              }
+            }}
+          />
+        </Tooltip>
         <Space size="small">
           <Switch
             size="small"
@@ -712,6 +762,13 @@ const Accounts: React.FC = () => {
             defaultExpandAllRows: true,
           }}
           onRow={(record) => ({
+            onClick: () => {
+              if ('isGroupHeader' in record) return;
+              const key = record.sysId.toString();
+              setSelectedRowKeys(prev =>
+                prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]
+              );
+            },
             onDoubleClick: () => {
               if (!('isGroupHeader' in record)) handleEdit(record as Account);
             },

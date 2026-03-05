@@ -278,6 +278,12 @@ const UserManagement: React.FC = () => {
             onChange: (keys) => setSelectedRowKeys(keys),
           }}
           onRow={(record) => ({
+            onClick: () => {
+              const key = record.sysId;
+              setSelectedRowKeys(prev =>
+                prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]
+              );
+            },
             onDoubleClick: () => handleEdit(record),
             style: { cursor: 'pointer' },
           })}

@@ -385,6 +385,12 @@ const TrainingTracker: React.FC = () => {
             onChange: setSelectedRowKeys,
           }}
           onRow={(record) => ({
+            onClick: () => {
+              const key = record.sysId;
+              setSelectedRowKeys(prev =>
+                prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]
+              );
+            },
             onDoubleClick: () => handleEdit(record),
             style: { cursor: 'pointer' },
           })}

@@ -412,6 +412,12 @@ const DocumentList: React.FC<DocumentListProps> = ({
           onChange: (keys) => setSelectedRowKeys(keys),
         }}
         onRow={(record) => ({
+          onClick: () => {
+            const key = record.sysId;
+            setSelectedRowKeys(prev =>
+              prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]
+            );
+          },
           onDoubleClick: () => openEditModal(record),
           style: { cursor: 'pointer' },
         })}
