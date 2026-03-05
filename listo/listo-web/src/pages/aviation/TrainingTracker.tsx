@@ -130,6 +130,7 @@ const TrainingTracker: React.FC = () => {
       aircraftSysId: log.aircraftSysId,
     });
     setModalVisible(true);
+    setSelectedRowKeys([]);
   };
 
   const handleViewDescription = (log: TrainingLog) => {
@@ -196,6 +197,7 @@ const TrainingTracker: React.FC = () => {
         message.success('Training log created');
       }
       setModalVisible(false);
+      setSelectedRowKeys([]);
       fetchLogs();
       fetchSummary();
     } catch (err: unknown) {
@@ -204,14 +206,15 @@ const TrainingTracker: React.FC = () => {
     }
   };
 
-  const handleDelete = async (id: number) => {
+  const handleBulkDelete = async () => {
     try {
-      await api.delete(`/aviation/traininglogs/${id}`);
-      message.success('Training log deleted');
+      await Promise.all(selectedRowKeys.map(id => api.delete(`/aviation/traininglogs/${id}`)));
+      message.success(`${selectedRowKeys.length} training log${selectedRowKeys.length > 1 ? 's' : ''} deleted`);
+      setSelectedRowKeys([]);
       fetchLogs();
       fetchSummary();
     } catch {
-      message.error('Failed to delete training log');
+      message.error('Failed to delete training logs');
     }
   };
 
@@ -247,65 +250,101 @@ const TrainingTracker: React.FC = () => {
       width: 80,
       render: (hours: number) => hours.toFixed(1),
     },
-    {
-      title: 'Actions',
-      key: 'actions',
-      width: 130,
-      render: (_: unknown, record: TrainingLog) => (
-        <Space size={0}>
-          <Tooltip title="View">
-            <Button
-              type="text"
-              size="small"
-              icon={<EyeOutlined />}
-              onClick={() => handleViewDescription(record)}
-            />
-          </Tooltip>
-          <Tooltip title="Edit">
-            <Button
-              type="text"
-              size="small"
-              icon={<EditOutlined />}
-              onClick={() => handleEdit(record)}
-            />
-          </Tooltip>
-          <Tooltip title="Delete">
-            <Popconfirm
-              title="Delete this training log?"
-              onConfirm={() => handleDelete(record.sysId)}
-            >
-              <Button type="text" size="small" danger icon={<DeleteOutlined />} />
-            </Popconfirm>
-          </Tooltip>
-        </Space>
-      ),
-    },
   ];
 
+  // Get the selected log for single-select actions
+  const selectedLog = selectedRowKeys.length === 1
+    ? logs.find(l => l.sysId === selectedRowKeys[0])
+    : null;
+
   return (
-    <div>
-      <PageHeader
-        title="Training Tracker"
-        actions={
-          <Space>
-            {selectedRowKeys.length > 0 && (
-              <Button
-                icon={<RobotOutlined />}
-                onClick={() => setAnalysisModalVisible(true)}
-              >
-                Analyze with AI ({selectedRowKeys.length})
-              </Button>
-            )}
-            <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
-              Log Training
-            </Button>
-          </Space>
-        }
-      />
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        height: 'calc(100vh - 112px)',
+      }}
+    >
+      <PageHeader title="Training Tracker" />
+
+      {/* Action Toolbar */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          padding: '8px 12px',
+          marginBottom: 16,
+          background: '#fafafa',
+          border: '1px solid #e8e8e8',
+          borderRadius: 6,
+          gap: 4,
+          flexShrink: 0,
+        }}
+      >
+        <Tooltip title="Log Training">
+          <Button
+            type="text"
+            size="small"
+            icon={<PlusOutlined />}
+            onClick={handleCreate}
+          />
+        </Tooltip>
+        <Tooltip title="View">
+          <Button
+            type="text"
+            size="small"
+            icon={<EyeOutlined />}
+            disabled={selectedRowKeys.length !== 1}
+            onClick={() => {
+              if (selectedLog) handleViewDescription(selectedLog);
+            }}
+          />
+        </Tooltip>
+        <Tooltip title="Edit">
+          <Button
+            type="text"
+            size="small"
+            icon={<EditOutlined />}
+            disabled={selectedRowKeys.length !== 1}
+            onClick={() => {
+              if (selectedLog) handleEdit(selectedLog);
+            }}
+          />
+        </Tooltip>
+        <Tooltip title="Delete">
+          <Popconfirm
+            title={`Delete ${selectedRowKeys.length} training log${selectedRowKeys.length > 1 ? 's' : ''}?`}
+            onConfirm={handleBulkDelete}
+            disabled={selectedRowKeys.length === 0}
+          >
+            <Button
+              type="text"
+              size="small"
+              danger
+              icon={<DeleteOutlined />}
+              disabled={selectedRowKeys.length === 0}
+            />
+          </Popconfirm>
+        </Tooltip>
+        <Tooltip title="Analyze with AI">
+          <Button
+            type="text"
+            size="small"
+            icon={<RobotOutlined />}
+            disabled={selectedRowKeys.length === 0}
+            onClick={() => setAnalysisModalVisible(true)}
+          />
+        </Tooltip>
+        <div style={{ marginLeft: 'auto', fontSize: 12, color: '#8c8c8c' }}>
+          {selectedRowKeys.length > 0
+            ? `${selectedRowKeys.length} selected`
+            : 'Select rows to perform actions'}
+        </div>
+      </div>
 
       {/* Hours by Type Chart */}
       {summary && (
-        <Card title="Hours by Type" size="small" style={{ marginBottom: 24 }}>
+        <Card title="Hours by Type" size="small" style={{ marginBottom: 16, flexShrink: 0 }}>
           {Object.keys(summary.hoursByType).length > 0 ? (
             <Column
               data={Object.entries(summary.hoursByType).map(([type, hours]) => ({
@@ -331,19 +370,27 @@ const TrainingTracker: React.FC = () => {
         </Card>
       )}
 
-      <Table
-        columns={columns}
-        dataSource={logs}
-        rowKey="sysId"
-        loading={loading}
-        size="small"
-        pagination={{ pageSize: 25, size: 'small' }}
-        style={{ fontSize: 13 }}
-        rowSelection={{
-          selectedRowKeys,
-          onChange: setSelectedRowKeys,
-        }}
-      />
+      {/* Table Container */}
+      <div style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
+        <Table
+          columns={columns}
+          dataSource={logs}
+          rowKey="sysId"
+          loading={loading}
+          size="small"
+          pagination={{ pageSize: 25, size: 'small' }}
+          style={{ fontSize: 13 }}
+          rowSelection={{
+            selectedRowKeys,
+            onChange: setSelectedRowKeys,
+          }}
+          onRow={(record) => ({
+            onDoubleClick: () => handleEdit(record),
+            style: { cursor: 'pointer' },
+          })}
+          scroll={{ y: 'calc(100vh - 580px)' }}
+        />
+      </div>
 
       {/* Create/Edit Modal */}
       <Modal

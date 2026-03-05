@@ -40,6 +40,7 @@ const UserManagement: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [form] = Form.useForm();
 
   const fetchUsers = useCallback(async () => {
@@ -75,6 +76,7 @@ const UserManagement: React.FC = () => {
       isActive: user.isActive,
     });
     setModalVisible(true);
+    setSelectedRowKeys([]);
   };
 
   const handleSubmit = async (values: {
@@ -95,6 +97,7 @@ const UserManagement: React.FC = () => {
         message.success('User created successfully');
       }
       setModalVisible(false);
+      setSelectedRowKeys([]);
       fetchUsers();
     } catch (err: unknown) {
       const error = err as { response?: { data?: { message?: string } } };
@@ -102,13 +105,14 @@ const UserManagement: React.FC = () => {
     }
   };
 
-  const handleDelete = async (id: number) => {
+  const handleBulkDelete = async () => {
     try {
-      await api.delete(`/users/${id}`);
-      message.success('User deleted successfully');
+      await Promise.all(selectedRowKeys.map(id => api.delete(`/users/${id}`)));
+      message.success(`${selectedRowKeys.length} user${selectedRowKeys.length > 1 ? 's' : ''} deleted successfully`);
+      setSelectedRowKeys([]);
       fetchUsers();
     } catch {
-      message.error('Failed to delete user');
+      message.error('Failed to delete users');
     }
   };
 
@@ -172,60 +176,114 @@ const UserManagement: React.FC = () => {
       key: 'lastLoginAt',
       render: (date: string) => date ? new Date(date).toLocaleString() : 'Never',
     },
-    {
-      title: 'Actions',
-      key: 'actions',
-      render: (_: unknown, record: User) => (
-        <Space>
-          <Tooltip title="Edit">
-            <Button
-              type="text"
-              icon={<EditOutlined />}
-              onClick={() => handleEdit(record)}
-            />
-          </Tooltip>
-          {record.mfaEnabled && (
-            <Tooltip title="Reset MFA">
-              <Popconfirm
-                title="Reset MFA?"
-                description="This will disable MFA for this user."
-                onConfirm={() => handleResetMfa(record.sysId)}
-              >
-                <Button type="text" icon={<SafetyOutlined />} />
-              </Popconfirm>
-            </Tooltip>
-          )}
-          <Tooltip title="Delete">
-            <Popconfirm
-              title="Delete user?"
-              description="This action cannot be undone."
-              onConfirm={() => handleDelete(record.sysId)}
-            >
-              <Button type="text" danger icon={<DeleteOutlined />} />
-            </Popconfirm>
-          </Tooltip>
-        </Space>
-      ),
-    },
   ];
 
-  return (
-    <div>
-      <PageHeader
-        title="User Management"
-        actions={
-          <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
-            Add User
-          </Button>
-        }
-      />
+  // Get the selected user for single-select actions
+  const selectedUser = selectedRowKeys.length === 1
+    ? users.find(u => u.sysId === selectedRowKeys[0])
+    : null;
 
-      <Table
-        columns={columns}
-        dataSource={users}
-        rowKey="sysId"
-        loading={loading}
-      />
+  return (
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        height: 'calc(100vh - 112px)',
+      }}
+    >
+      <PageHeader title="User Management" />
+
+      {/* Action Toolbar */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          padding: '8px 12px',
+          marginBottom: 16,
+          background: '#fafafa',
+          border: '1px solid #e8e8e8',
+          borderRadius: 6,
+          gap: 4,
+          flexShrink: 0,
+        }}
+      >
+        <Tooltip title="Add User">
+          <Button
+            type="text"
+            size="small"
+            icon={<PlusOutlined />}
+            onClick={handleCreate}
+          />
+        </Tooltip>
+        <Tooltip title="Edit">
+          <Button
+            type="text"
+            size="small"
+            icon={<EditOutlined />}
+            disabled={selectedRowKeys.length !== 1}
+            onClick={() => {
+              if (selectedUser) handleEdit(selectedUser);
+            }}
+          />
+        </Tooltip>
+        <Tooltip title="Reset MFA">
+          <Popconfirm
+            title="Reset MFA?"
+            description="This will disable MFA for this user."
+            onConfirm={() => {
+              if (selectedUser) handleResetMfa(selectedUser.sysId);
+            }}
+            disabled={!selectedUser?.mfaEnabled}
+          >
+            <Button
+              type="text"
+              size="small"
+              icon={<SafetyOutlined />}
+              disabled={!selectedUser?.mfaEnabled}
+            />
+          </Popconfirm>
+        </Tooltip>
+        <Tooltip title="Delete">
+          <Popconfirm
+            title={`Delete ${selectedRowKeys.length} user${selectedRowKeys.length > 1 ? 's' : ''}?`}
+            description="This action cannot be undone."
+            onConfirm={handleBulkDelete}
+            disabled={selectedRowKeys.length === 0}
+          >
+            <Button
+              type="text"
+              size="small"
+              danger
+              icon={<DeleteOutlined />}
+              disabled={selectedRowKeys.length === 0}
+            />
+          </Popconfirm>
+        </Tooltip>
+        <div style={{ marginLeft: 'auto', fontSize: 12, color: '#8c8c8c' }}>
+          {selectedRowKeys.length > 0
+            ? `${selectedRowKeys.length} selected`
+            : 'Select rows to perform actions'}
+        </div>
+      </div>
+
+      {/* Table Container */}
+      <div style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
+        <Table
+          columns={columns}
+          dataSource={users}
+          rowKey="sysId"
+          loading={loading}
+          rowSelection={{
+            selectedRowKeys,
+            onChange: (keys) => setSelectedRowKeys(keys),
+          }}
+          onRow={(record) => ({
+            onDoubleClick: () => handleEdit(record),
+            style: { cursor: 'pointer' },
+          })}
+          scroll={{ y: 'calc(100vh - 280px)' }}
+        />
+      </div>
 
       <Modal
         title={editingUser ? 'Edit User' : 'Create User'}

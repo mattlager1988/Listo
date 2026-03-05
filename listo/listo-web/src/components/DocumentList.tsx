@@ -60,6 +60,7 @@ const DocumentList: React.FC<DocumentListProps> = ({
   const [selectedType, setSelectedType] = useState<number | null>(null);
   const [documentTypes, setDocumentTypes] = useState<DocumentType[]>([]);
   const [editingDoc, setEditingDoc] = useState<Document | null>(null);
+  const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [editForm] = Form.useForm();
   const [editFileList, setEditFileList] = useState<UploadFile[]>([]);
   const [editSaving, setEditSaving] = useState(false);
@@ -122,13 +123,14 @@ const DocumentList: React.FC<DocumentListProps> = ({
     }
   };
 
-  const handleDelete = async (id: number) => {
+  const handleBulkDelete = async () => {
     try {
-      await api.delete(`/documents/${id}`);
-      message.success('Document deleted');
+      await Promise.all(selectedRowKeys.map(id => api.delete(`/documents/${id}`)));
+      message.success(`${selectedRowKeys.length} document${selectedRowKeys.length > 1 ? 's' : ''} deleted`);
+      setSelectedRowKeys([]);
       fetchDocuments();
     } catch {
-      message.error('Failed to delete document');
+      message.error('Failed to delete documents');
     }
   };
 
@@ -139,6 +141,7 @@ const DocumentList: React.FC<DocumentListProps> = ({
       documentTypeSysId: doc.documentTypeSysId,
     });
     setEditFileList([]);
+    setSelectedRowKeys([]);
   };
 
   const closeEditModal = () => {
@@ -177,6 +180,7 @@ const DocumentList: React.FC<DocumentListProps> = ({
       });
       message.success('Document updated');
       closeEditModal();
+      setSelectedRowKeys([]);
       fetchDocuments();
     } catch {
       message.error('Failed to update document');
@@ -279,50 +283,16 @@ const DocumentList: React.FC<DocumentListProps> = ({
       render: (_: unknown, record: Document) =>
         new Date(record.modifyTimestamp).toLocaleDateString(),
     },
-    {
-      title: 'Actions',
-      key: 'actions',
-      width: 160,
-      render: (_: unknown, record: Document) => (
-        <Space>
-          <Tooltip title="Edit">
-            <Button
-              type="text"
-              icon={<EditOutlined />}
-              onClick={() => openEditModal(record)}
-            />
-          </Tooltip>
-          {canView(record) && (
-            <Tooltip title="View">
-              <Button
-                type="text"
-                icon={<EyeOutlined />}
-                onClick={() => handleView(record)}
-              />
-            </Tooltip>
-          )}
-          <Tooltip title="Download">
-            <Button
-              type="text"
-              icon={<DownloadOutlined />}
-              onClick={() => handleDownload(record)}
-            />
-          </Tooltip>
-          <Tooltip title="Delete">
-            <Popconfirm
-              title="Delete this document?"
-              onConfirm={() => handleDelete(record.sysId)}
-            >
-              <Button type="text" danger icon={<DeleteOutlined />} />
-            </Popconfirm>
-          </Tooltip>
-        </Space>
-      ),
-    },
   ];
+
+  // Get the selected document for single-select actions
+  const selectedDoc = selectedRowKeys.length === 1
+    ? filteredDocuments.find(d => d.sysId === selectedRowKeys[0])
+    : null;
 
   return (
     <div>
+      {/* Filter Row */}
       <Row gutter={16} style={{ marginBottom: 16 }} align="middle">
         <Col flex="auto">
           <Space>
@@ -360,6 +330,75 @@ const DocumentList: React.FC<DocumentListProps> = ({
           </Space>
         </Col>
       </Row>
+
+      {/* Action Toolbar */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          padding: '8px 12px',
+          marginBottom: 16,
+          background: '#fafafa',
+          border: '1px solid #e8e8e8',
+          borderRadius: 6,
+          gap: 4,
+        }}
+      >
+        <Tooltip title="View">
+          <Button
+            type="text"
+            size="small"
+            icon={<EyeOutlined />}
+            disabled={!selectedDoc || !canView(selectedDoc)}
+            onClick={() => {
+              if (selectedDoc && canView(selectedDoc)) handleView(selectedDoc);
+            }}
+          />
+        </Tooltip>
+        <Tooltip title="Edit">
+          <Button
+            type="text"
+            size="small"
+            icon={<EditOutlined />}
+            disabled={selectedRowKeys.length !== 1}
+            onClick={() => {
+              if (selectedDoc) openEditModal(selectedDoc);
+            }}
+          />
+        </Tooltip>
+        <Tooltip title="Download">
+          <Button
+            type="text"
+            size="small"
+            icon={<DownloadOutlined />}
+            disabled={selectedRowKeys.length !== 1}
+            onClick={() => {
+              if (selectedDoc) handleDownload(selectedDoc);
+            }}
+          />
+        </Tooltip>
+        <Tooltip title="Delete">
+          <Popconfirm
+            title={`Delete ${selectedRowKeys.length} document${selectedRowKeys.length > 1 ? 's' : ''}?`}
+            onConfirm={handleBulkDelete}
+            disabled={selectedRowKeys.length === 0}
+          >
+            <Button
+              type="text"
+              size="small"
+              danger
+              icon={<DeleteOutlined />}
+              disabled={selectedRowKeys.length === 0}
+            />
+          </Popconfirm>
+        </Tooltip>
+        <div style={{ marginLeft: 'auto', fontSize: 12, color: '#8c8c8c' }}>
+          {selectedRowKeys.length > 0
+            ? `${selectedRowKeys.length} selected`
+            : 'Select rows to perform actions'}
+        </div>
+      </div>
+
       <Table
         columns={columns}
         dataSource={filteredDocuments}
@@ -368,6 +407,14 @@ const DocumentList: React.FC<DocumentListProps> = ({
         size="small"
         pagination={false}
         locale={{ emptyText: 'No documents' }}
+        rowSelection={{
+          selectedRowKeys,
+          onChange: (keys) => setSelectedRowKeys(keys),
+        }}
+        onRow={(record) => ({
+          onDoubleClick: () => openEditModal(record),
+          style: { cursor: 'pointer' },
+        })}
       />
       <Modal
         title={viewingDoc?.originalFileName}

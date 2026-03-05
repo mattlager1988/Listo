@@ -32,6 +32,7 @@ const Notes: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [editingNote, setEditingNote] = useState<Note | null>(null);
+  const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [form] = Form.useForm();
 
   const fetchNotes = useCallback(async () => {
@@ -63,6 +64,7 @@ const Notes: React.FC = () => {
       description: note.description,
     });
     setModalVisible(true);
+    setSelectedRowKeys([]);
   };
 
   const handleSubmit = async (values: { subject: string; description: string }) => {
@@ -75,6 +77,7 @@ const Notes: React.FC = () => {
         message.success('Note created successfully');
       }
       setModalVisible(false);
+      setSelectedRowKeys([]);
       fetchNotes();
     } catch (err: unknown) {
       const error = err as { response?: { data?: { message?: string } } };
@@ -82,13 +85,14 @@ const Notes: React.FC = () => {
     }
   };
 
-  const handleDelete = async (id: number) => {
+  const handleBulkDelete = async () => {
     try {
-      await api.delete(`/aviation/notes/${id}`);
-      message.success('Note deleted successfully');
+      await Promise.all(selectedRowKeys.map(id => api.delete(`/aviation/notes/${id}`)));
+      message.success(`${selectedRowKeys.length} note${selectedRowKeys.length > 1 ? 's' : ''} deleted successfully`);
+      setSelectedRowKeys([]);
       fetchNotes();
     } catch {
-      message.error('Failed to delete note');
+      message.error('Failed to delete notes');
     }
   };
 
@@ -108,52 +112,98 @@ const Notes: React.FC = () => {
         dayjs(a.createTimestamp).unix() - dayjs(b.createTimestamp).unix(),
       defaultSortOrder: 'descend' as const,
     },
-    {
-      title: 'Actions',
-      key: 'actions',
-      width: 100,
-      render: (_: unknown, record: Note) => (
-        <Space size={0}>
-          <Tooltip title="Edit">
+  ];
+
+  // Get the selected note for single-select actions
+  const selectedNote = selectedRowKeys.length === 1
+    ? notes.find(n => n.sysId === selectedRowKeys[0])
+    : null;
+
+  return (
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        height: 'calc(100vh - 112px)',
+      }}
+    >
+      <PageHeader title="Notes" />
+
+      {/* Action Toolbar */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          padding: '8px 12px',
+          marginBottom: 16,
+          background: '#fafafa',
+          border: '1px solid #e8e8e8',
+          borderRadius: 6,
+          gap: 4,
+          flexShrink: 0,
+        }}
+      >
+        <Tooltip title="Add Note">
+          <Button
+            type="text"
+            size="small"
+            icon={<PlusOutlined />}
+            onClick={handleCreate}
+          />
+        </Tooltip>
+        <Tooltip title="Edit">
+          <Button
+            type="text"
+            size="small"
+            icon={<EditOutlined />}
+            disabled={selectedRowKeys.length !== 1}
+            onClick={() => {
+              if (selectedNote) handleEdit(selectedNote);
+            }}
+          />
+        </Tooltip>
+        <Tooltip title="Delete">
+          <Popconfirm
+            title={`Delete ${selectedRowKeys.length} note${selectedRowKeys.length > 1 ? 's' : ''}?`}
+            onConfirm={handleBulkDelete}
+            disabled={selectedRowKeys.length === 0}
+          >
             <Button
               type="text"
               size="small"
-              icon={<EditOutlined />}
-              onClick={() => handleEdit(record)}
+              danger
+              icon={<DeleteOutlined />}
+              disabled={selectedRowKeys.length === 0}
             />
-          </Tooltip>
-          <Tooltip title="Delete">
-            <Popconfirm
-              title="Delete this note?"
-              onConfirm={() => handleDelete(record.sysId)}
-            >
-              <Button type="text" size="small" danger icon={<DeleteOutlined />} />
-            </Popconfirm>
-          </Tooltip>
-        </Space>
-      ),
-    },
-  ];
+          </Popconfirm>
+        </Tooltip>
+        <div style={{ marginLeft: 'auto', fontSize: 12, color: '#8c8c8c' }}>
+          {selectedRowKeys.length > 0
+            ? `${selectedRowKeys.length} selected`
+            : 'Select rows to perform actions'}
+        </div>
+      </div>
 
-  return (
-    <div>
-      <PageHeader
-        title="Notes"
-        actions={
-          <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
-            Add Note
-          </Button>
-        }
-      />
-
-      <Table
-        columns={columns}
-        dataSource={notes}
-        rowKey="sysId"
-        loading={loading}
-        size="small"
-        pagination={{ pageSize: 25, size: 'small' }}
-      />
+      {/* Table Container */}
+      <div style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
+        <Table
+          columns={columns}
+          dataSource={notes}
+          rowKey="sysId"
+          loading={loading}
+          size="small"
+          pagination={{ pageSize: 25, size: 'small' }}
+          rowSelection={{
+            selectedRowKeys,
+            onChange: (keys) => setSelectedRowKeys(keys),
+          }}
+          onRow={(record) => ({
+            onDoubleClick: () => handleEdit(record),
+            style: { cursor: 'pointer' },
+          })}
+          scroll={{ y: 'calc(100vh - 320px)' }}
+        />
+      </div>
 
       <Modal
         title={editingNote ? 'Edit Note' : 'Add Note'}

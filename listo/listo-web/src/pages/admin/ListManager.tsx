@@ -46,6 +46,7 @@ const ListManager: React.FC = () => {
   const [modalVisible, setModalVisible] = useState(false);
   const [editingItem, setEditingItem] = useState<ListItem | null>(null);
   const [showDeleted, setShowDeleted] = useState(false);
+  const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [form] = Form.useForm();
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -72,6 +73,7 @@ const ListManager: React.FC = () => {
   const handleSelectList = (list: ListConfig) => {
     setActiveList(list);
     setShowDeleted(false);
+    setSelectedRowKeys([]);
   };
 
   const handleCreate = () => {
@@ -93,6 +95,7 @@ const ListManager: React.FC = () => {
     form.setFieldsValue(formValues);
     setSubmitError(null);
     setModalVisible(true);
+    setSelectedRowKeys([]);
   };
 
   const handleSubmit = async (values: Record<string, unknown>) => {
@@ -108,6 +111,7 @@ const ListManager: React.FC = () => {
         message.success(`${activeList.singularLabel} created successfully`);
       }
       setModalVisible(false);
+      setSelectedRowKeys([]);
       fetchItems();
     } catch (err: unknown) {
       const error = err as { response?: { data?: { message?: string } } };
@@ -119,38 +123,39 @@ const ListManager: React.FC = () => {
     }
   };
 
-  const handleDelete = async (id: number) => {
+  const handleBulkDelete = async () => {
     if (!activeList) return;
     try {
-      await api.delete(`${activeList.endpoint}/${id}`);
-      message.success(`${activeList.singularLabel} deleted successfully`);
+      await Promise.all(selectedRowKeys.map(id => api.delete(`${activeList.endpoint}/${id}`)));
+      message.success(`${selectedRowKeys.length} item${selectedRowKeys.length > 1 ? 's' : ''} deleted successfully`);
+      setSelectedRowKeys([]);
       fetchItems();
     } catch {
-      message.error(`Failed to delete ${activeList.singularLabel.toLowerCase()}`);
+      message.error(`Failed to delete items`);
     }
   };
 
-  const handleRestore = async (id: number) => {
+  const handleBulkRestore = async () => {
     if (!activeList) return;
     try {
-      await api.post(`${activeList.endpoint}/${id}/restore`);
-      message.success(`${activeList.singularLabel} restored successfully`);
+      await Promise.all(selectedRowKeys.map(id => api.post(`${activeList.endpoint}/${id}/restore`)));
+      message.success(`${selectedRowKeys.length} item${selectedRowKeys.length > 1 ? 's' : ''} restored successfully`);
+      setSelectedRowKeys([]);
       fetchItems();
-    } catch (err: unknown) {
-      const error = err as { response?: { data?: { message?: string } } };
-      message.error(error.response?.data?.message || `Failed to restore ${activeList.singularLabel.toLowerCase()}`);
+    } catch {
+      message.error(`Failed to restore items`);
     }
   };
 
-  const handlePurge = async (id: number) => {
+  const handleBulkPurge = async () => {
     if (!activeList) return;
     try {
-      await api.delete(`${activeList.endpoint}/${id}/purge`);
-      message.success(`${activeList.singularLabel} permanently deleted`);
+      await Promise.all(selectedRowKeys.map(id => api.delete(`${activeList.endpoint}/${id}/purge`)));
+      message.success(`${selectedRowKeys.length} item${selectedRowKeys.length > 1 ? 's' : ''} permanently deleted`);
+      setSelectedRowKeys([]);
       fetchItems();
-    } catch (err: unknown) {
-      const error = err as { response?: { data?: { message?: string } } };
-      message.error(error.response?.data?.message || `Failed to purge`);
+    } catch {
+      message.error(`Failed to purge items`);
     }
   };
 
@@ -188,56 +193,6 @@ const ListManager: React.FC = () => {
         </Tag>
       ),
     },
-    {
-      title: 'Actions',
-      key: 'actions',
-      width: 150,
-      render: (_: unknown, record: ListItem) => (
-        <Space>
-          {!record.isDeleted ? (
-            <>
-              <Tooltip title="Edit">
-                <Button
-                  type="text"
-                  icon={<EditOutlined />}
-                  onClick={() => handleEdit(record)}
-                />
-              </Tooltip>
-              <Tooltip title="Delete">
-                <Popconfirm
-                  title={`Delete ${activeList?.singularLabel.toLowerCase()}?`}
-                  description="This will hide it from dropdowns."
-                  onConfirm={() => handleDelete(record.sysId)}
-                >
-                  <Button type="text" danger icon={<DeleteOutlined />} />
-                </Popconfirm>
-              </Tooltip>
-            </>
-          ) : (
-            <>
-              <Tooltip title="Restore">
-                <Button
-                  type="text"
-                  icon={<UndoOutlined />}
-                  onClick={() => handleRestore(record.sysId)}
-                />
-              </Tooltip>
-              {getUsageCount(record) === 0 && (
-                <Tooltip title="Purge permanently">
-                  <Popconfirm
-                    title={`Permanently delete?`}
-                    description="This cannot be undone."
-                    onConfirm={() => handlePurge(record.sysId)}
-                  >
-                    <Button type="text" danger icon={<ClearOutlined />} />
-                  </Popconfirm>
-                </Tooltip>
-              )}
-            </>
-          )}
-        </Space>
-      ),
-    },
   ];
 
   const renderModulePanel = (module: ModuleConfig) => (
@@ -258,13 +213,26 @@ const ListManager: React.FC = () => {
     </div>
   );
 
+  // Determine selected items' state for toolbar actions
+  const selectedItems = items.filter(item => selectedRowKeys.includes(item.sysId));
+  const allSelectedActive = selectedItems.length > 0 && selectedItems.every(item => !item.isDeleted);
+  const allSelectedDeleted = selectedItems.length > 0 && selectedItems.every(item => item.isDeleted);
+  const selectedItem = selectedRowKeys.length === 1 ? selectedItems[0] : null;
+  const canPurge = allSelectedDeleted && selectedItems.every(item => getUsageCount(item) === 0);
+
   return (
-    <div>
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        height: 'calc(100vh - 112px)',
+      }}
+    >
       <PageHeader title="List Manager" />
 
-      <div style={{ display: 'flex', gap: 24 }}>
+      <div style={{ display: 'flex', gap: 24, flex: 1, minHeight: 0 }}>
         {/* Left sidebar - module/list selection */}
-        <div style={{ width: 250, flexShrink: 0 }}>
+        <div style={{ width: 250, flexShrink: 0, overflow: 'auto' }}>
           <Collapse
             activeKey={activeModule}
             onChange={setActiveModule}
@@ -277,22 +245,101 @@ const ListManager: React.FC = () => {
         </div>
 
         {/* Right content - list management */}
-        <div style={{ flex: 1 }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
           {activeList ? (
             <>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16, flexShrink: 0 }}>
                 <h3 style={{ margin: 0 }}>{activeList.label}</h3>
-                <Space>
+                <Button
+                  type={showDeleted ? 'primary' : 'default'}
+                  onClick={() => {
+                    setShowDeleted(!showDeleted);
+                    setSelectedRowKeys([]);
+                  }}
+                >
+                  {showDeleted ? 'Hide Deleted' : 'Show Deleted'}
+                </Button>
+              </div>
+
+              {/* Action Toolbar */}
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  padding: '8px 12px',
+                  marginBottom: 16,
+                  background: '#fafafa',
+                  border: '1px solid #e8e8e8',
+                  borderRadius: 6,
+                  gap: 4,
+                  flexShrink: 0,
+                }}
+              >
+                <Tooltip title={`Add ${activeList.singularLabel}`}>
                   <Button
-                    type={showDeleted ? 'primary' : 'default'}
-                    onClick={() => setShowDeleted(!showDeleted)}
+                    type="text"
+                    size="small"
+                    icon={<PlusOutlined />}
+                    onClick={handleCreate}
+                  />
+                </Tooltip>
+                <Tooltip title="Edit">
+                  <Button
+                    type="text"
+                    size="small"
+                    icon={<EditOutlined />}
+                    disabled={!selectedItem || selectedItem.isDeleted}
+                    onClick={() => {
+                      if (selectedItem && !selectedItem.isDeleted) handleEdit(selectedItem);
+                    }}
+                  />
+                </Tooltip>
+                <Tooltip title="Delete">
+                  <Popconfirm
+                    title={`Delete ${selectedRowKeys.length} item${selectedRowKeys.length > 1 ? 's' : ''}?`}
+                    description="This will hide them from dropdowns."
+                    onConfirm={handleBulkDelete}
+                    disabled={!allSelectedActive}
                   >
-                    {showDeleted ? 'Hide Deleted' : 'Show Deleted'}
-                  </Button>
-                  <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
-                    Add {activeList.singularLabel}
-                  </Button>
-                </Space>
+                    <Button
+                      type="text"
+                      size="small"
+                      danger
+                      icon={<DeleteOutlined />}
+                      disabled={!allSelectedActive}
+                    />
+                  </Popconfirm>
+                </Tooltip>
+                <Tooltip title="Restore">
+                  <Button
+                    type="text"
+                    size="small"
+                    icon={<UndoOutlined />}
+                    disabled={!allSelectedDeleted}
+                    onClick={handleBulkRestore}
+                  />
+                </Tooltip>
+                <Tooltip title="Purge permanently">
+                  <Popconfirm
+                    title={`Permanently delete ${selectedRowKeys.length} item${selectedRowKeys.length > 1 ? 's' : ''}?`}
+                    description="This cannot be undone."
+                    onConfirm={handleBulkPurge}
+                    disabled={!canPurge}
+                  >
+                    <Button
+                      type="text"
+                      size="small"
+                      danger
+                      icon={<ClearOutlined />}
+                      disabled={!canPurge}
+                    />
+                  </Popconfirm>
+                </Tooltip>
+                <div style={{ marginLeft: 'auto', fontSize: 12, color: '#8c8c8c' }}>
+                  {selectedRowKeys.length > 0
+                    ? `${selectedRowKeys.length} selected`
+                    : 'Select rows to perform actions'}
+                </div>
               </div>
 
               {showDeleted && (
@@ -301,18 +348,32 @@ const ListManager: React.FC = () => {
                   description="Deleted items can be restored or permanently purged if unused."
                   type="info"
                   showIcon
-                  style={{ marginBottom: 16 }}
+                  style={{ marginBottom: 16, flexShrink: 0 }}
                 />
               )}
 
-              <Table
-                columns={columns}
-                dataSource={items}
-                rowKey="sysId"
-                loading={loading}
-                size="small"
-                pagination={false}
-              />
+              {/* Table Container */}
+              <div style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
+                <Table
+                  columns={columns}
+                  dataSource={items}
+                  rowKey="sysId"
+                  loading={loading}
+                  size="small"
+                  pagination={false}
+                  rowSelection={{
+                    selectedRowKeys,
+                    onChange: (keys) => setSelectedRowKeys(keys),
+                  }}
+                  onRow={(record) => ({
+                    onDoubleClick: () => {
+                      if (!record.isDeleted) handleEdit(record);
+                    },
+                    style: { cursor: record.isDeleted ? 'default' : 'pointer' },
+                  })}
+                  scroll={{ y: 'calc(100vh - 350px)' }}
+                />
+              </div>
             </>
           ) : (
             <Empty description="Select a list to manage" />
