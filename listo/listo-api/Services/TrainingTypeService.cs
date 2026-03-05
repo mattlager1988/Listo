@@ -53,7 +53,7 @@ public class TrainingTypeService : ITrainingTypeService
 
     public async Task<TrainingTypeResponse> CreateAsync(CreateTrainingTypeRequest request)
     {
-        if (await _context.TrainingTypes.AnyAsync(t => t.Name == request.Name))
+        if (await _context.TrainingTypes.AnyAsync(t => t.Name == request.Name && !t.IsDeleted))
             throw new InvalidOperationException("Training type with this name already exists");
 
         var type = new TrainingType { Name = request.Name };
@@ -73,7 +73,7 @@ public class TrainingTypeService : ITrainingTypeService
 
         if (request.Name != null)
         {
-            if (await _context.TrainingTypes.AnyAsync(t => t.Name == request.Name && t.SysId != id))
+            if (await _context.TrainingTypes.AnyAsync(t => t.Name == request.Name && !t.IsDeleted && t.SysId != id))
                 throw new InvalidOperationException("Training type with this name already exists");
             type.Name = request.Name;
         }
@@ -97,6 +97,10 @@ public class TrainingTypeService : ITrainingTypeService
     {
         var type = await _context.TrainingTypes.FindAsync(id);
         if (type == null) return false;
+
+        // Check if an active item with the same name already exists
+        if (await _context.TrainingTypes.AnyAsync(t => t.Name == type.Name && !t.IsDeleted && t.SysId != id))
+            throw new InvalidOperationException("Cannot restore: an active training type with this name already exists");
 
         type.IsDeleted = false;
         await _context.SaveChangesAsync();

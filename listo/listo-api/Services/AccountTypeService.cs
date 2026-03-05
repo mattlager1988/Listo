@@ -57,7 +57,7 @@ public class AccountTypeService : IAccountTypeService
 
     public async Task<AccountTypeResponse> CreateAsync(CreateAccountTypeRequest request)
     {
-        if (await _context.AccountTypes.AnyAsync(t => t.Name == request.Name))
+        if (await _context.AccountTypes.AnyAsync(t => t.Name == request.Name && !t.IsDeleted))
             throw new InvalidOperationException("Account type with this name already exists");
 
         var type = new AccountType { Name = request.Name };
@@ -77,7 +77,7 @@ public class AccountTypeService : IAccountTypeService
 
         if (request.Name != null)
         {
-            if (await _context.AccountTypes.AnyAsync(t => t.Name == request.Name && t.SysId != id))
+            if (await _context.AccountTypes.AnyAsync(t => t.Name == request.Name && !t.IsDeleted && t.SysId != id))
                 throw new InvalidOperationException("Account type with this name already exists");
             type.Name = request.Name;
         }
@@ -100,6 +100,10 @@ public class AccountTypeService : IAccountTypeService
     {
         var type = await _context.AccountTypes.FindAsync(id);
         if (type == null) return false;
+
+        // Check if an active item with the same name already exists
+        if (await _context.AccountTypes.AnyAsync(t => t.Name == type.Name && !t.IsDeleted && t.SysId != id))
+            throw new InvalidOperationException("Cannot restore: an active account type with this name already exists");
 
         type.IsDeleted = false;
         await _context.SaveChangesAsync();

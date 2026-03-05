@@ -72,9 +72,16 @@ public class AccountOwnersController : ControllerBase
     [HttpPost("{id}/restore")]
     public async Task<IActionResult> Restore(long id)
     {
-        var restored = await _service.RestoreAsync(id);
-        if (!restored) return NotFound();
-        return NoContent();
+        try
+        {
+            var restored = await _service.RestoreAsync(id);
+            if (!restored) return NotFound();
+            return NoContent();
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
     }
 
     [HttpDelete("{id}/purge")]

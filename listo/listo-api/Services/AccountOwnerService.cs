@@ -57,7 +57,7 @@ public class AccountOwnerService : IAccountOwnerService
 
     public async Task<AccountOwnerResponse> CreateAsync(CreateAccountOwnerRequest request)
     {
-        if (await _context.AccountOwners.AnyAsync(o => o.Name == request.Name))
+        if (await _context.AccountOwners.AnyAsync(o => o.Name == request.Name && !o.IsDeleted))
             throw new InvalidOperationException("Account owner with this name already exists");
 
         var owner = new AccountOwner { Name = request.Name };
@@ -77,7 +77,7 @@ public class AccountOwnerService : IAccountOwnerService
 
         if (request.Name != null)
         {
-            if (await _context.AccountOwners.AnyAsync(o => o.Name == request.Name && o.SysId != id))
+            if (await _context.AccountOwners.AnyAsync(o => o.Name == request.Name && !o.IsDeleted && o.SysId != id))
                 throw new InvalidOperationException("Account owner with this name already exists");
             owner.Name = request.Name;
         }
@@ -100,6 +100,10 @@ public class AccountOwnerService : IAccountOwnerService
     {
         var owner = await _context.AccountOwners.FindAsync(id);
         if (owner == null) return false;
+
+        // Check if an active item with the same name already exists
+        if (await _context.AccountOwners.AnyAsync(o => o.Name == owner.Name && !o.IsDeleted && o.SysId != id))
+            throw new InvalidOperationException("Cannot restore: an active account owner with this name already exists");
 
         owner.IsDeleted = false;
         await _context.SaveChangesAsync();

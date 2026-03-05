@@ -54,7 +54,7 @@ public class AircraftService : IAircraftService
 
     public async Task<AircraftResponse> CreateAsync(CreateAircraftRequest request)
     {
-        if (await _context.Aircraft.AnyAsync(a => a.PlaneId == request.PlaneId))
+        if (await _context.Aircraft.AnyAsync(a => a.PlaneId == request.PlaneId && !a.IsDeleted))
             throw new InvalidOperationException("Aircraft with this plane ID already exists");
 
         var aircraft = new Aircraft { PlaneId = request.PlaneId, Name = request.Name };
@@ -74,7 +74,7 @@ public class AircraftService : IAircraftService
 
         if (request.PlaneId != null)
         {
-            if (await _context.Aircraft.AnyAsync(a => a.PlaneId == request.PlaneId && a.SysId != id))
+            if (await _context.Aircraft.AnyAsync(a => a.PlaneId == request.PlaneId && !a.IsDeleted && a.SysId != id))
                 throw new InvalidOperationException("Aircraft with this plane ID already exists");
             aircraft.PlaneId = request.PlaneId;
         }
@@ -101,6 +101,10 @@ public class AircraftService : IAircraftService
     {
         var aircraft = await _context.Aircraft.FindAsync(id);
         if (aircraft == null) return false;
+
+        // Check if an active item with the same plane ID already exists
+        if (await _context.Aircraft.AnyAsync(a => a.PlaneId == aircraft.PlaneId && !a.IsDeleted && a.SysId != id))
+            throw new InvalidOperationException("Cannot restore: an active aircraft with this plane ID already exists");
 
         aircraft.IsDeleted = false;
         await _context.SaveChangesAsync();

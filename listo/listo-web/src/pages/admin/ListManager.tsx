@@ -47,6 +47,8 @@ const ListManager: React.FC = () => {
   const [editingItem, setEditingItem] = useState<ListItem | null>(null);
   const [showDeleted, setShowDeleted] = useState(false);
   const [form] = Form.useForm();
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
   const fetchItems = useCallback(async () => {
     if (!activeList) return;
@@ -75,6 +77,7 @@ const ListManager: React.FC = () => {
   const handleCreate = () => {
     setEditingItem(null);
     form.resetFields();
+    setSubmitError(null);
     setModalVisible(true);
   };
 
@@ -88,11 +91,14 @@ const ListManager: React.FC = () => {
       });
     }
     form.setFieldsValue(formValues);
+    setSubmitError(null);
     setModalVisible(true);
   };
 
   const handleSubmit = async (values: Record<string, unknown>) => {
     if (!activeList) return;
+    setSubmitError(null);
+    setSubmitting(true);
     try {
       if (editingItem) {
         await api.put(`${activeList.endpoint}/${editingItem.sysId}`, values);
@@ -105,7 +111,11 @@ const ListManager: React.FC = () => {
       fetchItems();
     } catch (err: unknown) {
       const error = err as { response?: { data?: { message?: string } } };
-      message.error(error.response?.data?.message || 'Operation failed');
+      const errorMessage = error.response?.data?.message || 'Operation failed';
+      setSubmitError(errorMessage);
+      message.error(errorMessage);
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -126,8 +136,9 @@ const ListManager: React.FC = () => {
       await api.post(`${activeList.endpoint}/${id}/restore`);
       message.success(`${activeList.singularLabel} restored successfully`);
       fetchItems();
-    } catch {
-      message.error(`Failed to restore ${activeList.singularLabel.toLowerCase()}`);
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } } };
+      message.error(error.response?.data?.message || `Failed to restore ${activeList.singularLabel.toLowerCase()}`);
     }
   };
 
@@ -315,6 +326,16 @@ const ListManager: React.FC = () => {
         onCancel={() => setModalVisible(false)}
         footer={null}
       >
+        {submitError && (
+          <Alert
+            message={submitError}
+            type="error"
+            showIcon
+            style={{ marginBottom: 16 }}
+            closable
+            onClose={() => setSubmitError(null)}
+          />
+        )}
         <Form form={form} layout="vertical" onFinish={handleSubmit}>
           <Form.Item
             name="name"
@@ -344,10 +365,12 @@ const ListManager: React.FC = () => {
 
           <Form.Item>
             <Space>
-              <Button type="primary" htmlType="submit">
+              <Button type="primary" htmlType="submit" loading={submitting}>
                 {editingItem ? 'Update' : 'Create'}
               </Button>
-              <Button onClick={() => setModalVisible(false)}>Cancel</Button>
+              <Button onClick={() => setModalVisible(false)} disabled={submitting}>
+                Cancel
+              </Button>
             </Space>
           </Form.Item>
         </Form>

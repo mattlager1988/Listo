@@ -53,7 +53,7 @@ public class DocumentTypeService : IDocumentTypeService
 
     public async Task<DocumentTypeResponse> CreateAsync(CreateDocumentTypeRequest request)
     {
-        if (await _context.DocumentTypes.AnyAsync(t => t.Name == request.Name))
+        if (await _context.DocumentTypes.AnyAsync(t => t.Name == request.Name && !t.IsDeleted))
             throw new InvalidOperationException("Document type with this name already exists");
 
         var type = new DocumentType { Name = request.Name };
@@ -73,7 +73,7 @@ public class DocumentTypeService : IDocumentTypeService
 
         if (request.Name != null)
         {
-            if (await _context.DocumentTypes.AnyAsync(t => t.Name == request.Name && t.SysId != id))
+            if (await _context.DocumentTypes.AnyAsync(t => t.Name == request.Name && !t.IsDeleted && t.SysId != id))
                 throw new InvalidOperationException("Document type with this name already exists");
             type.Name = request.Name;
         }
@@ -97,6 +97,10 @@ public class DocumentTypeService : IDocumentTypeService
     {
         var type = await _context.DocumentTypes.FindAsync(id);
         if (type == null) return false;
+
+        // Check if an active item with the same name already exists
+        if (await _context.DocumentTypes.AnyAsync(t => t.Name == type.Name && !t.IsDeleted && t.SysId != id))
+            throw new InvalidOperationException("Cannot restore: an active document type with this name already exists");
 
         type.IsDeleted = false;
         await _context.SaveChangesAsync();

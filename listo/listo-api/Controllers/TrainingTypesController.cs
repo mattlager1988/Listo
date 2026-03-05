@@ -76,9 +76,16 @@ public class TrainingTypesController : ControllerBase
     [Authorize(Roles = "admin")]
     public async Task<IActionResult> Restore(long id)
     {
-        var success = await _service.RestoreAsync(id);
-        if (!success) return NotFound();
-        return NoContent();
+        try
+        {
+            var success = await _service.RestoreAsync(id);
+            if (!success) return NotFound();
+            return NoContent();
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
     }
 
     [HttpDelete("{id}/purge")]

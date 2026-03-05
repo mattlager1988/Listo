@@ -55,7 +55,7 @@ public class AiPromptService : IAiPromptService
 
     public async Task<AiPromptResponse> CreateAsync(CreateAiPromptRequest request)
     {
-        if (await _context.AiPrompts.AnyAsync(p => p.Name == request.Name))
+        if (await _context.AiPrompts.AnyAsync(p => p.Name == request.Name && !p.IsDeleted))
             throw new InvalidOperationException("AI prompt with this name already exists");
 
         var prompt = new AiPrompt
@@ -76,7 +76,7 @@ public class AiPromptService : IAiPromptService
 
         if (request.Name != null)
         {
-            if (await _context.AiPrompts.AnyAsync(p => p.Name == request.Name && p.SysId != id))
+            if (await _context.AiPrompts.AnyAsync(p => p.Name == request.Name && !p.IsDeleted && p.SysId != id))
                 throw new InvalidOperationException("AI prompt with this name already exists");
             prompt.Name = request.Name;
         }
@@ -105,6 +105,10 @@ public class AiPromptService : IAiPromptService
     {
         var prompt = await _context.AiPrompts.FindAsync(id);
         if (prompt == null) return false;
+
+        // Check if an active item with the same name already exists
+        if (await _context.AiPrompts.AnyAsync(p => p.Name == prompt.Name && !p.IsDeleted && p.SysId != id))
+            throw new InvalidOperationException("Cannot restore: an active AI prompt with this name already exists");
 
         prompt.IsDeleted = false;
         await _context.SaveChangesAsync();
