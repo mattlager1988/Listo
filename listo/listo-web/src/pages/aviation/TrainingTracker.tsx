@@ -18,12 +18,10 @@ import {
 import {
   PlusOutlined,
   EditOutlined,
-  StopOutlined,
+  DeleteOutlined,
   EyeOutlined,
   PrinterOutlined,
   RobotOutlined,
-  InboxOutlined,
-  UndoOutlined,
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { Column } from '@ant-design/charts';
@@ -42,8 +40,6 @@ interface TrainingLog {
   aircraftSysId: number | null;
   aircraftPlaneId: string | null;
   aircraftName: string | null;
-  isDiscontinued: boolean;
-  discontinuedDate: string | null;
 }
 
 interface TrainingType {
@@ -75,9 +71,6 @@ const TrainingTracker: React.FC = () => {
   const [viewingLog, setViewingLog] = useState<TrainingLog | null>(null);
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [analysisModalVisible, setAnalysisModalVisible] = useState(false);
-  const [discontinuedModalVisible, setDiscontinuedModalVisible] = useState(false);
-  const [discontinuedLogs, setDiscontinuedLogs] = useState<TrainingLog[]>([]);
-  const [discontinuedLoading, setDiscontinuedLoading] = useState(false);
   const [form] = Form.useForm();
 
   const fetchLogs = useCallback(async () => {
@@ -213,45 +206,16 @@ const TrainingTracker: React.FC = () => {
     }
   };
 
-  const handleBulkDiscontinue = async () => {
+  const handleBulkDelete = async () => {
     try {
-      await Promise.all(selectedRowKeys.map(id => api.post(`/aviation/traininglogs/${id}/discontinue`)));
-      message.success(`${selectedRowKeys.length} training log${selectedRowKeys.length > 1 ? 's' : ''} discontinued`);
+      await Promise.all(selectedRowKeys.map(id => api.delete(`/aviation/traininglogs/${id}`)));
+      message.success(`${selectedRowKeys.length} training log${selectedRowKeys.length > 1 ? 's' : ''} deleted`);
       setSelectedRowKeys([]);
       fetchLogs();
       fetchSummary();
     } catch {
-      message.error('Failed to discontinue training logs');
+      message.error('Failed to delete training logs');
     }
-  };
-
-  const fetchDiscontinuedLogs = async () => {
-    setDiscontinuedLoading(true);
-    try {
-      const response = await api.get('/aviation/traininglogs/discontinued');
-      setDiscontinuedLogs(response.data);
-    } catch {
-      message.error('Failed to fetch discontinued training logs');
-    } finally {
-      setDiscontinuedLoading(false);
-    }
-  };
-
-  const handleReactivate = async (id: number) => {
-    try {
-      await api.post(`/aviation/traininglogs/${id}/reactivate`);
-      message.success('Training log reactivated');
-      fetchDiscontinuedLogs();
-      fetchLogs();
-      fetchSummary();
-    } catch {
-      message.error('Failed to reactivate training log');
-    }
-  };
-
-  const handleOpenDiscontinuedModal = () => {
-    setDiscontinuedModalVisible(true);
-    fetchDiscontinuedLogs();
   };
 
   const columns = [
@@ -347,29 +311,21 @@ const TrainingTracker: React.FC = () => {
             }}
           />
         </Tooltip>
-        <Tooltip title="Discontinue">
+        <Tooltip title="Delete">
           <Popconfirm
-            title={`Discontinue ${selectedRowKeys.length} training log${selectedRowKeys.length > 1 ? 's' : ''}?`}
-            description="Discontinued logs can be reactivated later."
-            onConfirm={handleBulkDiscontinue}
+            title={`Delete ${selectedRowKeys.length} training log${selectedRowKeys.length > 1 ? 's' : ''}?`}
+            description="This action cannot be undone."
+            onConfirm={handleBulkDelete}
             disabled={selectedRowKeys.length === 0}
           >
             <Button
               type="text"
               size="small"
               danger
-              icon={<StopOutlined />}
+              icon={<DeleteOutlined />}
               disabled={selectedRowKeys.length === 0}
             />
           </Popconfirm>
-        </Tooltip>
-        <Tooltip title="View Discontinued">
-          <Button
-            type="text"
-            size="small"
-            icon={<InboxOutlined />}
-            onClick={handleOpenDiscontinuedModal}
-          />
         </Tooltip>
         <Tooltip title="Analyze with AI">
           <Button
@@ -569,64 +525,6 @@ const TrainingTracker: React.FC = () => {
         onClose={() => setAnalysisModalVisible(false)}
         selectedLogIds={selectedRowKeys.map(k => Number(k))}
       />
-
-      {/* Discontinued Training Logs Modal */}
-      <Modal
-        title="Discontinued Training Logs"
-        open={discontinuedModalVisible}
-        onCancel={() => setDiscontinuedModalVisible(false)}
-        footer={
-          <Button onClick={() => setDiscontinuedModalVisible(false)}>
-            Close
-          </Button>
-        }
-        width={700}
-      >
-        {discontinuedLoading ? (
-          <div style={{ textAlign: 'center', padding: '40px 0' }}>Loading...</div>
-        ) : discontinuedLogs.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '40px 0', color: '#8c8c8c' }}>
-            No discontinued training logs
-          </div>
-        ) : (
-          <div style={{ maxHeight: 400, overflow: 'auto' }}>
-            {discontinuedLogs.map(log => (
-              <div
-                key={log.sysId}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '12px 16px',
-                  borderBottom: '1px solid #f0f0f0',
-                }}
-              >
-                <div>
-                  <div style={{ fontWeight: 500 }}>
-                    {dayjs(log.date).format('MMM D, YYYY')} - {log.trainingTypeName}
-                  </div>
-                  <div style={{ fontSize: 12, color: '#8c8c8c' }}>
-                    {log.hoursFlown.toFixed(1)} hours
-                    {log.aircraftPlaneId && ` • ${log.aircraftPlaneId}`}
-                    {log.discontinuedDate && (
-                      <> • Discontinued {dayjs(log.discontinuedDate).format('MMM D, YYYY')}</>
-                    )}
-                  </div>
-                </div>
-                <Tooltip title="Reactivate">
-                  <Button
-                    type="text"
-                    icon={<UndoOutlined />}
-                    onClick={() => handleReactivate(log.sysId)}
-                  >
-                    Reactivate
-                  </Button>
-                </Tooltip>
-              </div>
-            ))}
-          </div>
-        )}
-      </Modal>
     </div>
   );
 };

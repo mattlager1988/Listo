@@ -140,30 +140,11 @@ public class DocumentsController : ControllerBase
         }
     }
 
-    [HttpGet("discontinued")]
-    public async Task<IActionResult> GetDiscontinued(
-        [FromQuery] string? module,
-        [FromQuery] string? entityType,
-        [FromQuery] long? entitySysId)
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> Delete(long id)
     {
-        var documents = await _documentService.GetDiscontinuedAsync(
-            module ?? "", entityType ?? "", entitySysId);
-        return Ok(documents);
-    }
-
-    [HttpPost("{id}/discontinue")]
-    public async Task<IActionResult> Discontinue(long id)
-    {
-        var success = await _documentService.DiscontinueAsync(id);
+        var success = await _documentService.DeleteAsync(id);
         if (!success) return NotFound();
         return NoContent();
-    }
-
-    [HttpPost("{id}/reactivate")]
-    public async Task<IActionResult> Reactivate(long id)
-    {
-        var document = await _documentService.ReactivateAsync(id);
-        if (document == null) return NotFound();
-        return Ok(document);
     }
 }

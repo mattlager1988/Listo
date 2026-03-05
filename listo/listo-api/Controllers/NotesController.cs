@@ -67,35 +67,14 @@ public class NotesController : ControllerBase
         return Ok(note);
     }
 
-    [HttpGet("discontinued")]
-    public async Task<IActionResult> GetDiscontinued()
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> Delete(long id)
     {
         var userId = GetCurrentUserId();
         if (!userId.HasValue) return Unauthorized();
 
-        var notes = await _service.GetDiscontinuedAsync(userId.Value);
-        return Ok(notes);
-    }
-
-    [HttpPost("{id}/discontinue")]
-    public async Task<IActionResult> Discontinue(long id)
-    {
-        var userId = GetCurrentUserId();
-        if (!userId.HasValue) return Unauthorized();
-
-        var success = await _service.DiscontinueAsync(id, userId.Value);
+        var success = await _service.DeleteAsync(id, userId.Value);
         if (!success) return NotFound();
         return NoContent();
-    }
-
-    [HttpPost("{id}/reactivate")]
-    public async Task<IActionResult> Reactivate(long id)
-    {
-        var userId = GetCurrentUserId();
-        if (!userId.HasValue) return Unauthorized();
-
-        var note = await _service.ReactivateAsync(id, userId.Value);
-        if (note == null) return NotFound();
-        return Ok(note);
     }
 }

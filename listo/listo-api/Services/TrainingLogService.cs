@@ -8,12 +8,10 @@ namespace Listo.Api.Services;
 public interface ITrainingLogService
 {
     Task<IEnumerable<TrainingLogResponse>> GetAllAsync(long userId, DateTime? startDate = null, DateTime? endDate = null);
-    Task<IEnumerable<TrainingLogResponse>> GetDiscontinuedAsync(long userId);
     Task<TrainingLogResponse?> GetByIdAsync(long id, long userId);
     Task<TrainingLogResponse> CreateAsync(CreateTrainingLogRequest request, long userId);
     Task<TrainingLogResponse?> UpdateAsync(long id, UpdateTrainingLogRequest request, long userId);
-    Task<bool> DiscontinueAsync(long id, long userId);
-    Task<TrainingLogResponse?> ReactivateAsync(long id, long userId);
+    Task<bool> DeleteAsync(long id, long userId);
     Task<TrainingLogSummary> GetSummaryAsync(long userId, DateTime? startDate = null, DateTime? endDate = null);
 }
 
@@ -31,7 +29,7 @@ public class TrainingLogService : ITrainingLogService
         var query = _context.TrainingLogs
             .Include(l => l.TrainingType)
             .Include(l => l.Aircraft)
-            .Where(l => l.UserSysId == userId && !l.IsDiscontinued);
+            .Where(l => l.UserSysId == userId);
 
         if (startDate.HasValue)
             query = query.Where(l => l.Date >= startDate.Value);
@@ -40,17 +38,6 @@ public class TrainingLogService : ITrainingLogService
 
         return await query
             .OrderByDescending(l => l.Date)
-            .Select(l => MapToResponse(l))
-            .ToListAsync();
-    }
-
-    public async Task<IEnumerable<TrainingLogResponse>> GetDiscontinuedAsync(long userId)
-    {
-        return await _context.TrainingLogs
-            .Include(l => l.TrainingType)
-            .Include(l => l.Aircraft)
-            .Where(l => l.UserSysId == userId && l.IsDiscontinued)
-            .OrderByDescending(l => l.DiscontinuedDate)
             .Select(l => MapToResponse(l))
             .ToListAsync();
     }
@@ -113,41 +100,24 @@ public class TrainingLogService : ITrainingLogService
         return MapToResponse(log);
     }
 
-    public async Task<bool> DiscontinueAsync(long id, long userId)
+    public async Task<bool> DeleteAsync(long id, long userId)
     {
         var log = await _context.TrainingLogs
             .FirstOrDefaultAsync(l => l.SysId == id && l.UserSysId == userId);
 
         if (log == null) return false;
 
-        log.IsDiscontinued = true;
-        log.DiscontinuedDate = DateTime.UtcNow;
+        _context.TrainingLogs.Remove(log);
         await _context.SaveChangesAsync();
 
         return true;
-    }
-
-    public async Task<TrainingLogResponse?> ReactivateAsync(long id, long userId)
-    {
-        var log = await _context.TrainingLogs
-            .Include(l => l.TrainingType)
-            .Include(l => l.Aircraft)
-            .FirstOrDefaultAsync(l => l.SysId == id && l.UserSysId == userId);
-
-        if (log == null) return null;
-
-        log.IsDiscontinued = false;
-        log.DiscontinuedDate = null;
-        await _context.SaveChangesAsync();
-
-        return MapToResponse(log);
     }
 
     public async Task<TrainingLogSummary> GetSummaryAsync(long userId, DateTime? startDate = null, DateTime? endDate = null)
     {
         var query = _context.TrainingLogs
             .Include(l => l.TrainingType)
-            .Where(l => l.UserSysId == userId && !l.IsDiscontinued);
+            .Where(l => l.UserSysId == userId);
 
         if (startDate.HasValue)
             query = query.Where(l => l.Date >= startDate.Value);
@@ -176,8 +146,6 @@ public class TrainingLogService : ITrainingLogService
         l.Aircraft?.PlaneId,
         l.Aircraft?.Name,
         l.CreateTimestamp,
-        l.ModifyTimestamp,
-        l.IsDiscontinued,
-        l.DiscontinuedDate
+        l.ModifyTimestamp
     );
 }

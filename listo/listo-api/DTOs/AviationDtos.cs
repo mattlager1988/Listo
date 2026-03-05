@@ -49,9 +49,7 @@ public record TrainingLogResponse(
     string? AircraftPlaneId,
     string? AircraftName,
     DateTime CreateTimestamp,
-    DateTime ModifyTimestamp,
-    bool IsDiscontinued,
-    DateTime? DiscontinuedDate
+    DateTime ModifyTimestamp
 );
 
 public record CreateTrainingLogRequest(
@@ -82,9 +80,7 @@ public record NoteResponse(
     string Subject,
     string Description,
     DateTime CreateTimestamp,
-    DateTime ModifyTimestamp,
-    bool IsDiscontinued,
-    DateTime? DiscontinuedDate
+    DateTime ModifyTimestamp
 );
 
 public record CreateNoteRequest(string Subject, string Description);

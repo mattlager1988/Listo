@@ -5,8 +5,6 @@ public class TrainingLog : BaseEntity
     public DateTime Date { get; set; }
     public string Description { get; set; } = string.Empty;  // HTML content from rich text editor
     public decimal HoursFlown { get; set; }
-    public bool IsDiscontinued { get; set; }
-    public DateTime? DiscontinuedDate { get; set; }
 
     // Foreign keys
     public long UserSysId { get; set; }
