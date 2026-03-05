@@ -454,7 +454,13 @@ const Accounts: React.FC = () => {
   ];
 
   return (
-    <div>
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        height: 'calc(100vh - 112px)', // viewport minus header (64px) and content padding (48px)
+      }}
+    >
       <PageHeader title="Accounts" />
 
       {/* Action Toolbar */}
@@ -468,6 +474,7 @@ const Accounts: React.FC = () => {
           border: '1px solid #e8e8e8',
           borderRadius: 6,
           gap: 4,
+          flexShrink: 0,
         }}
       >
         <Tooltip title="Add Account">
@@ -513,58 +520,61 @@ const Accounts: React.FC = () => {
         </div>
       </div>
 
-      <ProTable<Account>
-        actionRef={actionRef}
-        rowKey="sysId"
-        rowSelection={{
-          selectedRowKeys,
-          onChange: (keys) => setSelectedRowKeys(keys),
-        }}
-        onRow={(record) => ({
-          onDoubleClick: () => handleEdit(record),
-          style: { cursor: 'pointer' },
-        })}
-        columns={columns}
-        dataSource={filteredAccounts}
-        loading={loading}
-        search={false}
-        onChange={handleTableChange}
-        options={{
-          density: true,
-          fullScreen: true,
-          reload: () => fetchAccounts(),
-          setting: {
-            draggable: true,
-            checkable: true,
-          },
-        }}
-        columnsState={{
-          value: columnsState,
-          onChange: setColumnsState,
-        }}
-        defaultSize="small"
-        scroll={{ x: 'max-content' }}
-        toolBarRender={() => [
-          <Dropdown key="views" menu={{ items: viewMenuItems }}>
-            <Button>
-              {currentView ? currentView.name : 'Views'} <DownOutlined />
-            </Button>
-          </Dropdown>,
-        ]}
-        pagination={{
-          pageSize: 50,
-          showSizeChanger: true,
-          showQuickJumper: true,
-        }}
-        locale={{
-          emptyText: (
-            <div style={{ padding: '40px 0' }}>
-              <p>No accounts found</p>
-              <Button type="primary" onClick={handleCreate}>Add Your First Account</Button>
-            </div>
-          ),
-        }}
-      />
+      {/* Table Container - fills remaining space and scrolls */}
+      <div style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
+        <ProTable<Account>
+          actionRef={actionRef}
+          rowKey="sysId"
+          rowSelection={{
+            selectedRowKeys,
+            onChange: (keys) => setSelectedRowKeys(keys),
+          }}
+          onRow={(record) => ({
+            onDoubleClick: () => handleEdit(record),
+            style: { cursor: 'pointer' },
+          })}
+          columns={columns}
+          dataSource={filteredAccounts}
+          loading={loading}
+          search={false}
+          onChange={handleTableChange}
+          options={{
+            density: true,
+            fullScreen: true,
+            reload: () => fetchAccounts(),
+            setting: {
+              draggable: true,
+              checkable: true,
+            },
+          }}
+          columnsState={{
+            value: columnsState,
+            onChange: setColumnsState,
+          }}
+          defaultSize="small"
+          scroll={{ x: 'max-content' }}
+          toolBarRender={() => [
+            <Dropdown key="views" menu={{ items: viewMenuItems }}>
+              <Button>
+                {currentView ? currentView.name : 'Views'} <DownOutlined />
+              </Button>
+            </Dropdown>,
+          ]}
+          pagination={{
+            pageSize: 50,
+            showSizeChanger: true,
+            showQuickJumper: true,
+          }}
+          locale={{
+            emptyText: (
+              <div style={{ padding: '40px 0' }}>
+                <p>No accounts found</p>
+                <Button type="primary" onClick={handleCreate}>Add Your First Account</Button>
+              </div>
+            ),
+          }}
+        />
+      </div>
 
       {/* Account Modal */}
       <Modal
