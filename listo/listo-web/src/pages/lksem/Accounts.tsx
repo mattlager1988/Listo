@@ -29,6 +29,7 @@ import {
   StarOutlined,
   StarFilled,
   ReloadOutlined,
+  DollarOutlined,
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import api from '../../services/api';
@@ -127,6 +128,8 @@ const Accounts: React.FC = () => {
   const [expandedGroups, setExpandedGroups] = useState<React.Key[]>(
     FLAG_ORDER.map(f => `group-${f}`)
   );
+  const [totalModalVisible, setTotalModalVisible] = useState(false);
+  const [selectedTotal, setSelectedTotal] = useState(0);
   const [form] = Form.useForm();
   const [saveViewForm] = Form.useForm();
   const actionRef = useRef<ActionType>(null);
@@ -239,6 +242,30 @@ const Accounts: React.FC = () => {
     } catch {
       message.error('Failed to delete accounts');
     }
+  };
+
+  const handleTotalSelected = () => {
+    const total = accounts
+      .filter(a => selectedRowKeys.includes(a.sysId.toString()))
+      .reduce((sum, a) => sum + a.amountDue, 0);
+    setSelectedTotal(total);
+
+    // Copy to clipboard using fallback method for better browser support
+    const textArea = document.createElement('textarea');
+    textArea.value = total.toFixed(2);
+    textArea.style.position = 'fixed';
+    textArea.style.left = '-9999px';
+    document.body.appendChild(textArea);
+    textArea.select();
+    try {
+      document.execCommand('copy');
+      message.success('Total copied to clipboard');
+    } catch {
+      message.warning('Could not copy to clipboard');
+    }
+    document.body.removeChild(textArea);
+
+    setTotalModalVisible(true);
   };
 
   const handleTableChange: TableProps<TableRecord>['onChange'] = (_pagination, filters, sorter) => {
@@ -598,6 +625,15 @@ const Accounts: React.FC = () => {
             />
           </Popconfirm>
         </Tooltip>
+        <Tooltip title="Total Amount Due">
+          <Button
+            type="text"
+            size="small"
+            icon={<DollarOutlined />}
+            disabled={selectedRowKeys.length === 0}
+            onClick={handleTotalSelected}
+          />
+        </Tooltip>
         <div style={{ borderLeft: '1px solid #d9d9d9', height: 16, margin: '0 8px' }} />
         <Space size="small">
           <Switch
@@ -897,6 +933,31 @@ const Accounts: React.FC = () => {
             </Space>
           </Form.Item>
         </Form>
+      </Modal>
+
+      {/* Total Amount Due Modal */}
+      <Modal
+        title="Total Amount Due"
+        open={totalModalVisible}
+        onCancel={() => setTotalModalVisible(false)}
+        footer={
+          <Button type="primary" onClick={() => setTotalModalVisible(false)}>
+            OK
+          </Button>
+        }
+        width={300}
+      >
+        <div style={{ textAlign: 'center', padding: '20px 0' }}>
+          <div style={{ fontSize: 12, color: '#8c8c8c', marginBottom: 8 }}>
+            {selectedRowKeys.length} account{selectedRowKeys.length !== 1 ? 's' : ''} selected
+          </div>
+          <div style={{ fontSize: 32, fontWeight: 600 }}>
+            ${selectedTotal.toFixed(2)}
+          </div>
+          <div style={{ fontSize: 12, color: '#52c41a', marginTop: 8 }}>
+            Copied to clipboard
+          </div>
+        </div>
       </Modal>
     </div>
   );
