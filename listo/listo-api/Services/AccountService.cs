@@ -65,7 +65,8 @@ public class AccountService : IAccountService
                 : _encryptionService.Encrypt(request.Password),
             AutoPay = request.AutoPay,
             ResetAmountDue = request.ResetAmountDue,
-            AccountFlag = flag
+            AccountFlag = flag,
+            Notes = request.Notes
         };
 
         _context.Accounts.Add(account);
@@ -107,6 +108,7 @@ public class AccountService : IAccountService
         {
             account.AccountFlag = flag;
         }
+        if (request.Notes != null) account.Notes = request.Notes;
 
         await _context.SaveChangesAsync();
 
@@ -144,6 +146,7 @@ public class AccountService : IAccountService
             : _encryptionService.Decrypt(account.EncryptedPassword),
         account.AutoPay,
         account.ResetAmountDue,
-        account.AccountFlag.ToString()
+        account.AccountFlag.ToString(),
+        account.Notes
     );
 }

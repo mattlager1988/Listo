@@ -39,7 +39,8 @@ public record AccountResponse(
     string? Password, // Decrypted for display
     bool AutoPay,
     bool ResetAmountDue,
-    string AccountFlag
+    string AccountFlag,
+    string? Notes
 );
 
 public record CreateAccountRequest(
@@ -55,7 +56,8 @@ public record CreateAccountRequest(
     string? Password,
     bool AutoPay,
     bool ResetAmountDue,
-    string AccountFlag
+    string AccountFlag,
+    string? Notes
 );
 
 public record UpdateAccountRequest(
@@ -71,7 +73,8 @@ public record UpdateAccountRequest(
     string? Password,
     bool? AutoPay,
     bool? ResetAmountDue,
-    string? AccountFlag
+    string? AccountFlag,
+    string? Notes
 );
 
 // Saved View DTOs

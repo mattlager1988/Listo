@@ -52,6 +52,7 @@ interface Account {
   autoPay: boolean;
   resetAmountDue: boolean;
   accountFlag: string;
+  notes: string | null;
 }
 
 interface ListItem {
@@ -81,6 +82,32 @@ const accountFlagColors: Record<string, string> = {
   OnHold: 'warning',
 };
 
+const accountFlagTextColors: Record<string, string | undefined> = {
+  Standard: undefined,
+  Alert: '#ff4d4f',
+  Static: '#1677ff',
+  OnHold: '#faad14',
+};
+
+interface AccountGroup {
+  sysId: string;
+  isGroupHeader: true;
+  accountFlag: string;
+  children: Account[];
+  accountCount: number;
+  totalAmountDue: number;
+}
+
+type TableRecord = Account | AccountGroup;
+
+const FLAG_ORDER = ['Standard', 'Static', 'Alert', 'OnHold'];
+const FLAG_DISPLAY_NAMES: Record<string, string> = {
+  Standard: 'Standard',
+  Static: 'Static',
+  Alert: 'Alert',
+  OnHold: 'On Hold',
+};
+
 const Accounts: React.FC = () => {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [accountTypes, setAccountTypes] = useState<ListItem[]>([]);
@@ -95,7 +122,11 @@ const Accounts: React.FC = () => {
   const [sorterState, setSorterState] = useState<{ field: string; order: 'ascend' | 'descend' } | undefined>();
   const [filtersState, setFiltersState] = useState<Record<string, FilterValue | null>>({});
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
-  const [showOnHold, setShowOnHold] = useState(true);
+  const [showOnHold, setShowOnHold] = useState(false);
+  const [groupByFlag, setGroupByFlag] = useState(true);
+  const [expandedGroups, setExpandedGroups] = useState<React.Key[]>(
+    FLAG_ORDER.map(f => `group-${f}`)
+  );
   const [form] = Form.useForm();
   const [saveViewForm] = Form.useForm();
   const actionRef = useRef<ActionType>(null);
@@ -210,9 +241,9 @@ const Accounts: React.FC = () => {
     }
   };
 
-  const handleTableChange: TableProps<Account>['onChange'] = (_pagination, filters, sorter) => {
+  const handleTableChange: TableProps<TableRecord>['onChange'] = (_pagination, filters, sorter) => {
     // Handle sorting
-    const s = sorter as SorterResult<Account>;
+    const s = sorter as SorterResult<TableRecord>;
     if (s.field && s.order) {
       setSorterState({ field: s.field as string, order: s.order });
     } else {
@@ -299,74 +330,95 @@ const Accounts: React.FC = () => {
     return value ?? undefined;
   };
 
-  const columns: ProColumns<Account>[] = [
+  const columns: ProColumns<TableRecord>[] = [
     {
       title: 'Name',
       dataIndex: 'name',
       key: 'name',
-      sorter: true,
+      sorter: !groupByFlag,
       sortOrder: sorterState?.field === 'name' ? sorterState.order : undefined,
       width: 150,
+      render: (_, record) => {
+        if ('isGroupHeader' in record && record.isGroupHeader) {
+          return (
+            <Space>
+              <Tag color={accountFlagColors[record.accountFlag]}>
+                {FLAG_DISPLAY_NAMES[record.accountFlag]}
+              </Tag>
+              <span style={{ color: '#8c8c8c' }}>({record.accountCount})</span>
+            </Space>
+          );
+        }
+        return (record as Account).name;
+      },
     },
     {
       title: 'Type',
       dataIndex: 'accountTypeName',
       key: 'accountTypeName',
-      sorter: true,
+      sorter: !groupByFlag,
       sortOrder: sorterState?.field === 'accountTypeName' ? sorterState.order : undefined,
       filters: accountTypes.map(t => ({ text: t.name, value: t.name })),
       filteredValue: getFilteredValue('accountTypeName'),
-      onFilter: (value, record) => record.accountTypeName === value,
+      onFilter: (value, record) => 'isGroupHeader' in record || (record as Account).accountTypeName === value,
       width: 120,
-    },
-    {
-      title: 'Owner',
-      dataIndex: 'accountOwnerName',
-      key: 'accountOwnerName',
-      sorter: true,
-      sortOrder: sorterState?.field === 'accountOwnerName' ? sorterState.order : undefined,
-      filters: accountOwners.map(o => ({ text: o.name, value: o.name })),
-      filteredValue: getFilteredValue('accountOwnerName'),
-      onFilter: (value, record) => record.accountOwnerName === value,
-      width: 120,
-    },
-    {
-      title: 'Amount Due',
-      dataIndex: 'amountDue',
-      key: 'amountDue',
-      sorter: true,
-      sortOrder: sorterState?.field === 'amountDue' ? sorterState.order : undefined,
-      render: (_, record) => `$${record.amountDue.toFixed(2)}`,
-      align: 'right',
-      width: 100,
+      render: (_, record) => {
+        if ('isGroupHeader' in record) return null;
+        return (record as Account).accountTypeName;
+      },
     },
     {
       title: 'Due Date',
       dataIndex: 'dueDate',
       key: 'dueDate',
-      sorter: true,
+      sorter: !groupByFlag,
       sortOrder: sorterState?.field === 'dueDate' ? sorterState.order : undefined,
-      render: (_, record) => record.dueDate ? dayjs(record.dueDate).format('MM/DD/YYYY') : '-',
+      render: (_, record) => {
+        if ('isGroupHeader' in record) return null;
+        const account = record as Account;
+        return account.dueDate ? dayjs(account.dueDate).format('MM/DD/YYYY') : '-';
+      },
       width: 100,
     },
     {
-      title: 'Flag',
-      dataIndex: 'accountFlag',
-      key: 'accountFlag',
-      filters: [
-        { text: 'Standard', value: 'Standard' },
-        { text: 'Alert', value: 'Alert' },
-        { text: 'Static', value: 'Static' },
-        { text: 'On Hold', value: 'OnHold' },
-      ],
-      filteredValue: getFilteredValue('accountFlag'),
-      onFilter: (value, record) => record.accountFlag === value,
-      render: (_, record) => (
-        <Tag color={accountFlagColors[record.accountFlag] || 'default'}>
-          {record.accountFlag === 'OnHold' ? 'On Hold' : record.accountFlag}
-        </Tag>
-      ),
-      width: 90,
+      title: 'Amount Due',
+      dataIndex: 'amountDue',
+      key: 'amountDue',
+      sorter: !groupByFlag,
+      sortOrder: sorterState?.field === 'amountDue' ? sorterState.order : undefined,
+      render: (_, record) => {
+        if ('isGroupHeader' in record && record.isGroupHeader) {
+          return <strong>${record.totalAmountDue.toFixed(2)}</strong>;
+        }
+        return `$${(record as Account).amountDue.toFixed(2)}`;
+      },
+      align: 'right',
+      width: 100,
+    },
+    {
+      title: 'Username',
+      dataIndex: 'username',
+      key: 'username',
+      sorter: !groupByFlag,
+      sortOrder: sorterState?.field === 'username' ? sorterState.order : undefined,
+      render: (_, record) => {
+        if ('isGroupHeader' in record) return null;
+        return (record as Account).username || '-';
+      },
+      width: 120,
+    },
+    {
+      title: 'Notes',
+      dataIndex: 'notes',
+      key: 'notes',
+      sorter: !groupByFlag,
+      sortOrder: sorterState?.field === 'notes' ? sorterState.order : undefined,
+      render: (_, record) => {
+        if ('isGroupHeader' in record) return null;
+        return (record as Account).notes || '-';
+      },
+      width: 150,
+      ellipsis: true,
     },
   ];
 
@@ -413,6 +465,27 @@ const Accounts: React.FC = () => {
 
     return result;
   }, [sortedAccounts, filtersState, showOnHold]);
+
+  // Group accounts by flag for hierarchical display
+  const groupedAccounts = React.useMemo((): AccountGroup[] => {
+    const groups: AccountGroup[] = [];
+
+    FLAG_ORDER.forEach(flag => {
+      const flagAccounts = filteredAccounts.filter(a => a.accountFlag === flag);
+      if (flagAccounts.length > 0) {
+        groups.push({
+          sysId: `group-${flag}`,
+          isGroupHeader: true,
+          accountFlag: flag,
+          children: flagAccounts,
+          accountCount: flagAccounts.length,
+          totalAmountDue: flagAccounts.reduce((sum, a) => sum + a.amountDue, 0),
+        });
+      }
+    });
+
+    return groups;
+  }, [filteredAccounts]);
 
   const viewMenuItems: MenuProps['items'] = [
     ...savedViews.map(view => ({
@@ -528,6 +601,15 @@ const Accounts: React.FC = () => {
           />
           <span style={{ fontSize: 12, color: '#595959' }}>On Hold</span>
         </Space>
+        <div style={{ borderLeft: '1px solid #d9d9d9', height: 16, margin: '0 8px' }} />
+        <Space size="small">
+          <Switch
+            size="small"
+            checked={groupByFlag}
+            onChange={setGroupByFlag}
+          />
+          <span style={{ fontSize: 12, color: '#595959' }}>Group</span>
+        </Space>
         <div style={{ marginLeft: 'auto', fontSize: 12, color: '#8c8c8c' }}>
           {selectedRowKeys.length > 0
             ? `${selectedRowKeys.length} selected`
@@ -537,19 +619,36 @@ const Accounts: React.FC = () => {
 
       {/* Table Container - fills remaining space and scrolls */}
       <div style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
-        <ProTable<Account>
+        <ProTable<TableRecord>
           actionRef={actionRef}
-          rowKey="sysId"
+          rowKey={(record) => record.sysId.toString()}
           rowSelection={{
             selectedRowKeys,
             onChange: (keys) => setSelectedRowKeys(keys),
+            getCheckboxProps: (record) => ({
+              disabled: 'isGroupHeader' in record,
+              style: 'isGroupHeader' in record ? { display: 'none' } : undefined,
+            }),
           }}
+          expandable={groupByFlag ? {
+            expandedRowKeys: expandedGroups,
+            onExpandedRowsChange: (keys) => setExpandedGroups(keys as React.Key[]),
+            childrenColumnName: 'children',
+            defaultExpandAllRows: true,
+          } : undefined}
           onRow={(record) => ({
-            onDoubleClick: () => handleEdit(record),
-            style: { cursor: 'pointer' },
+            onDoubleClick: () => {
+              if (!('isGroupHeader' in record)) handleEdit(record as Account);
+            },
+            style: {
+              cursor: 'isGroupHeader' in record ? 'default' : 'pointer',
+              background: 'isGroupHeader' in record ? '#f5f5f5' : undefined,
+              fontWeight: 'isGroupHeader' in record ? 600 : undefined,
+              color: 'isGroupHeader' in record ? undefined : accountFlagTextColors[record.accountFlag],
+            },
           })}
           columns={columns}
-          dataSource={filteredAccounts}
+          dataSource={groupByFlag ? groupedAccounts : filteredAccounts}
           loading={loading}
           search={false}
           onChange={handleTableChange}
@@ -575,7 +674,7 @@ const Accounts: React.FC = () => {
               </Button>
             </Dropdown>,
           ]}
-          pagination={{
+          pagination={groupByFlag ? false : {
             pageSize: 50,
             showSizeChanger: true,
             showQuickJumper: true,
@@ -711,6 +810,10 @@ const Accounts: React.FC = () => {
               <Switch />
             </Form.Item>
           </Space>
+
+          <Form.Item name="notes" label="Notes">
+            <Input placeholder="Short note about this account" maxLength={200} />
+          </Form.Item>
 
           <Form.Item>
             <Space>
