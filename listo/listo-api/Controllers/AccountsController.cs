@@ -61,11 +61,26 @@ public class AccountsController : ControllerBase
         }
     }
 
-    [HttpDelete("{id}")]
-    public async Task<IActionResult> Delete(long id)
+    [HttpGet("discontinued")]
+    public async Task<ActionResult<IEnumerable<AccountResponse>>> GetDiscontinued()
     {
-        var deleted = await _accountService.DeleteAccountAsync(id);
-        if (!deleted) return NotFound();
+        var accounts = await _accountService.GetDiscontinuedAccountsAsync();
+        return Ok(accounts);
+    }
+
+    [HttpPost("{id}/discontinue")]
+    public async Task<IActionResult> Discontinue(long id)
+    {
+        var discontinued = await _accountService.DiscontinueAccountAsync(id);
+        if (!discontinued) return NotFound();
         return NoContent();
+    }
+
+    [HttpPost("{id}/reactivate")]
+    public async Task<ActionResult<AccountResponse>> Reactivate(long id)
+    {
+        var account = await _accountService.ReactivateAccountAsync(id);
+        if (account == null) return NotFound();
+        return Ok(account);
     }
 }

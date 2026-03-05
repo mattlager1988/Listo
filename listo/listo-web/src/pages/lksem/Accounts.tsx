@@ -23,13 +23,15 @@ import type { SorterResult, FilterValue } from 'antd/es/table/interface';
 import {
   PlusOutlined,
   EditOutlined,
-  DeleteOutlined,
+  StopOutlined,
   SaveOutlined,
   DownOutlined,
   StarOutlined,
   StarFilled,
   ReloadOutlined,
   DollarOutlined,
+  InboxOutlined,
+  UndoOutlined,
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import api from '../../services/api';
@@ -54,6 +56,8 @@ interface Account {
   resetAmountDue: boolean;
   accountFlag: string;
   notes: string | null;
+  isDiscontinued: boolean;
+  discontinuedDate: string | null;
 }
 
 interface ListItem {
@@ -124,12 +128,14 @@ const Accounts: React.FC = () => {
   const [filtersState, setFiltersState] = useState<Record<string, FilterValue | null>>({});
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [showOnHold, setShowOnHold] = useState(false);
-  const [groupByFlag, setGroupByFlag] = useState(true);
   const [expandedGroups, setExpandedGroups] = useState<React.Key[]>(
     FLAG_ORDER.map(f => `group-${f}`)
   );
   const [totalModalVisible, setTotalModalVisible] = useState(false);
   const [selectedTotal, setSelectedTotal] = useState(0);
+  const [discontinuedModalVisible, setDiscontinuedModalVisible] = useState(false);
+  const [discontinuedAccounts, setDiscontinuedAccounts] = useState<Account[]>([]);
+  const [discontinuedLoading, setDiscontinuedLoading] = useState(false);
   const [form] = Form.useForm();
   const [saveViewForm] = Form.useForm();
   const actionRef = useRef<ActionType>(null);
@@ -233,15 +239,43 @@ const Accounts: React.FC = () => {
     }
   };
 
-  const handleBulkDelete = async () => {
+  const handleBulkDiscontinue = async () => {
     try {
-      await Promise.all(selectedRowKeys.map(id => api.delete(`/lksem/accounts/${id}`)));
-      message.success(`${selectedRowKeys.length} account${selectedRowKeys.length > 1 ? 's' : ''} deleted successfully`);
+      await Promise.all(selectedRowKeys.map(id => api.post(`/lksem/accounts/${id}/discontinue`)));
+      message.success(`${selectedRowKeys.length} account${selectedRowKeys.length > 1 ? 's' : ''} discontinued`);
       setSelectedRowKeys([]);
       fetchAccounts();
     } catch {
-      message.error('Failed to delete accounts');
+      message.error('Failed to discontinue accounts');
     }
+  };
+
+  const fetchDiscontinuedAccounts = async () => {
+    setDiscontinuedLoading(true);
+    try {
+      const response = await api.get('/lksem/accounts/discontinued');
+      setDiscontinuedAccounts(response.data);
+    } catch {
+      message.error('Failed to fetch discontinued accounts');
+    } finally {
+      setDiscontinuedLoading(false);
+    }
+  };
+
+  const handleReactivate = async (id: number) => {
+    try {
+      await api.post(`/lksem/accounts/${id}/reactivate`);
+      message.success('Account reactivated');
+      fetchDiscontinuedAccounts();
+      fetchAccounts();
+    } catch {
+      message.error('Failed to reactivate account');
+    }
+  };
+
+  const handleOpenDiscontinuedModal = () => {
+    setDiscontinuedModalVisible(true);
+    fetchDiscontinuedAccounts();
   };
 
   const handleTotalSelected = () => {
@@ -362,7 +396,7 @@ const Accounts: React.FC = () => {
       title: 'Name',
       dataIndex: 'name',
       key: 'name',
-      sorter: !groupByFlag,
+      sorter: false,
       sortOrder: sorterState?.field === 'name' ? sorterState.order : undefined,
       width: 150,
       render: (_, record) => {
@@ -383,7 +417,7 @@ const Accounts: React.FC = () => {
       title: 'Type',
       dataIndex: 'accountTypeName',
       key: 'accountTypeName',
-      sorter: !groupByFlag,
+      sorter: false,
       sortOrder: sorterState?.field === 'accountTypeName' ? sorterState.order : undefined,
       filters: accountTypes.map(t => ({ text: t.name, value: t.name })),
       filteredValue: getFilteredValue('accountTypeName'),
@@ -398,7 +432,7 @@ const Accounts: React.FC = () => {
       title: 'Due Date',
       dataIndex: 'dueDate',
       key: 'dueDate',
-      sorter: !groupByFlag,
+      sorter: false,
       sortOrder: sorterState?.field === 'dueDate' ? sorterState.order : undefined,
       render: (_, record) => {
         if ('isGroupHeader' in record) return null;
@@ -411,7 +445,7 @@ const Accounts: React.FC = () => {
       title: 'Amount Due',
       dataIndex: 'amountDue',
       key: 'amountDue',
-      sorter: !groupByFlag,
+      sorter: false,
       sortOrder: sorterState?.field === 'amountDue' ? sorterState.order : undefined,
       render: (_, record) => {
         if ('isGroupHeader' in record && record.isGroupHeader) {
@@ -432,7 +466,7 @@ const Accounts: React.FC = () => {
       title: 'Username',
       dataIndex: 'username',
       key: 'username',
-      sorter: !groupByFlag,
+      sorter: false,
       sortOrder: sorterState?.field === 'username' ? sorterState.order : undefined,
       render: (_, record) => {
         if ('isGroupHeader' in record) return null;
@@ -444,7 +478,7 @@ const Accounts: React.FC = () => {
       title: 'Notes',
       dataIndex: 'notes',
       key: 'notes',
-      sorter: !groupByFlag,
+      sorter: false,
       sortOrder: sorterState?.field === 'notes' ? sorterState.order : undefined,
       render: (_, record) => {
         if ('isGroupHeader' in record) return null;
@@ -609,21 +643,29 @@ const Accounts: React.FC = () => {
             }}
           />
         </Tooltip>
-        <Tooltip title="Delete">
+        <Tooltip title="Discontinue">
           <Popconfirm
-            title={`Delete ${selectedRowKeys.length} account${selectedRowKeys.length > 1 ? 's' : ''}?`}
-            description="This action cannot be undone."
-            onConfirm={handleBulkDelete}
+            title={`Discontinue ${selectedRowKeys.length} account${selectedRowKeys.length > 1 ? 's' : ''}?`}
+            description="Discontinued accounts can be reactivated later."
+            onConfirm={handleBulkDiscontinue}
             disabled={selectedRowKeys.length === 0}
           >
             <Button
               type="text"
               size="small"
               danger
-              icon={<DeleteOutlined />}
+              icon={<StopOutlined />}
               disabled={selectedRowKeys.length === 0}
             />
           </Popconfirm>
+        </Tooltip>
+        <Tooltip title="View Discontinued">
+          <Button
+            type="text"
+            size="small"
+            icon={<InboxOutlined />}
+            onClick={handleOpenDiscontinuedModal}
+          />
         </Tooltip>
         <Tooltip title="Total Amount Due">
           <Button
@@ -642,15 +684,6 @@ const Accounts: React.FC = () => {
             onChange={setShowOnHold}
           />
           <span style={{ fontSize: 12, color: '#595959' }}>On Hold</span>
-        </Space>
-        <div style={{ borderLeft: '1px solid #d9d9d9', height: 16, margin: '0 8px' }} />
-        <Space size="small">
-          <Switch
-            size="small"
-            checked={groupByFlag}
-            onChange={setGroupByFlag}
-          />
-          <span style={{ fontSize: 12, color: '#595959' }}>Group</span>
         </Space>
         <div style={{ marginLeft: 'auto', fontSize: 12, color: '#8c8c8c' }}>
           {selectedRowKeys.length > 0
@@ -672,12 +705,12 @@ const Accounts: React.FC = () => {
               style: 'isGroupHeader' in record ? { display: 'none' } : undefined,
             }),
           }}
-          expandable={groupByFlag ? {
+          expandable={{
             expandedRowKeys: expandedGroups,
             onExpandedRowsChange: (keys) => setExpandedGroups(keys as React.Key[]),
             childrenColumnName: 'children',
             defaultExpandAllRows: true,
-          } : undefined}
+          }}
           onRow={(record) => ({
             onDoubleClick: () => {
               if (!('isGroupHeader' in record)) handleEdit(record as Account);
@@ -690,7 +723,7 @@ const Accounts: React.FC = () => {
             },
           })}
           columns={columns}
-          dataSource={groupByFlag ? groupedAccounts : filteredAccounts}
+          dataSource={groupedAccounts}
           loading={loading}
           search={false}
           onChange={handleTableChange}
@@ -716,11 +749,7 @@ const Accounts: React.FC = () => {
               </Button>
             </Dropdown>,
           ]}
-          pagination={groupByFlag ? false : {
-            pageSize: 50,
-            showSizeChanger: true,
-            showQuickJumper: true,
-          }}
+          pagination={false}
           locale={{
             emptyText: (
               <div style={{ padding: '40px 0' }}>
@@ -958,6 +987,61 @@ const Accounts: React.FC = () => {
             Copied to clipboard
           </div>
         </div>
+      </Modal>
+
+      {/* Discontinued Accounts Modal */}
+      <Modal
+        title="Discontinued Accounts"
+        open={discontinuedModalVisible}
+        onCancel={() => setDiscontinuedModalVisible(false)}
+        footer={
+          <Button onClick={() => setDiscontinuedModalVisible(false)}>
+            Close
+          </Button>
+        }
+        width={700}
+      >
+        {discontinuedLoading ? (
+          <div style={{ textAlign: 'center', padding: '40px 0' }}>Loading...</div>
+        ) : discontinuedAccounts.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '40px 0', color: '#8c8c8c' }}>
+            No discontinued accounts
+          </div>
+        ) : (
+          <div style={{ maxHeight: 400, overflow: 'auto' }}>
+            {discontinuedAccounts.map(account => (
+              <div
+                key={account.sysId}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '12px 16px',
+                  borderBottom: '1px solid #f0f0f0',
+                }}
+              >
+                <div>
+                  <div style={{ fontWeight: 500 }}>{account.name}</div>
+                  <div style={{ fontSize: 12, color: '#8c8c8c' }}>
+                    {account.accountTypeName} • {account.accountOwnerName}
+                    {account.discontinuedDate && (
+                      <> • Discontinued {dayjs(account.discontinuedDate).format('MM/DD/YYYY')}</>
+                    )}
+                  </div>
+                </div>
+                <Tooltip title="Reactivate">
+                  <Button
+                    type="text"
+                    icon={<UndoOutlined />}
+                    onClick={() => handleReactivate(account.sysId)}
+                  >
+                    Reactivate
+                  </Button>
+                </Tooltip>
+              </div>
+            ))}
+          </div>
+        )}
       </Modal>
     </div>
   );

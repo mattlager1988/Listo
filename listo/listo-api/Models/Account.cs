@@ -24,6 +24,8 @@ public class Account : BaseEntity
     public bool ResetAmountDue { get; set; } = false;
     public AccountFlag AccountFlag { get; set; } = AccountFlag.Standard;
     public string? Notes { get; set; }
+    public bool IsDiscontinued { get; set; } = false;
+    public DateTime? DiscontinuedDate { get; set; }
 
     public AccountType AccountType { get; set; } = null!;
     public AccountOwner AccountOwner { get; set; } = null!;

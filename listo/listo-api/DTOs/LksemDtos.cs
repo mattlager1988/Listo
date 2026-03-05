@@ -40,7 +40,9 @@ public record AccountResponse(
     bool AutoPay,
     bool ResetAmountDue,
     string AccountFlag,
-    string? Notes
+    string? Notes,
+    bool IsDiscontinued,
+    DateTime? DiscontinuedDate
 );
 
 public record CreateAccountRequest(

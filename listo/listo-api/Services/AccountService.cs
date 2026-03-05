@@ -8,10 +8,12 @@ namespace Listo.Api.Services;
 public interface IAccountService
 {
     Task<IEnumerable<AccountResponse>> GetAllAccountsAsync();
+    Task<IEnumerable<AccountResponse>> GetDiscontinuedAccountsAsync();
     Task<AccountResponse?> GetAccountByIdAsync(long id);
     Task<AccountResponse> CreateAccountAsync(CreateAccountRequest request);
     Task<AccountResponse?> UpdateAccountAsync(long id, UpdateAccountRequest request);
-    Task<bool> DeleteAccountAsync(long id);
+    Task<bool> DiscontinueAccountAsync(long id);
+    Task<AccountResponse?> ReactivateAccountAsync(long id);
 }
 
 public class AccountService : IAccountService
@@ -30,6 +32,19 @@ public class AccountService : IAccountService
         var accounts = await _context.Accounts
             .Include(a => a.AccountType)
             .Include(a => a.AccountOwner)
+            .Where(a => !a.IsDiscontinued)
+            .ToListAsync();
+
+        return accounts.Select(a => MapToResponse(a));
+    }
+
+    public async Task<IEnumerable<AccountResponse>> GetDiscontinuedAccountsAsync()
+    {
+        var accounts = await _context.Accounts
+            .Include(a => a.AccountType)
+            .Include(a => a.AccountOwner)
+            .Where(a => a.IsDiscontinued)
+            .OrderByDescending(a => a.DiscontinuedDate)
             .ToListAsync();
 
         return accounts.Select(a => MapToResponse(a));
@@ -118,14 +133,31 @@ public class AccountService : IAccountService
         return MapToResponse(account);
     }
 
-    public async Task<bool> DeleteAccountAsync(long id)
+    public async Task<bool> DiscontinueAccountAsync(long id)
     {
         var account = await _context.Accounts.FindAsync(id);
         if (account == null) return false;
 
-        _context.Accounts.Remove(account);
+        account.IsDiscontinued = true;
+        account.DiscontinuedDate = DateTime.UtcNow;
         await _context.SaveChangesAsync();
         return true;
+    }
+
+    public async Task<AccountResponse?> ReactivateAccountAsync(long id)
+    {
+        var account = await _context.Accounts
+            .Include(a => a.AccountType)
+            .Include(a => a.AccountOwner)
+            .FirstOrDefaultAsync(a => a.SysId == id);
+
+        if (account == null) return null;
+
+        account.IsDiscontinued = false;
+        account.DiscontinuedDate = null;
+        await _context.SaveChangesAsync();
+
+        return MapToResponse(account);
     }
 
     private AccountResponse MapToResponse(Account account) => new(
@@ -147,6 +179,8 @@ public class AccountService : IAccountService
         account.AutoPay,
         account.ResetAmountDue,
         account.AccountFlag.ToString(),
-        account.Notes
+        account.Notes,
+        account.IsDiscontinued,
+        account.DiscontinuedDate
     );
 }
