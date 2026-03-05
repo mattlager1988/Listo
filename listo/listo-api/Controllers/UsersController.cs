@@ -72,13 +72,30 @@ public class UsersController : ControllerBase
         }
     }
 
-    [HttpDelete("{id}")]
+    [HttpGet("inactive")]
     [Authorize(Roles = "admin")]
-    public async Task<IActionResult> Delete(long id)
+    public async Task<ActionResult<IEnumerable<UserResponse>>> GetInactive()
     {
-        var deleted = await _userService.DeleteUserAsync(id);
-        if (!deleted) return NotFound();
+        var users = await _userService.GetInactiveUsersAsync();
+        return Ok(users);
+    }
+
+    [HttpPost("{id}/deactivate")]
+    [Authorize(Roles = "admin")]
+    public async Task<IActionResult> Deactivate(long id)
+    {
+        var success = await _userService.DeactivateUserAsync(id);
+        if (!success) return NotFound();
         return NoContent();
+    }
+
+    [HttpPost("{id}/reactivate")]
+    [Authorize(Roles = "admin")]
+    public async Task<ActionResult<UserResponse>> Reactivate(long id)
+    {
+        var user = await _userService.ReactivateUserAsync(id);
+        if (user == null) return NotFound();
+        return Ok(user);
     }
 
     [HttpPost("{id}/reset-mfa")]

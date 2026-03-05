@@ -8,10 +8,12 @@ namespace Listo.Api.Services;
 public interface IDocumentService
 {
     Task<IEnumerable<DocumentResponse>> GetDocumentsAsync(string module, string entityType, long? entitySysId);
+    Task<IEnumerable<DocumentResponse>> GetDiscontinuedAsync(string module, string entityType, long? entitySysId);
     Task<DocumentResponse?> GetByIdAsync(long id);
     Task<DocumentResponse> UploadAsync(Stream fileStream, string fileName, CreateDocumentRequest request, long userId);
     Task<DocumentResponse?> UpdateAsync(long id, UpdateDocumentRequest request, Stream? newFileStream = null, string? newFileName = null);
-    Task<bool> DeleteAsync(long id);
+    Task<bool> DiscontinueAsync(long id);
+    Task<DocumentResponse?> ReactivateAsync(long id);
     Task<(Stream stream, string fileName, string mimeType)?> DownloadAsync(long id);
 }
 
@@ -42,6 +44,7 @@ public class DocumentService : IDocumentService
         var query = _context.Documents
             .Include(d => d.UploadedBy)
             .Include(d => d.DocumentType)
+            .Where(d => !d.IsDiscontinued)
             .AsQueryable();
 
         if (!string.IsNullOrEmpty(module))
@@ -53,6 +56,27 @@ public class DocumentService : IDocumentService
 
         return await query
             .OrderByDescending(d => d.CreateTimestamp)
+            .Select(d => MapToResponse(d))
+            .ToListAsync();
+    }
+
+    public async Task<IEnumerable<DocumentResponse>> GetDiscontinuedAsync(string module, string entityType, long? entitySysId)
+    {
+        var query = _context.Documents
+            .Include(d => d.UploadedBy)
+            .Include(d => d.DocumentType)
+            .Where(d => d.IsDiscontinued)
+            .AsQueryable();
+
+        if (!string.IsNullOrEmpty(module))
+            query = query.Where(d => d.Module == module);
+        if (!string.IsNullOrEmpty(entityType))
+            query = query.Where(d => d.EntityType == entityType);
+        if (entitySysId.HasValue)
+            query = query.Where(d => d.EntitySysId == entitySysId);
+
+        return await query
+            .OrderByDescending(d => d.DiscontinuedDate)
             .Select(d => MapToResponse(d))
             .ToListAsync();
     }
@@ -167,21 +191,32 @@ public class DocumentService : IDocumentService
         return MapToResponse(document);
     }
 
-    public async Task<bool> DeleteAsync(long id)
+    public async Task<bool> DiscontinueAsync(long id)
     {
         var document = await _context.Documents.FindAsync(id);
         if (document == null) return false;
 
-        // Delete file from disk
-        if (File.Exists(document.StoragePath))
-        {
-            File.Delete(document.StoragePath);
-        }
-
-        _context.Documents.Remove(document);
+        document.IsDiscontinued = true;
+        document.DiscontinuedDate = DateTime.UtcNow;
         await _context.SaveChangesAsync();
 
         return true;
+    }
+
+    public async Task<DocumentResponse?> ReactivateAsync(long id)
+    {
+        var document = await _context.Documents
+            .Include(d => d.UploadedBy)
+            .Include(d => d.DocumentType)
+            .FirstOrDefaultAsync(d => d.SysId == id);
+
+        if (document == null) return null;
+
+        document.IsDiscontinued = false;
+        document.DiscontinuedDate = null;
+        await _context.SaveChangesAsync();
+
+        return MapToResponse(document);
     }
 
     public async Task<(Stream stream, string fileName, string mimeType)?> DownloadAsync(long id)
@@ -209,7 +244,9 @@ public class DocumentService : IDocumentService
         d.UploadedBySysId,
         $"{d.UploadedBy.FirstName} {d.UploadedBy.LastName}",
         d.CreateTimestamp,
-        d.ModifyTimestamp
+        d.ModifyTimestamp,
+        d.IsDiscontinued,
+        d.DiscontinuedDate
     );
 
     private static string GetMimeType(string extension) => extension.ToLowerInvariant() switch

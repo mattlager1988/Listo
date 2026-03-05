@@ -15,10 +15,12 @@ import {
 import {
   PlusOutlined,
   EditOutlined,
-  DeleteOutlined,
+  StopOutlined,
   SafetyOutlined,
   CheckCircleOutlined,
   CloseCircleOutlined,
+  InboxOutlined,
+  UndoOutlined,
 } from '@ant-design/icons';
 import api from '../services/api';
 import PageHeader from '../components/PageHeader';
@@ -41,6 +43,9 @@ const UserManagement: React.FC = () => {
   const [modalVisible, setModalVisible] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
+  const [inactiveModalVisible, setInactiveModalVisible] = useState(false);
+  const [inactiveUsers, setInactiveUsers] = useState<User[]>([]);
+  const [inactiveLoading, setInactiveLoading] = useState(false);
   const [form] = Form.useForm();
 
   const fetchUsers = useCallback(async () => {
@@ -105,15 +110,43 @@ const UserManagement: React.FC = () => {
     }
   };
 
-  const handleBulkDelete = async () => {
+  const handleBulkDeactivate = async () => {
     try {
-      await Promise.all(selectedRowKeys.map(id => api.delete(`/users/${id}`)));
-      message.success(`${selectedRowKeys.length} user${selectedRowKeys.length > 1 ? 's' : ''} deleted successfully`);
+      await Promise.all(selectedRowKeys.map(id => api.post(`/users/${id}/deactivate`)));
+      message.success(`${selectedRowKeys.length} user${selectedRowKeys.length > 1 ? 's' : ''} deactivated`);
       setSelectedRowKeys([]);
       fetchUsers();
     } catch {
-      message.error('Failed to delete users');
+      message.error('Failed to deactivate users');
     }
+  };
+
+  const fetchInactiveUsers = async () => {
+    setInactiveLoading(true);
+    try {
+      const response = await api.get('/users/inactive');
+      setInactiveUsers(response.data);
+    } catch {
+      message.error('Failed to fetch inactive users');
+    } finally {
+      setInactiveLoading(false);
+    }
+  };
+
+  const handleReactivateUser = async (id: number) => {
+    try {
+      await api.post(`/users/${id}/reactivate`);
+      message.success('User reactivated');
+      fetchInactiveUsers();
+      fetchUsers();
+    } catch {
+      message.error('Failed to reactivate user');
+    }
+  };
+
+  const handleOpenInactiveModal = () => {
+    setInactiveModalVisible(true);
+    fetchInactiveUsers();
   };
 
   const handleResetMfa = async (id: number) => {
@@ -243,21 +276,29 @@ const UserManagement: React.FC = () => {
             />
           </Popconfirm>
         </Tooltip>
-        <Tooltip title="Delete">
+        <Tooltip title="Deactivate">
           <Popconfirm
-            title={`Delete ${selectedRowKeys.length} user${selectedRowKeys.length > 1 ? 's' : ''}?`}
-            description="This action cannot be undone."
-            onConfirm={handleBulkDelete}
+            title={`Deactivate ${selectedRowKeys.length} user${selectedRowKeys.length > 1 ? 's' : ''}?`}
+            description="Deactivated users can be reactivated later."
+            onConfirm={handleBulkDeactivate}
             disabled={selectedRowKeys.length === 0}
           >
             <Button
               type="text"
               size="small"
               danger
-              icon={<DeleteOutlined />}
+              icon={<StopOutlined />}
               disabled={selectedRowKeys.length === 0}
             />
           </Popconfirm>
+        </Tooltip>
+        <Tooltip title="View Inactive">
+          <Button
+            type="text"
+            size="small"
+            icon={<InboxOutlined />}
+            onClick={handleOpenInactiveModal}
+          />
         </Tooltip>
         <div style={{ marginLeft: 'auto', fontSize: 12, color: '#8c8c8c' }}>
           {selectedRowKeys.length > 0
@@ -380,6 +421,58 @@ const UserManagement: React.FC = () => {
             </Space>
           </Form.Item>
         </Form>
+      </Modal>
+
+      {/* Inactive Users Modal */}
+      <Modal
+        title="Inactive Users"
+        open={inactiveModalVisible}
+        onCancel={() => setInactiveModalVisible(false)}
+        footer={
+          <Button onClick={() => setInactiveModalVisible(false)}>
+            Close
+          </Button>
+        }
+        width={600}
+      >
+        {inactiveLoading ? (
+          <div style={{ textAlign: 'center', padding: '40px 0' }}>Loading...</div>
+        ) : inactiveUsers.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '40px 0', color: '#8c8c8c' }}>
+            No inactive users
+          </div>
+        ) : (
+          <div style={{ maxHeight: 400, overflow: 'auto' }}>
+            {inactiveUsers.map(user => (
+              <div
+                key={user.sysId}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '12px 16px',
+                  borderBottom: '1px solid #f0f0f0',
+                }}
+              >
+                <div>
+                  <div style={{ fontWeight: 500 }}>{user.firstName} {user.lastName}</div>
+                  <div style={{ fontSize: 12, color: '#8c8c8c' }}>
+                    {user.email} • {user.role.toUpperCase()}
+                  </div>
+                </div>
+                <Tooltip title="Reactivate">
+                  <Button
+                    type="text"
+                    icon={<UndoOutlined />}
+                    onClick={() => handleReactivateUser(user.sysId)}
+                  >
+                    Reactivate
+                  </Button>
+                </Tooltip>
+              </div>
+            ))}
+          </div>
+        )}
       </Modal>
     </div>
   );

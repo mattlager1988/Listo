@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Table, Button, Space, Tooltip, Popconfirm, message, Modal, Tag, Input, Select, Row, Col, Form, Upload, Progress } from 'antd';
+import dayjs from 'dayjs';
 import type { UploadFile } from 'antd';
 import {
   DownloadOutlined,
-  DeleteOutlined,
+  StopOutlined,
   FileOutlined,
   FilePdfOutlined,
   FileImageOutlined,
@@ -13,6 +14,8 @@ import {
   SearchOutlined,
   EditOutlined,
   UploadOutlined,
+  InboxOutlined,
+  UndoOutlined,
 } from '@ant-design/icons';
 import api from '../services/api';
 import DocumentUpload from './DocumentUpload';
@@ -35,6 +38,8 @@ interface Document {
   uploadedByName: string;
   createTimestamp: string;
   modifyTimestamp: string;
+  isDiscontinued: boolean;
+  discontinuedDate: string | null;
 }
 
 interface DocumentListProps {
@@ -61,6 +66,9 @@ const DocumentList: React.FC<DocumentListProps> = ({
   const [documentTypes, setDocumentTypes] = useState<DocumentType[]>([]);
   const [editingDoc, setEditingDoc] = useState<Document | null>(null);
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
+  const [discontinuedModalVisible, setDiscontinuedModalVisible] = useState(false);
+  const [discontinuedDocs, setDiscontinuedDocs] = useState<Document[]>([]);
+  const [discontinuedLoading, setDiscontinuedLoading] = useState(false);
   const [editForm] = Form.useForm();
   const [editFileList, setEditFileList] = useState<UploadFile[]>([]);
   const [editSaving, setEditSaving] = useState(false);
@@ -123,15 +131,48 @@ const DocumentList: React.FC<DocumentListProps> = ({
     }
   };
 
-  const handleBulkDelete = async () => {
+  const handleBulkDiscontinue = async () => {
     try {
-      await Promise.all(selectedRowKeys.map(id => api.delete(`/documents/${id}`)));
-      message.success(`${selectedRowKeys.length} document${selectedRowKeys.length > 1 ? 's' : ''} deleted`);
+      await Promise.all(selectedRowKeys.map(id => api.post(`/documents/${id}/discontinue`)));
+      message.success(`${selectedRowKeys.length} document${selectedRowKeys.length > 1 ? 's' : ''} discontinued`);
       setSelectedRowKeys([]);
       fetchDocuments();
     } catch {
-      message.error('Failed to delete documents');
+      message.error('Failed to discontinue documents');
     }
+  };
+
+  const fetchDiscontinuedDocs = async () => {
+    setDiscontinuedLoading(true);
+    try {
+      const params = new URLSearchParams();
+      params.append('module', module);
+      params.append('entityType', entityType);
+      if (entitySysId) params.append('entitySysId', entitySysId.toString());
+
+      const response = await api.get(`/documents/discontinued?${params}`);
+      setDiscontinuedDocs(response.data);
+    } catch {
+      message.error('Failed to fetch discontinued documents');
+    } finally {
+      setDiscontinuedLoading(false);
+    }
+  };
+
+  const handleReactivate = async (id: number) => {
+    try {
+      await api.post(`/documents/${id}/reactivate`);
+      message.success('Document reactivated');
+      fetchDiscontinuedDocs();
+      fetchDocuments();
+    } catch {
+      message.error('Failed to reactivate document');
+    }
+  };
+
+  const handleOpenDiscontinuedModal = () => {
+    setDiscontinuedModalVisible(true);
+    fetchDiscontinuedDocs();
   };
 
   const openEditModal = (doc: Document) => {
@@ -377,20 +418,29 @@ const DocumentList: React.FC<DocumentListProps> = ({
             }}
           />
         </Tooltip>
-        <Tooltip title="Delete">
+        <Tooltip title="Discontinue">
           <Popconfirm
-            title={`Delete ${selectedRowKeys.length} document${selectedRowKeys.length > 1 ? 's' : ''}?`}
-            onConfirm={handleBulkDelete}
+            title={`Discontinue ${selectedRowKeys.length} document${selectedRowKeys.length > 1 ? 's' : ''}?`}
+            description="Discontinued documents can be reactivated later."
+            onConfirm={handleBulkDiscontinue}
             disabled={selectedRowKeys.length === 0}
           >
             <Button
               type="text"
               size="small"
               danger
-              icon={<DeleteOutlined />}
+              icon={<StopOutlined />}
               disabled={selectedRowKeys.length === 0}
             />
           </Popconfirm>
+        </Tooltip>
+        <Tooltip title="View Discontinued">
+          <Button
+            type="text"
+            size="small"
+            icon={<InboxOutlined />}
+            onClick={handleOpenDiscontinuedModal}
+          />
         </Tooltip>
         <div style={{ marginLeft: 'auto', fontSize: 12, color: '#8c8c8c' }}>
           {selectedRowKeys.length > 0
@@ -488,6 +538,61 @@ const DocumentList: React.FC<DocumentListProps> = ({
             </Form.Item>
           )}
         </Form>
+      </Modal>
+
+      {/* Discontinued Documents Modal */}
+      <Modal
+        title="Discontinued Documents"
+        open={discontinuedModalVisible}
+        onCancel={() => setDiscontinuedModalVisible(false)}
+        footer={
+          <Button onClick={() => setDiscontinuedModalVisible(false)}>
+            Close
+          </Button>
+        }
+        width={600}
+      >
+        {discontinuedLoading ? (
+          <div style={{ textAlign: 'center', padding: '40px 0' }}>Loading...</div>
+        ) : discontinuedDocs.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '40px 0', color: '#8c8c8c' }}>
+            No discontinued documents
+          </div>
+        ) : (
+          <div style={{ maxHeight: 400, overflow: 'auto' }}>
+            {discontinuedDocs.map(doc => (
+              <div
+                key={doc.sysId}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '12px 16px',
+                  borderBottom: '1px solid #f0f0f0',
+                }}
+              >
+                <div>
+                  <div style={{ fontWeight: 500 }}>{doc.description || doc.originalFileName}</div>
+                  <div style={{ fontSize: 12, color: '#8c8c8c' }}>
+                    Uploaded {dayjs(doc.createTimestamp).format('MMM D, YYYY')}
+                    {doc.discontinuedDate && (
+                      <> • Discontinued {dayjs(doc.discontinuedDate).format('MMM D, YYYY')}</>
+                    )}
+                  </div>
+                </div>
+                <Tooltip title="Reactivate">
+                  <Button
+                    type="text"
+                    icon={<UndoOutlined />}
+                    onClick={() => handleReactivate(doc.sysId)}
+                  >
+                    Reactivate
+                  </Button>
+                </Tooltip>
+              </div>
+            ))}
+          </div>
+        )}
       </Modal>
     </div>
   );

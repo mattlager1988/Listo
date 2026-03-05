@@ -8,10 +8,12 @@ namespace Listo.Api.Services;
 public interface IUserService
 {
     Task<IEnumerable<UserResponse>> GetAllUsersAsync();
+    Task<IEnumerable<UserResponse>> GetInactiveUsersAsync();
     Task<UserResponse?> GetUserByIdAsync(long id);
     Task<UserResponse> CreateUserAsync(CreateUserRequest request);
     Task<UserResponse?> UpdateUserAsync(long id, UpdateUserRequest request);
-    Task<bool> DeleteUserAsync(long id);
+    Task<bool> DeactivateUserAsync(long id);
+    Task<UserResponse?> ReactivateUserAsync(long id);
     Task<UserResponse?> UpdateProfileAsync(long id, UpdateProfileRequest request);
     Task<bool> ChangePasswordAsync(long id, ChangePasswordRequest request);
     Task<bool> ResetMfaAsync(long userId);
@@ -30,6 +32,15 @@ public class UserService : IUserService
     public async Task<IEnumerable<UserResponse>> GetAllUsersAsync()
     {
         return await _context.Users
+            .Where(u => u.IsActive)
+            .Select(u => MapToResponse(u))
+            .ToListAsync();
+    }
+
+    public async Task<IEnumerable<UserResponse>> GetInactiveUsersAsync()
+    {
+        return await _context.Users
+            .Where(u => !u.IsActive)
             .Select(u => MapToResponse(u))
             .ToListAsync();
     }
@@ -85,14 +96,24 @@ public class UserService : IUserService
         return MapToResponse(user);
     }
 
-    public async Task<bool> DeleteUserAsync(long id)
+    public async Task<bool> DeactivateUserAsync(long id)
     {
         var user = await _context.Users.FindAsync(id);
         if (user == null) return false;
 
-        _context.Users.Remove(user);
+        user.IsActive = false;
         await _context.SaveChangesAsync();
         return true;
+    }
+
+    public async Task<UserResponse?> ReactivateUserAsync(long id)
+    {
+        var user = await _context.Users.FindAsync(id);
+        if (user == null) return null;
+
+        user.IsActive = true;
+        await _context.SaveChangesAsync();
+        return MapToResponse(user);
     }
 
     public async Task<UserResponse?> UpdateProfileAsync(long id, UpdateProfileRequest request)

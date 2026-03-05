@@ -15,7 +15,9 @@ public record DocumentResponse(
     long UploadedBySysId,
     string UploadedByName,
     DateTime CreateTimestamp,
-    DateTime ModifyTimestamp
+    DateTime ModifyTimestamp,
+    bool IsDiscontinued,
+    DateTime? DiscontinuedDate
 );
 
 public record CreateDocumentRequest(

@@ -8,6 +8,8 @@ public class Document : BaseEntity
     public string MimeType { get; set; } = string.Empty;
     public long FileSize { get; set; }
     public string StoragePath { get; set; } = string.Empty;
+    public bool IsDiscontinued { get; set; }
+    public DateTime? DiscontinuedDate { get; set; }
 
     // Module and entity this document is attached to
     public string Module { get; set; } = string.Empty;  // e.g., "aviation", "lksem"

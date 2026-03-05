@@ -8,10 +8,12 @@ namespace Listo.Api.Services;
 public interface INoteService
 {
     Task<IEnumerable<NoteResponse>> GetAllAsync(long userId);
+    Task<IEnumerable<NoteResponse>> GetDiscontinuedAsync(long userId);
     Task<NoteResponse?> GetByIdAsync(long id, long userId);
     Task<NoteResponse> CreateAsync(CreateNoteRequest request, long userId);
     Task<NoteResponse?> UpdateAsync(long id, UpdateNoteRequest request, long userId);
-    Task<bool> DeleteAsync(long id, long userId);
+    Task<bool> DiscontinueAsync(long id, long userId);
+    Task<NoteResponse?> ReactivateAsync(long id, long userId);
 }
 
 public class NoteService : INoteService
@@ -26,8 +28,17 @@ public class NoteService : INoteService
     public async Task<IEnumerable<NoteResponse>> GetAllAsync(long userId)
     {
         return await _context.Notes
-            .Where(n => n.UserSysId == userId)
+            .Where(n => n.UserSysId == userId && !n.IsDiscontinued)
             .OrderByDescending(n => n.CreateTimestamp)
+            .Select(n => MapToResponse(n))
+            .ToListAsync();
+    }
+
+    public async Task<IEnumerable<NoteResponse>> GetDiscontinuedAsync(long userId)
+    {
+        return await _context.Notes
+            .Where(n => n.UserSysId == userId && n.IsDiscontinued)
+            .OrderByDescending(n => n.DiscontinuedDate)
             .Select(n => MapToResponse(n))
             .ToListAsync();
     }
@@ -70,17 +81,32 @@ public class NoteService : INoteService
         return MapToResponse(note);
     }
 
-    public async Task<bool> DeleteAsync(long id, long userId)
+    public async Task<bool> DiscontinueAsync(long id, long userId)
     {
         var note = await _context.Notes
             .FirstOrDefaultAsync(n => n.SysId == id && n.UserSysId == userId);
 
         if (note == null) return false;
 
-        _context.Notes.Remove(note);
+        note.IsDiscontinued = true;
+        note.DiscontinuedDate = DateTime.UtcNow;
         await _context.SaveChangesAsync();
 
         return true;
+    }
+
+    public async Task<NoteResponse?> ReactivateAsync(long id, long userId)
+    {
+        var note = await _context.Notes
+            .FirstOrDefaultAsync(n => n.SysId == id && n.UserSysId == userId);
+
+        if (note == null) return null;
+
+        note.IsDiscontinued = false;
+        note.DiscontinuedDate = null;
+        await _context.SaveChangesAsync();
+
+        return MapToResponse(note);
     }
 
     private static NoteResponse MapToResponse(Note n) => new(
@@ -88,6 +114,8 @@ public class NoteService : INoteService
         n.Subject,
         n.Description,
         n.CreateTimestamp,
-        n.ModifyTimestamp
+        n.ModifyTimestamp,
+        n.IsDiscontinued,
+        n.DiscontinuedDate
     );
 }

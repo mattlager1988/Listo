@@ -77,14 +77,35 @@ public class TrainingLogsController : ControllerBase
         return Ok(log);
     }
 
-    [HttpDelete("{id}")]
-    public async Task<IActionResult> Delete(long id)
+    [HttpGet("discontinued")]
+    public async Task<IActionResult> GetDiscontinued()
     {
         var userId = GetCurrentUserId();
         if (!userId.HasValue) return Unauthorized();
 
-        var success = await _service.DeleteAsync(id, userId.Value);
+        var logs = await _service.GetDiscontinuedAsync(userId.Value);
+        return Ok(logs);
+    }
+
+    [HttpPost("{id}/discontinue")]
+    public async Task<IActionResult> Discontinue(long id)
+    {
+        var userId = GetCurrentUserId();
+        if (!userId.HasValue) return Unauthorized();
+
+        var success = await _service.DiscontinueAsync(id, userId.Value);
         if (!success) return NotFound();
         return NoContent();
+    }
+
+    [HttpPost("{id}/reactivate")]
+    public async Task<IActionResult> Reactivate(long id)
+    {
+        var userId = GetCurrentUserId();
+        if (!userId.HasValue) return Unauthorized();
+
+        var log = await _service.ReactivateAsync(id, userId.Value);
+        if (log == null) return NotFound();
+        return Ok(log);
     }
 }

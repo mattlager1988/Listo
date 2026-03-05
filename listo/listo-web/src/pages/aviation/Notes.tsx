@@ -13,7 +13,9 @@ import {
 import {
   PlusOutlined,
   EditOutlined,
-  DeleteOutlined,
+  StopOutlined,
+  InboxOutlined,
+  UndoOutlined,
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import api from '../../services/api';
@@ -25,6 +27,8 @@ interface Note {
   description: string;
   createTimestamp: string;
   modifyTimestamp: string;
+  isDiscontinued: boolean;
+  discontinuedDate: string | null;
 }
 
 const Notes: React.FC = () => {
@@ -33,6 +37,9 @@ const Notes: React.FC = () => {
   const [modalVisible, setModalVisible] = useState(false);
   const [editingNote, setEditingNote] = useState<Note | null>(null);
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
+  const [discontinuedModalVisible, setDiscontinuedModalVisible] = useState(false);
+  const [discontinuedNotes, setDiscontinuedNotes] = useState<Note[]>([]);
+  const [discontinuedLoading, setDiscontinuedLoading] = useState(false);
   const [form] = Form.useForm();
 
   const fetchNotes = useCallback(async () => {
@@ -85,15 +92,43 @@ const Notes: React.FC = () => {
     }
   };
 
-  const handleBulkDelete = async () => {
+  const handleBulkDiscontinue = async () => {
     try {
-      await Promise.all(selectedRowKeys.map(id => api.delete(`/aviation/notes/${id}`)));
-      message.success(`${selectedRowKeys.length} note${selectedRowKeys.length > 1 ? 's' : ''} deleted successfully`);
+      await Promise.all(selectedRowKeys.map(id => api.post(`/aviation/notes/${id}/discontinue`)));
+      message.success(`${selectedRowKeys.length} note${selectedRowKeys.length > 1 ? 's' : ''} discontinued`);
       setSelectedRowKeys([]);
       fetchNotes();
     } catch {
-      message.error('Failed to delete notes');
+      message.error('Failed to discontinue notes');
     }
+  };
+
+  const fetchDiscontinuedNotes = async () => {
+    setDiscontinuedLoading(true);
+    try {
+      const response = await api.get('/aviation/notes/discontinued');
+      setDiscontinuedNotes(response.data);
+    } catch {
+      message.error('Failed to fetch discontinued notes');
+    } finally {
+      setDiscontinuedLoading(false);
+    }
+  };
+
+  const handleReactivate = async (id: number) => {
+    try {
+      await api.post(`/aviation/notes/${id}/reactivate`);
+      message.success('Note reactivated');
+      fetchDiscontinuedNotes();
+      fetchNotes();
+    } catch {
+      message.error('Failed to reactivate note');
+    }
+  };
+
+  const handleOpenDiscontinuedModal = () => {
+    setDiscontinuedModalVisible(true);
+    fetchDiscontinuedNotes();
   };
 
   const columns = [
@@ -162,20 +197,29 @@ const Notes: React.FC = () => {
             }}
           />
         </Tooltip>
-        <Tooltip title="Delete">
+        <Tooltip title="Discontinue">
           <Popconfirm
-            title={`Delete ${selectedRowKeys.length} note${selectedRowKeys.length > 1 ? 's' : ''}?`}
-            onConfirm={handleBulkDelete}
+            title={`Discontinue ${selectedRowKeys.length} note${selectedRowKeys.length > 1 ? 's' : ''}?`}
+            description="Discontinued notes can be reactivated later."
+            onConfirm={handleBulkDiscontinue}
             disabled={selectedRowKeys.length === 0}
           >
             <Button
               type="text"
               size="small"
               danger
-              icon={<DeleteOutlined />}
+              icon={<StopOutlined />}
               disabled={selectedRowKeys.length === 0}
             />
           </Popconfirm>
+        </Tooltip>
+        <Tooltip title="View Discontinued">
+          <Button
+            type="text"
+            size="small"
+            icon={<InboxOutlined />}
+            onClick={handleOpenDiscontinuedModal}
+          />
         </Tooltip>
         <div style={{ marginLeft: 'auto', fontSize: 12, color: '#8c8c8c' }}>
           {selectedRowKeys.length > 0
@@ -247,6 +291,61 @@ const Notes: React.FC = () => {
             </Space>
           </Form.Item>
         </Form>
+      </Modal>
+
+      {/* Discontinued Notes Modal */}
+      <Modal
+        title="Discontinued Notes"
+        open={discontinuedModalVisible}
+        onCancel={() => setDiscontinuedModalVisible(false)}
+        footer={
+          <Button onClick={() => setDiscontinuedModalVisible(false)}>
+            Close
+          </Button>
+        }
+        width={600}
+      >
+        {discontinuedLoading ? (
+          <div style={{ textAlign: 'center', padding: '40px 0' }}>Loading...</div>
+        ) : discontinuedNotes.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '40px 0', color: '#8c8c8c' }}>
+            No discontinued notes
+          </div>
+        ) : (
+          <div style={{ maxHeight: 400, overflow: 'auto' }}>
+            {discontinuedNotes.map(note => (
+              <div
+                key={note.sysId}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '12px 16px',
+                  borderBottom: '1px solid #f0f0f0',
+                }}
+              >
+                <div>
+                  <div style={{ fontWeight: 500 }}>{note.subject}</div>
+                  <div style={{ fontSize: 12, color: '#8c8c8c' }}>
+                    Created {dayjs(note.createTimestamp).format('MMM D, YYYY')}
+                    {note.discontinuedDate && (
+                      <> • Discontinued {dayjs(note.discontinuedDate).format('MMM D, YYYY')}</>
+                    )}
+                  </div>
+                </div>
+                <Tooltip title="Reactivate">
+                  <Button
+                    type="text"
+                    icon={<UndoOutlined />}
+                    onClick={() => handleReactivate(note.sysId)}
+                  >
+                    Reactivate
+                  </Button>
+                </Tooltip>
+              </div>
+            ))}
+          </div>
+        )}
       </Modal>
     </div>
   );
