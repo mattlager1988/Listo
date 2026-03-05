@@ -9,7 +9,6 @@ import {
   InputNumber,
   message,
   Popconfirm,
-  Tag,
   Tooltip,
   Collapse,
   Empty,
@@ -18,7 +17,8 @@ import {
 import {
   PlusOutlined,
   EditOutlined,
-  DeleteOutlined,
+  StopOutlined,
+  InboxOutlined,
   UndoOutlined,
   ClearOutlined,
 } from '@ant-design/icons';
@@ -45,8 +45,10 @@ const ListManager: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [editingItem, setEditingItem] = useState<ListItem | null>(null);
-  const [showDeleted, setShowDeleted] = useState(false);
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
+  const [discontinuedModalVisible, setDiscontinuedModalVisible] = useState(false);
+  const [discontinuedItems, setDiscontinuedItems] = useState<ListItem[]>([]);
+  const [discontinuedLoading, setDiscontinuedLoading] = useState(false);
   const [form] = Form.useForm();
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -55,14 +57,15 @@ const ListManager: React.FC = () => {
     if (!activeList) return;
     setLoading(true);
     try {
-      const response = await api.get(`${activeList.endpoint}?includeDeleted=${showDeleted}`);
+      // Only fetch active items for main view
+      const response = await api.get(activeList.endpoint);
       setItems(response.data);
     } catch {
       message.error(`Failed to fetch ${activeList.label.toLowerCase()}`);
     } finally {
       setLoading(false);
     }
-  }, [activeList, showDeleted]);
+  }, [activeList]);
 
   useEffect(() => {
     if (activeList) {
@@ -72,7 +75,6 @@ const ListManager: React.FC = () => {
 
   const handleSelectList = (list: ListConfig) => {
     setActiveList(list);
-    setShowDeleted(false);
     setSelectedRowKeys([]);
   };
 
@@ -123,40 +125,58 @@ const ListManager: React.FC = () => {
     }
   };
 
-  const handleBulkDelete = async () => {
+  const handleBulkDiscontinue = async () => {
     if (!activeList) return;
     try {
       await Promise.all(selectedRowKeys.map(id => api.delete(`${activeList.endpoint}/${id}`)));
-      message.success(`${selectedRowKeys.length} item${selectedRowKeys.length > 1 ? 's' : ''} deleted successfully`);
+      message.success(`${selectedRowKeys.length} item${selectedRowKeys.length > 1 ? 's' : ''} discontinued`);
       setSelectedRowKeys([]);
       fetchItems();
     } catch {
-      message.error(`Failed to delete items`);
+      message.error(`Failed to discontinue items`);
     }
   };
 
-  const handleBulkRestore = async () => {
+  const fetchDiscontinuedItems = async () => {
     if (!activeList) return;
+    setDiscontinuedLoading(true);
     try {
-      await Promise.all(selectedRowKeys.map(id => api.post(`${activeList.endpoint}/${id}/restore`)));
-      message.success(`${selectedRowKeys.length} item${selectedRowKeys.length > 1 ? 's' : ''} restored successfully`);
-      setSelectedRowKeys([]);
-      fetchItems();
+      const response = await api.get(`${activeList.endpoint}?includeDeleted=true`);
+      // Filter to only show deleted items
+      setDiscontinuedItems(response.data.filter((item: ListItem) => item.isDeleted));
     } catch {
-      message.error(`Failed to restore items`);
+      message.error(`Failed to fetch discontinued ${activeList.label.toLowerCase()}`);
+    } finally {
+      setDiscontinuedLoading(false);
     }
   };
 
-  const handleBulkPurge = async () => {
+  const handleReactivate = async (id: number) => {
     if (!activeList) return;
     try {
-      await Promise.all(selectedRowKeys.map(id => api.delete(`${activeList.endpoint}/${id}/purge`)));
-      message.success(`${selectedRowKeys.length} item${selectedRowKeys.length > 1 ? 's' : ''} permanently deleted`);
-      setSelectedRowKeys([]);
+      await api.post(`${activeList.endpoint}/${id}/restore`);
+      message.success(`${activeList.singularLabel} reactivated`);
+      fetchDiscontinuedItems();
       fetchItems();
     } catch {
-      message.error(`Failed to purge items`);
+      message.error(`Failed to reactivate ${activeList.singularLabel.toLowerCase()}`);
     }
+  };
+
+  const handlePurge = async (id: number) => {
+    if (!activeList) return;
+    try {
+      await api.delete(`${activeList.endpoint}/${id}/purge`);
+      message.success(`${activeList.singularLabel} permanently deleted`);
+      fetchDiscontinuedItems();
+    } catch {
+      message.error(`Failed to purge ${activeList.singularLabel.toLowerCase()}`);
+    }
+  };
+
+  const handleOpenDiscontinuedModal = () => {
+    setDiscontinuedModalVisible(true);
+    fetchDiscontinuedItems();
   };
 
   const getUsageCount = (record: ListItem): number => {
@@ -182,17 +202,6 @@ const ListManager: React.FC = () => {
       width: 100,
       render: (_: unknown, record: ListItem) => getUsageCount(record),
     }] : []),
-    {
-      title: 'Status',
-      dataIndex: 'isDeleted',
-      key: 'isDeleted',
-      width: 100,
-      render: (isDeleted: boolean) => (
-        <Tag color={isDeleted ? 'error' : 'success'}>
-          {isDeleted ? 'Deleted' : 'Active'}
-        </Tag>
-      ),
-    },
   ];
 
   const renderModulePanel = (module: ModuleConfig) => (
@@ -213,12 +222,10 @@ const ListManager: React.FC = () => {
     </div>
   );
 
-  // Determine selected items' state for toolbar actions
-  const selectedItems = items.filter(item => selectedRowKeys.includes(item.sysId));
-  const allSelectedActive = selectedItems.length > 0 && selectedItems.every(item => !item.isDeleted);
-  const allSelectedDeleted = selectedItems.length > 0 && selectedItems.every(item => item.isDeleted);
-  const selectedItem = selectedRowKeys.length === 1 ? selectedItems[0] : null;
-  const canPurge = allSelectedDeleted && selectedItems.every(item => getUsageCount(item) === 0);
+  // Get the selected item for single-select actions
+  const selectedItem = selectedRowKeys.length === 1
+    ? items.find(item => item.sysId === selectedRowKeys[0])
+    : null;
 
   return (
     <div
@@ -248,18 +255,7 @@ const ListManager: React.FC = () => {
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
           {activeList ? (
             <>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16, flexShrink: 0 }}>
-                <h3 style={{ margin: 0 }}>{activeList.label}</h3>
-                <Button
-                  type={showDeleted ? 'primary' : 'default'}
-                  onClick={() => {
-                    setShowDeleted(!showDeleted);
-                    setSelectedRowKeys([]);
-                  }}
-                >
-                  {showDeleted ? 'Hide Deleted' : 'Show Deleted'}
-                </Button>
-              </div>
+              <h3 style={{ margin: '0 0 16px 0' }}>{activeList.label}</h3>
 
               {/* Action Toolbar */}
               <div
@@ -288,52 +284,35 @@ const ListManager: React.FC = () => {
                     type="text"
                     size="small"
                     icon={<EditOutlined />}
-                    disabled={!selectedItem || selectedItem.isDeleted}
+                    disabled={selectedRowKeys.length !== 1}
                     onClick={() => {
-                      if (selectedItem && !selectedItem.isDeleted) handleEdit(selectedItem);
+                      if (selectedItem) handleEdit(selectedItem);
                     }}
                   />
                 </Tooltip>
-                <Tooltip title="Delete">
+                <Tooltip title="Discontinue">
                   <Popconfirm
-                    title={`Delete ${selectedRowKeys.length} item${selectedRowKeys.length > 1 ? 's' : ''}?`}
-                    description="This will hide them from dropdowns."
-                    onConfirm={handleBulkDelete}
-                    disabled={!allSelectedActive}
+                    title={`Discontinue ${selectedRowKeys.length} item${selectedRowKeys.length > 1 ? 's' : ''}?`}
+                    description="Discontinued items can be reactivated later."
+                    onConfirm={handleBulkDiscontinue}
+                    disabled={selectedRowKeys.length === 0}
                   >
                     <Button
                       type="text"
                       size="small"
                       danger
-                      icon={<DeleteOutlined />}
-                      disabled={!allSelectedActive}
+                      icon={<StopOutlined />}
+                      disabled={selectedRowKeys.length === 0}
                     />
                   </Popconfirm>
                 </Tooltip>
-                <Tooltip title="Restore">
+                <Tooltip title="View Discontinued">
                   <Button
                     type="text"
                     size="small"
-                    icon={<UndoOutlined />}
-                    disabled={!allSelectedDeleted}
-                    onClick={handleBulkRestore}
+                    icon={<InboxOutlined />}
+                    onClick={handleOpenDiscontinuedModal}
                   />
-                </Tooltip>
-                <Tooltip title="Purge permanently">
-                  <Popconfirm
-                    title={`Permanently delete ${selectedRowKeys.length} item${selectedRowKeys.length > 1 ? 's' : ''}?`}
-                    description="This cannot be undone."
-                    onConfirm={handleBulkPurge}
-                    disabled={!canPurge}
-                  >
-                    <Button
-                      type="text"
-                      size="small"
-                      danger
-                      icon={<ClearOutlined />}
-                      disabled={!canPurge}
-                    />
-                  </Popconfirm>
                 </Tooltip>
                 <div style={{ marginLeft: 'auto', fontSize: 12, color: '#8c8c8c' }}>
                   {selectedRowKeys.length > 0
@@ -341,16 +320,6 @@ const ListManager: React.FC = () => {
                     : 'Select rows to perform actions'}
                 </div>
               </div>
-
-              {showDeleted && (
-                <Alert
-                  message="Showing deleted items"
-                  description="Deleted items can be restored or permanently purged if unused."
-                  type="info"
-                  showIcon
-                  style={{ marginBottom: 16, flexShrink: 0 }}
-                />
-              )}
 
               {/* Table Container */}
               <div style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
@@ -372,10 +341,8 @@ const ListManager: React.FC = () => {
                         prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]
                       );
                     },
-                    onDoubleClick: () => {
-                      if (!record.isDeleted) handleEdit(record);
-                    },
-                    style: { cursor: record.isDeleted ? 'default' : 'pointer' },
+                    onDoubleClick: () => handleEdit(record),
+                    style: { cursor: 'pointer' },
                   })}
                   scroll={{ y: 'calc(100vh - 350px)' }}
                 />
@@ -441,6 +408,80 @@ const ListManager: React.FC = () => {
             </Space>
           </Form.Item>
         </Form>
+      </Modal>
+
+      {/* Discontinued Items Modal */}
+      <Modal
+        title={`Discontinued ${activeList?.label || 'Items'}`}
+        open={discontinuedModalVisible}
+        onCancel={() => setDiscontinuedModalVisible(false)}
+        footer={
+          <Button onClick={() => setDiscontinuedModalVisible(false)}>
+            Close
+          </Button>
+        }
+        width={600}
+      >
+        {discontinuedLoading ? (
+          <div style={{ textAlign: 'center', padding: '40px 0' }}>Loading...</div>
+        ) : discontinuedItems.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '40px 0', color: '#8c8c8c' }}>
+            No discontinued {activeList?.label.toLowerCase() || 'items'}
+          </div>
+        ) : (
+          <div style={{ maxHeight: 400, overflow: 'auto' }}>
+            {discontinuedItems.map(item => (
+              <div
+                key={item.sysId}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '12px 16px',
+                  borderBottom: '1px solid #f0f0f0',
+                }}
+              >
+                <div>
+                  <div style={{ fontWeight: 500 }}>{item.name}</div>
+                  <div style={{ fontSize: 12, color: '#8c8c8c' }}>
+                    {getUsageCount(item) > 0
+                      ? `Used by ${getUsageCount(item)} record${getUsageCount(item) !== 1 ? 's' : ''}`
+                      : 'Not in use'
+                    }
+                  </div>
+                </div>
+                <Space>
+                  <Tooltip title="Reactivate">
+                    <Button
+                      type="text"
+                      icon={<UndoOutlined />}
+                      onClick={() => handleReactivate(item.sysId)}
+                    >
+                      Reactivate
+                    </Button>
+                  </Tooltip>
+                  {getUsageCount(item) === 0 && (
+                    <Tooltip title="Permanently delete">
+                      <Popconfirm
+                        title="Permanently delete this item?"
+                        description="This cannot be undone."
+                        onConfirm={() => handlePurge(item.sysId)}
+                      >
+                        <Button
+                          type="text"
+                          danger
+                          icon={<ClearOutlined />}
+                        >
+                          Purge
+                        </Button>
+                      </Popconfirm>
+                    </Tooltip>
+                  )}
+                </Space>
+              </div>
+            ))}
+          </div>
+        )}
       </Modal>
     </div>
   );
