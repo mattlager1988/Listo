@@ -331,12 +331,6 @@ const CyclePlans: React.FC = () => {
             onClick={fetchCyclePlans}
           />
         </Tooltip>
-        <div style={{ flex: 1 }} />
-        {selectedRowKeys.length > 0 && (
-          <span style={{ color: '#8c8c8c', fontSize: 12 }}>
-            {selectedRowKeys.length} selected
-          </span>
-        )}
       </div>
 
       <ProTable<CyclePlan>
