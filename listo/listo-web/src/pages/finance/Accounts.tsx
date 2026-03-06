@@ -975,19 +975,12 @@ const Accounts: React.FC = () => {
       render: (_, record) => record.bankAccountName || '-',
     },
     {
-      title: 'Due Date',
-      dataIndex: 'dueDate',
-      key: 'dueDate',
-      width: 100,
-      render: (_, record) => record.dueDate ? dayjs(record.dueDate).format('MM/DD/YYYY') : '-',
-    },
-    {
       title: 'Amount',
       dataIndex: 'amount',
       key: 'amount',
       width: 100,
       align: 'right',
-      render: (_, record) => `$${record.amount.toFixed(2)}`,
+      render: (_, record) => <Tag>${record.amount.toFixed(2)}</Tag>,
     },
     {
       title: 'Confirmation #',
@@ -1003,6 +996,13 @@ const Accounts: React.FC = () => {
       width: 150,
       ellipsis: true,
       render: (_, record) => record.description || '-',
+    },
+    {
+      title: 'Due Date',
+      dataIndex: 'dueDate',
+      key: 'dueDate',
+      width: 100,
+      render: (_, record) => record.dueDate ? dayjs(record.dueDate).format('MM/DD/YYYY') : '-',
     },
     {
       title: 'Date Posted',
@@ -1201,7 +1201,7 @@ const Accounts: React.FC = () => {
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
                 <BankOutlined style={{ color: '#52c41a' }} />
                 <span style={{ fontWeight: 600 }}>{ba.name}</span>
-                <Tag color={ba.accountType === 'Checking' ? 'blue' : 'green'} style={{ marginLeft: 'auto' }}>
+                <Tag color={ba.accountType === 'Checking' ? 'blue' : ba.accountType === 'HSA' ? 'purple' : 'green'} style={{ marginLeft: 'auto' }}>
                   {ba.accountType}
                 </Tag>
               </div>
@@ -2159,6 +2159,7 @@ const Accounts: React.FC = () => {
               <Select style={{ width: '100%' }}>
                 <Select.Option value="Checking">Checking</Select.Option>
                 <Select.Option value="Savings">Savings</Select.Option>
+                <Select.Option value="HSA">HSA</Select.Option>
               </Select>
             </Form.Item>
 

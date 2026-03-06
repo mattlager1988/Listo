@@ -3,7 +3,8 @@ namespace Listo.Api.Models;
 public enum BankAccountType
 {
     Checking,
-    Savings
+    Savings,
+    HSA
 }
 
 public class BankAccount : BaseEntity

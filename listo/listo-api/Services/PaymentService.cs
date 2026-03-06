@@ -184,6 +184,12 @@ public class PaymentService : IPaymentService
         payment.Status = PaymentStatus.Complete;
         payment.CompletedDate = DateTime.UtcNow;
 
+        // Increment account's due date by one month if payment had a due date
+        if (payment.DueDate.HasValue)
+        {
+            payment.Account.DueDate = payment.DueDate.Value.AddMonths(1);
+        }
+
         await _context.SaveChangesAsync();
 
         return MapToResponse(payment);
