@@ -372,7 +372,7 @@ const TrainingTracker: React.FC = () => {
       )}
 
       {/* Table Container */}
-      <div style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
+      <div className="condensed-table" style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
         <Table
           columns={columns}
           dataSource={logs}

@@ -339,6 +339,7 @@ const CyclePlans: React.FC = () => {
         )}
       </div>
 
+      <div className="condensed-table" style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
       <ProTable<CyclePlan>
         actionRef={actionRef}
         columns={columns}
@@ -362,10 +363,7 @@ const CyclePlans: React.FC = () => {
           return {
             onClick: () => {
               clickTimer = setTimeout(() => {
-                const key = record.sysId;
-                setSelectedRowKeys(prev =>
-                  prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]
-                );
+                setSelectedRowKeys([record.sysId]);
               }, 200);
             },
             onDoubleClick: () => {
@@ -377,6 +375,7 @@ const CyclePlans: React.FC = () => {
         }}
         toolBarRender={false}
       />
+      </div>
 
       {/* Create/Edit Modal */}
       <Modal
