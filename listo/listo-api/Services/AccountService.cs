@@ -84,7 +84,9 @@ public class AccountService : IAccountService
             AutoPay = request.AutoPay,
             ResetAmountDue = request.ResetAmountDue,
             AccountFlag = flag,
-            Notes = request.Notes
+            Notes = request.Notes,
+            DefaultPaymentMethodSysId = request.DefaultPaymentMethodSysId,
+            DefaultBankAccountSysId = request.DefaultBankAccountSysId
         };
 
         _context.Accounts.Add(account);
@@ -127,6 +129,8 @@ public class AccountService : IAccountService
             account.AccountFlag = flag;
         }
         if (request.Notes != null) account.Notes = request.Notes;
+        if (request.DefaultPaymentMethodSysId.HasValue) account.DefaultPaymentMethodSysId = request.DefaultPaymentMethodSysId.Value == 0 ? null : request.DefaultPaymentMethodSysId.Value;
+        if (request.DefaultBankAccountSysId.HasValue) account.DefaultBankAccountSysId = request.DefaultBankAccountSysId.Value == 0 ? null : request.DefaultBankAccountSysId.Value;
 
         await _context.SaveChangesAsync();
 
@@ -185,6 +189,8 @@ public class AccountService : IAccountService
         account.Notes,
         account.IsDiscontinued,
         account.DiscontinuedDate,
-        account.Payments?.OrderByDescending(p => p.CreateTimestamp).FirstOrDefault()?.CreateTimestamp
+        account.Payments?.OrderByDescending(p => p.CreateTimestamp).FirstOrDefault()?.CreateTimestamp,
+        account.DefaultPaymentMethodSysId,
+        account.DefaultBankAccountSysId
     );
 }

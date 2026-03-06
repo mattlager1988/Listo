@@ -54,7 +54,9 @@ public record AccountResponse(
     string? Notes,
     bool IsDiscontinued,
     DateTime? DiscontinuedDate,
-    DateTime? LastPaymentDate
+    DateTime? LastPaymentDate,
+    long? DefaultPaymentMethodSysId,
+    long? DefaultBankAccountSysId
 );
 
 public record CreateAccountRequest(
@@ -71,7 +73,9 @@ public record CreateAccountRequest(
     bool AutoPay,
     bool ResetAmountDue,
     string AccountFlag,
-    string? Notes
+    string? Notes,
+    long? DefaultPaymentMethodSysId,
+    long? DefaultBankAccountSysId
 );
 
 public record UpdateAccountRequest(
@@ -88,7 +92,9 @@ public record UpdateAccountRequest(
     bool? AutoPay,
     bool? ResetAmountDue,
     string? AccountFlag,
-    string? Notes
+    string? Notes,
+    long? DefaultPaymentMethodSysId,
+    long? DefaultBankAccountSysId
 );
 
 // Saved View DTOs

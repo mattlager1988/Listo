@@ -71,6 +71,8 @@ interface Account {
   isDiscontinued: boolean;
   discontinuedDate: string | null;
   lastPaymentDate: string | null;
+  defaultPaymentMethodSysId: number | null;
+  defaultBankAccountSysId: number | null;
 }
 
 interface ListItem {
@@ -593,6 +595,11 @@ const Accounts: React.FC = () => {
     const account = accounts.find(a => a.sysId.toString() === selectedRowKeys[0]?.toString());
     if (!account) return;
     quickPaymentForm.resetFields();
+    quickPaymentForm.setFieldsValue({
+      paymentMethodSysId: account.defaultPaymentMethodSysId,
+      bankAccountSysId: account.defaultBankAccountSysId,
+      amount: account.amountDue > 0 ? account.amountDue : undefined,
+    });
     setQuickPaymentModalVisible(true);
   };
 
@@ -1103,11 +1110,18 @@ const Accounts: React.FC = () => {
     FLAG_ORDER.forEach(flag => {
       const flagAccounts = filteredAccounts.filter(a => a.accountFlag === flag);
       if (flagAccounts.length > 0) {
+        // Sort accounts within group by due date ascending (nulls at end)
+        const sortedFlagAccounts = [...flagAccounts].sort((a, b) => {
+          if (!a.dueDate && !b.dueDate) return 0;
+          if (!a.dueDate) return 1;
+          if (!b.dueDate) return -1;
+          return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+        });
         groups.push({
           sysId: `group-${flag}`,
           isGroupHeader: true,
           accountFlag: flag,
-          children: flagAccounts,
+          children: sortedFlagAccounts,
           accountCount: flagAccounts.length,
           totalAmountDue: flagAccounts.reduce((sum, a) => sum + a.amountDue, 0),
         });
@@ -1676,6 +1690,24 @@ const Accounts: React.FC = () => {
 
               <Form.Item name="resetAmountDue" label="Reset Amount Due" valuePropName="checked" style={{ marginBottom: 0 }}>
                 <Switch />
+              </Form.Item>
+            </Space>
+
+            <Space style={{ width: '100%' }} size="middle">
+              <Form.Item name="defaultPaymentMethodSysId" label="Default Payment Method" style={{ width: 250, marginBottom: 0 }}>
+                <Select
+                  allowClear
+                  placeholder="Select default"
+                  options={paymentMethods.map(pm => ({ label: pm.name, value: pm.sysId }))}
+                />
+              </Form.Item>
+
+              <Form.Item name="defaultBankAccountSysId" label="Default Bank Account" style={{ width: 250, marginBottom: 0 }}>
+                <Select
+                  allowClear
+                  placeholder="Select default"
+                  options={bankAccounts.map(ba => ({ label: ba.name, value: ba.sysId }))}
+                />
               </Form.Item>
             </Space>
 

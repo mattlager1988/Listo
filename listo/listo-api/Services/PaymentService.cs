@@ -116,6 +116,12 @@ public class PaymentService : IPaymentService
             account.AmountDue = 0;
         }
 
+        // Increment account's due date by one month if it has a due date
+        if (account.DueDate.HasValue)
+        {
+            account.DueDate = account.DueDate.Value.AddMonths(1);
+        }
+
         await _context.SaveChangesAsync();
 
         // Create ledger transaction if bank account is specified
@@ -183,12 +189,6 @@ public class PaymentService : IPaymentService
 
         payment.Status = PaymentStatus.Complete;
         payment.CompletedDate = DateTime.UtcNow;
-
-        // Increment account's due date by one month if payment had a due date
-        if (payment.DueDate.HasValue)
-        {
-            payment.Account.DueDate = payment.DueDate.Value.AddMonths(1);
-        }
 
         await _context.SaveChangesAsync();
 

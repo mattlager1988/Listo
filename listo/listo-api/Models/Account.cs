@@ -26,8 +26,12 @@ public class Account : BaseEntity
     public string? Notes { get; set; }
     public bool IsDiscontinued { get; set; } = false;
     public DateTime? DiscontinuedDate { get; set; }
+    public long? DefaultPaymentMethodSysId { get; set; }
+    public long? DefaultBankAccountSysId { get; set; }
 
     public AccountType AccountType { get; set; } = null!;
     public AccountOwner AccountOwner { get; set; } = null!;
+    public PaymentMethod? DefaultPaymentMethod { get; set; }
+    public BankAccount? DefaultBankAccount { get; set; }
     public ICollection<Payment> Payments { get; set; } = new List<Payment>();
 }
