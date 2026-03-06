@@ -432,10 +432,10 @@ public class ListoDbContext : DbContext
             entity.ToTable("cycle_plans");
             entity.HasKey(e => e.SysId);
             entity.Property(e => e.SysId).HasColumnName("sys_id");
-            entity.Property(e => e.Name).HasColumnName("name").IsRequired();
             entity.Property(e => e.StartDate).HasColumnName("start_date");
             entity.Property(e => e.EndDate).HasColumnName("end_date");
             entity.Property(e => e.CycleGoalSysId).HasColumnName("cycle_goal_sys_id");
+            entity.Property(e => e.Status).HasColumnName("status").HasConversion<string>();
             entity.Property(e => e.Notes).HasColumnName("notes").HasColumnType("text");
             entity.Property(e => e.IsDiscontinued).HasColumnName("is_discontinued");
             entity.Property(e => e.DiscontinuedDate).HasColumnName("discontinued_date");

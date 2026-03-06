@@ -13,6 +13,7 @@ import {
   Popconfirm,
   Table,
   Tooltip,
+  Tag,
 } from 'antd';
 import {
   PlusOutlined,
@@ -28,11 +29,11 @@ import PageHeader from '../../components/PageHeader';
 
 interface CyclePlan {
   sysId: number;
-  name: string;
   startDate: string;
   endDate: string;
   cycleGoalSysId: number;
   cycleGoalName: string;
+  status: string;
   notes: string | null;
   isDiscontinued: boolean;
   discontinuedDate: string | null;
@@ -43,6 +44,12 @@ interface CycleGoal {
   name: string;
   isDeleted: boolean;
 }
+
+const statusColors: Record<string, string> = {
+  Pending: 'default',
+  Active: 'processing',
+  Completed: 'success',
+};
 
 const CyclePlans: React.FC = () => {
   const [cyclePlans, setCyclePlans] = useState<CyclePlan[]>([]);
@@ -86,6 +93,7 @@ const CyclePlans: React.FC = () => {
   const handleCreate = () => {
     setEditingPlan(null);
     form.resetFields();
+    form.setFieldsValue({ status: 'Pending' });
     setModalVisible(true);
   };
 
@@ -165,15 +173,11 @@ const CyclePlans: React.FC = () => {
 
   const columns: ProColumns<CyclePlan>[] = [
     {
-      title: 'Name',
-      dataIndex: 'name',
-      sorter: (a, b) => a.name.localeCompare(b.name),
-    },
-    {
       title: 'Start Date',
       dataIndex: 'startDate',
       render: (_, record) => record.startDate ? dayjs(record.startDate).format('MMM D, YYYY') : '-',
       sorter: (a, b) => dayjs(a.startDate).unix() - dayjs(b.startDate).unix(),
+      defaultSortOrder: 'descend',
     },
     {
       title: 'End Date',
@@ -189,6 +193,18 @@ const CyclePlans: React.FC = () => {
       onFilter: (value, record) => record.cycleGoalName === value,
     },
     {
+      title: 'Status',
+      dataIndex: 'status',
+      width: 100,
+      render: (_, record) => <Tag color={statusColors[record.status]}>{record.status}</Tag>,
+      filters: [
+        { text: 'Pending', value: 'Pending' },
+        { text: 'Active', value: 'Active' },
+        { text: 'Completed', value: 'Completed' },
+      ],
+      onFilter: (value, record) => record.status === value,
+    },
+    {
       title: 'Notes',
       dataIndex: 'notes',
       ellipsis: true,
@@ -196,24 +212,22 @@ const CyclePlans: React.FC = () => {
     {
       title: 'Actions',
       key: 'actions',
-      width: 100,
+      width: 80,
       render: (_, record) => (
-        <Space>
-          <Button
-            type="text"
-            icon={<EditOutlined />}
-            onClick={(e) => {
-              e.stopPropagation();
-              handleEdit(record);
-            }}
-          />
-        </Space>
+        <Button
+          type="text"
+          size="small"
+          icon={<EditOutlined />}
+          onClick={(e) => {
+            e.stopPropagation();
+            handleEdit(record);
+          }}
+        />
       ),
     },
   ];
 
   const discontinuedColumns = [
-    { title: 'Name', dataIndex: 'name', key: 'name' },
     {
       title: 'Start Date',
       dataIndex: 'startDate',
@@ -228,6 +242,12 @@ const CyclePlans: React.FC = () => {
     },
     { title: 'Cycle Goal', dataIndex: 'cycleGoalName', key: 'cycleGoalName' },
     {
+      title: 'Status',
+      dataIndex: 'status',
+      key: 'status',
+      render: (status: string) => <Tag color={statusColors[status]}>{status}</Tag>,
+    },
+    {
       title: 'Discontinued',
       dataIndex: 'discontinuedDate',
       key: 'discontinuedDate',
@@ -239,6 +259,7 @@ const CyclePlans: React.FC = () => {
       render: (_: unknown, record: CyclePlan) => (
         <Button
           type="link"
+          size="small"
           icon={<UndoOutlined />}
           onClick={() => handleReactivate(record.sysId)}
         >
@@ -381,29 +402,35 @@ const CyclePlans: React.FC = () => {
           autoComplete="off"
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            <Form.Item
-              name="name"
-              label="Name"
-              rules={[{ required: true, message: 'Name is required' }]}
-              style={{ marginBottom: 0 }}
-            >
-              <Input />
-            </Form.Item>
+            <Space style={{ width: '100%' }} size="middle">
+              <Form.Item
+                name="cycleGoalSysId"
+                label="Cycle Goal"
+                rules={[{ required: true, message: 'Cycle goal is required' }]}
+                style={{ width: 280, marginBottom: 0 }}
+              >
+                <Select
+                  placeholder="Select a cycle goal"
+                  options={cycleGoals.filter(g => !g.isDeleted).map(g => ({
+                    label: g.name,
+                    value: g.sysId,
+                  }))}
+                />
+              </Form.Item>
 
-            <Form.Item
-              name="cycleGoalSysId"
-              label="Cycle Goal"
-              rules={[{ required: true, message: 'Cycle goal is required' }]}
-              style={{ marginBottom: 0 }}
-            >
-              <Select
-                placeholder="Select a cycle goal"
-                options={cycleGoals.filter(g => !g.isDeleted).map(g => ({
-                  label: g.name,
-                  value: g.sysId,
-                }))}
-              />
-            </Form.Item>
+              <Form.Item
+                name="status"
+                label="Status"
+                rules={[{ required: true, message: 'Status is required' }]}
+                style={{ width: 150, marginBottom: 0 }}
+              >
+                <Select>
+                  <Select.Option value="Pending">Pending</Select.Option>
+                  <Select.Option value="Active">Active</Select.Option>
+                  <Select.Option value="Completed">Completed</Select.Option>
+                </Select>
+              </Form.Item>
+            </Space>
 
             <Space style={{ width: '100%' }} size="middle">
               <Form.Item

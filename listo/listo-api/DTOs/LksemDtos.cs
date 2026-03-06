@@ -223,28 +223,28 @@ public record UpdateCycleGoalRequest(string? Name);
 // Cycle Plan DTOs
 public record CyclePlanResponse(
     long SysId,
-    string Name,
     DateTime StartDate,
     DateTime EndDate,
     long CycleGoalSysId,
     string CycleGoalName,
+    string Status,
     string? Notes,
     bool IsDiscontinued,
     DateTime? DiscontinuedDate
 );
 
 public record CreateCyclePlanRequest(
-    string Name,
     DateTime StartDate,
     DateTime EndDate,
     long CycleGoalSysId,
+    string Status,
     string? Notes
 );
 
 public record UpdateCyclePlanRequest(
-    string? Name,
     DateTime? StartDate,
     DateTime? EndDate,
     long? CycleGoalSysId,
+    string? Status,
     string? Notes
 );

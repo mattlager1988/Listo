@@ -58,12 +58,15 @@ public class CyclePlanService : ICyclePlanService
 
     public async Task<CyclePlanResponse> CreateAsync(CreateCyclePlanRequest request)
     {
+        if (!Enum.TryParse<CyclePlanStatus>(request.Status, out var status))
+            throw new ArgumentException("Invalid status");
+
         var plan = new CyclePlan
         {
-            Name = request.Name,
             StartDate = request.StartDate,
             EndDate = request.EndDate,
             CycleGoalSysId = request.CycleGoalSysId,
+            Status = status,
             Notes = request.Notes
         };
 
@@ -83,10 +86,13 @@ public class CyclePlanService : ICyclePlanService
 
         if (plan == null) return null;
 
-        if (request.Name != null) plan.Name = request.Name;
         if (request.StartDate.HasValue) plan.StartDate = request.StartDate.Value;
         if (request.EndDate.HasValue) plan.EndDate = request.EndDate.Value;
         if (request.CycleGoalSysId.HasValue) plan.CycleGoalSysId = request.CycleGoalSysId.Value;
+        if (request.Status != null && Enum.TryParse<CyclePlanStatus>(request.Status, out var status))
+        {
+            plan.Status = status;
+        }
         if (request.Notes != null) plan.Notes = request.Notes;
 
         await _context.SaveChangesAsync();
@@ -124,11 +130,11 @@ public class CyclePlanService : ICyclePlanService
 
     private static CyclePlanResponse MapToResponse(CyclePlan plan) => new(
         plan.SysId,
-        plan.Name,
         plan.StartDate,
         plan.EndDate,
         plan.CycleGoalSysId,
         plan.CycleGoal.Name,
+        plan.Status.ToString(),
         plan.Notes,
         plan.IsDiscontinued,
         plan.DiscontinuedDate
