@@ -30,27 +30,27 @@ export interface ModuleConfig {
 
 export const listRegistry: ModuleConfig[] = [
   {
-    key: 'lksem',
-    label: 'LKSEM',
+    key: 'finance',
+    label: 'Finance',
     lists: [
       {
         key: 'accounttypes',
         label: 'Account Types',
-        endpoint: '/lksem/accounttypes',
+        endpoint: '/finance/accounttypes',
         singularLabel: 'Account Type',
         usageCountField: 'accountCount',
       },
       {
         key: 'accountowners',
         label: 'Account Owners',
-        endpoint: '/lksem/accountowners',
+        endpoint: '/finance/accountowners',
         singularLabel: 'Account Owner',
         usageCountField: 'accountCount',
       },
       {
         key: 'paymentmethods',
         label: 'Payment Methods',
-        endpoint: '/lksem/paymentmethods',
+        endpoint: '/finance/paymentmethods',
         singularLabel: 'Payment Method',
         usageCountField: 'paymentCount',
       },

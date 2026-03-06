@@ -10,7 +10,7 @@ public class Document : BaseEntity
     public string StoragePath { get; set; } = string.Empty;
 
     // Module and entity this document is attached to
-    public string Module { get; set; } = string.Empty;  // e.g., "aviation", "lksem"
+    public string Module { get; set; } = string.Empty;  // e.g., "aviation", "finance"
     public string EntityType { get; set; } = string.Empty;  // e.g., "training_log", "account"
     public long? EntitySysId { get; set; }  // ID of the entity this is attached to
 

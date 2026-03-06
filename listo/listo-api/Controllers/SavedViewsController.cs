@@ -7,7 +7,7 @@ using Listo.Api.Services;
 namespace Listo.Api.Controllers;
 
 [ApiController]
-[Route("api/lksem/[controller]")]
+[Route("api/finance/[controller]")]
 [Authorize]
 public class SavedViewsController : ControllerBase
 {

@@ -284,7 +284,7 @@ const Accounts: React.FC = () => {
   const fetchAccounts = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await api.get('/lksem/accounts');
+      const response = await api.get('/finance/accounts');
       setAccounts(response.data);
     } catch {
       message.error('Failed to fetch accounts');
@@ -296,8 +296,8 @@ const Accounts: React.FC = () => {
   const fetchLists = useCallback(async () => {
     try {
       const [typesRes, ownersRes] = await Promise.all([
-        api.get('/lksem/accounttypes'),
-        api.get('/lksem/accountowners'),
+        api.get('/finance/accounttypes'),
+        api.get('/finance/accountowners'),
       ]);
       setAccountTypes(typesRes.data);
       setAccountOwners(ownersRes.data);
@@ -308,7 +308,7 @@ const Accounts: React.FC = () => {
 
   const fetchSavedViews = useCallback(async () => {
     try {
-      const response = await api.get('/lksem/savedviews?viewType=accounts');
+      const response = await api.get('/finance/savedviews?viewType=accounts');
       setSavedViews(response.data);
       const defaultView = response.data.find((v: SavedView) => v.isDefault);
       if (defaultView) {
@@ -322,7 +322,7 @@ const Accounts: React.FC = () => {
   const fetchPendingPayments = useCallback(async () => {
     setPendingLoading(true);
     try {
-      const response = await api.get('/lksem/payments/pending');
+      const response = await api.get('/finance/payments/pending');
       setPendingPayments(response.data);
     } catch {
       message.error('Failed to fetch pending payments');
@@ -333,7 +333,7 @@ const Accounts: React.FC = () => {
 
   const fetchPaymentMethods = useCallback(async () => {
     try {
-      const response = await api.get('/lksem/paymentmethods');
+      const response = await api.get('/finance/paymentmethods');
       setPaymentMethods(response.data.filter((pm: PaymentMethod) => !pm.isDeleted));
     } catch {
       // Payment methods are needed for forms
@@ -388,10 +388,10 @@ const Accounts: React.FC = () => {
       };
 
       if (editingAccount) {
-        await api.put(`/lksem/accounts/${editingAccount.sysId}`, payload);
+        await api.put(`/finance/accounts/${editingAccount.sysId}`, payload);
         message.success('Account updated successfully');
       } else {
-        await api.post('/lksem/accounts', payload);
+        await api.post('/finance/accounts', payload);
         message.success('Account created successfully');
       }
       setModalVisible(false);
@@ -405,7 +405,7 @@ const Accounts: React.FC = () => {
 
   const handleBulkDiscontinue = async () => {
     try {
-      await Promise.all(selectedRowKeys.map(id => api.post(`/lksem/accounts/${id}/discontinue`)));
+      await Promise.all(selectedRowKeys.map(id => api.post(`/finance/accounts/${id}/discontinue`)));
       message.success(`${selectedRowKeys.length} account${selectedRowKeys.length > 1 ? 's' : ''} discontinued`);
       setSelectedRowKeys([]);
       fetchAccounts();
@@ -417,7 +417,7 @@ const Accounts: React.FC = () => {
   const fetchDiscontinuedAccounts = async () => {
     setDiscontinuedLoading(true);
     try {
-      const response = await api.get('/lksem/accounts/discontinued');
+      const response = await api.get('/finance/accounts/discontinued');
       setDiscontinuedAccounts(response.data);
     } catch {
       message.error('Failed to fetch discontinued accounts');
@@ -428,7 +428,7 @@ const Accounts: React.FC = () => {
 
   const handleReactivate = async (id: number) => {
     try {
-      await api.post(`/lksem/accounts/${id}/reactivate`);
+      await api.post(`/finance/accounts/${id}/reactivate`);
       message.success('Account reactivated');
       fetchDiscontinuedAccounts();
       fetchAccounts();
@@ -456,7 +456,7 @@ const Accounts: React.FC = () => {
   const handlePaymentSubmit = async (values: Record<string, unknown>) => {
     if (!editingPayment) return;
     try {
-      await api.put(`/lksem/payments/${editingPayment.sysId}`, values);
+      await api.put(`/finance/payments/${editingPayment.sysId}`, values);
       message.success('Payment updated');
       setPaymentModalVisible(false);
       setEditingPayment(null);
@@ -468,7 +468,7 @@ const Accounts: React.FC = () => {
 
   const handleCompletePayment = async (paymentId: number) => {
     try {
-      await api.post(`/lksem/payments/${paymentId}/complete`);
+      await api.post(`/finance/payments/${paymentId}/complete`);
       message.success('Payment marked as complete');
       fetchPendingPayments();
       fetchAccounts(); // Refresh to update Last Payment column
@@ -479,7 +479,7 @@ const Accounts: React.FC = () => {
 
   const handleDeletePayment = async (paymentId: number) => {
     try {
-      await api.delete(`/lksem/payments/${paymentId}`);
+      await api.delete(`/finance/payments/${paymentId}`);
       message.success('Payment deleted');
       fetchPendingPayments();
       fetchAccounts(); // Refresh to update Last Payment column
@@ -494,8 +494,8 @@ const Accounts: React.FC = () => {
     setHistoryLoading(true);
     try {
       const [paymentsRes, summaryRes] = await Promise.all([
-        api.get(`/lksem/payments/account/${accountSysId}`),
-        api.get(`/lksem/payments/account/${accountSysId}/summary?months=12`),
+        api.get(`/finance/payments/account/${accountSysId}`),
+        api.get(`/finance/payments/account/${accountSysId}/summary?months=12`),
       ]);
       setAccountPayments(paymentsRes.data);
       setPaymentSummary(summaryRes.data);
@@ -518,7 +518,7 @@ const Accounts: React.FC = () => {
   const handlePostPayment = async (values: Record<string, unknown>) => {
     if (!historyAccount) return;
     try {
-      await api.post('/lksem/payments', {
+      await api.post('/finance/payments', {
         ...values,
         accountSysId: historyAccount.sysId,
       });
@@ -543,7 +543,7 @@ const Accounts: React.FC = () => {
     const account = accounts.find(a => a.sysId.toString() === selectedRowKeys[0]?.toString());
     if (!account) return;
     try {
-      await api.post('/lksem/payments', {
+      await api.post('/finance/payments', {
         ...values,
         accountSysId: account.sysId,
       });
@@ -641,10 +641,10 @@ const Accounts: React.FC = () => {
       };
 
       if (values.saveMode === 'update' && currentView) {
-        await api.put(`/lksem/savedviews/${currentView.sysId}`, payload);
+        await api.put(`/finance/savedviews/${currentView.sysId}`, payload);
         message.success('View updated successfully');
       } else {
-        const response = await api.post('/lksem/savedviews', payload);
+        const response = await api.post('/finance/savedviews', payload);
         message.success('View saved successfully');
         // Set the newly created view as current
         setCurrentView(response.data);
@@ -663,7 +663,7 @@ const Accounts: React.FC = () => {
 
   const handleDeleteView = async (id: number) => {
     try {
-      await api.delete(`/lksem/savedviews/${id}`);
+      await api.delete(`/finance/savedviews/${id}`);
       message.success('View deleted successfully');
       if (currentView?.sysId === id) {
         setCurrentView(null);

@@ -11,8 +11,8 @@ import Dashboard from './pages/Dashboard';
 import Profile from './pages/Profile';
 import Settings from './pages/Settings';
 import UserManagement from './pages/UserManagement';
-import LksemLayout from './pages/lksem';
-import Accounts from './pages/lksem/Accounts';
+import FinanceLayout from './pages/finance';
+import Accounts from './pages/finance/Accounts';
 import AdminLayout from './pages/admin';
 import ListManager from './pages/admin/ListManager';
 import ListoSettings from './pages/admin/ListoSettings';
@@ -40,7 +40,7 @@ function App() {
               <Route index element={<Dashboard />} />
               <Route path="profile" element={<Profile />} />
               <Route path="settings" element={<Settings />} />
-              <Route path="lksem" element={<LksemLayout />}>
+              <Route path="finance" element={<FinanceLayout />}>
                 <Route index element={<Accounts />} />
                 <Route path="accounts" element={<Accounts />} />
               </Route>

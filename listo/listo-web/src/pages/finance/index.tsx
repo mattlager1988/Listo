@@ -1,8 +1,8 @@
 import React from 'react';
 import { Outlet } from 'react-router-dom';
 
-const LksemLayout: React.FC = () => {
+const FinanceLayout: React.FC = () => {
   return <Outlet />;
 };
 
-export default LksemLayout;
+export default FinanceLayout;

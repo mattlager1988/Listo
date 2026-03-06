@@ -25,7 +25,7 @@ const MainLayout: React.FC = () => {
   const location = useLocation();
   const [version, setVersion] = useState<string>('');
   const [openKeys, setOpenKeys] = useState<string[]>(() => {
-    if (location.pathname.startsWith('/lksem')) return ['/lksem'];
+    if (location.pathname.startsWith('/finance')) return ['/finance'];
     if (location.pathname.startsWith('/aviation')) return ['/aviation'];
     if (location.pathname.startsWith('/admin')) return ['/admin'];
     return [];
@@ -34,8 +34,8 @@ const MainLayout: React.FC = () => {
   // Update openKeys when pathname changes
   React.useEffect(() => {
     const path = location.pathname;
-    if (path.startsWith('/lksem') && !openKeys.includes('/lksem')) {
-      setOpenKeys(prev => [...prev, '/lksem']);
+    if (path.startsWith('/finance') && !openKeys.includes('/finance')) {
+      setOpenKeys(prev => [...prev, '/finance']);
     } else if (path.startsWith('/aviation') && !openKeys.includes('/aviation')) {
       setOpenKeys(prev => [...prev, '/aviation']);
     } else if (path.startsWith('/admin') && !openKeys.includes('/admin')) {
@@ -57,12 +57,12 @@ const MainLayout: React.FC = () => {
       label: 'Dashboard',
     },
     {
-      key: '/lksem',
+      key: '/finance',
       icon: <BankOutlined />,
-      label: 'LKSEM',
+      label: 'Finance',
       children: [
         {
-          key: '/lksem/accounts',
+          key: '/finance/accounts',
           label: 'Accounts',
         },
       ],
