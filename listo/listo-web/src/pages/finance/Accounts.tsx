@@ -91,6 +91,8 @@ interface Payment {
   status: string;
   completedDate: string | null;
   createTimestamp: string;
+  bankAccountSysId: number | null;
+  bankAccountName: string | null;
 }
 
 interface PaymentMethod {
@@ -313,11 +315,14 @@ const Accounts: React.FC = () => {
   const [accountPayments, setAccountPayments] = useState<Payment[]>([]);
   const [paymentSummary, setPaymentSummary] = useState<{ year: number; month: number; totalAmount: number }[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
-  const [postPaymentForm] = Form.useForm();
 
   // Quick Post Payment modal state
   const [quickPaymentModalVisible, setQuickPaymentModalVisible] = useState(false);
   const [quickPaymentForm] = Form.useForm();
+
+  // Delete Payment confirmation state
+  const [deletePaymentModalVisible, setDeletePaymentModalVisible] = useState(false);
+  const [paymentToDelete, setPaymentToDelete] = useState<Payment | null>(null);
 
   // Bank Account state
   const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
@@ -536,12 +541,21 @@ const Accounts: React.FC = () => {
     }
   };
 
-  const handleDeletePayment = async (paymentId: number) => {
+  const handleDeletePaymentClick = (payment: Payment) => {
+    setPaymentToDelete(payment);
+    setDeletePaymentModalVisible(true);
+  };
+
+  const handleDeletePaymentConfirm = async (reverseLedger: boolean) => {
+    if (!paymentToDelete) return;
     try {
-      await api.delete(`/finance/payments/${paymentId}`);
-      message.success('Payment deleted');
+      await api.delete(`/finance/payments/${paymentToDelete.sysId}?reverseLedger=${reverseLedger}`);
+      message.success(reverseLedger ? 'Payment deleted and ledger reversed' : 'Payment deleted');
+      setDeletePaymentModalVisible(false);
+      setPaymentToDelete(null);
       fetchPendingPayments();
-      fetchAccounts(); // Refresh to update Last Payment column
+      fetchAccounts();
+      fetchBankAccounts();
     } catch {
       message.error('Failed to delete payment');
     }
@@ -571,26 +585,8 @@ const Accounts: React.FC = () => {
     setHistoryAccount(account);
     setHistoryModalVisible(true);
     fetchAccountPayments(account.sysId);
-    postPaymentForm.resetFields();
   };
 
-  const handlePostPayment = async (values: Record<string, unknown>) => {
-    if (!historyAccount) return;
-    try {
-      await api.post('/finance/payments', {
-        ...values,
-        accountSysId: historyAccount.sysId,
-      });
-      message.success('Payment posted');
-      postPaymentForm.resetFields();
-      fetchAccountPayments(historyAccount.sysId);
-      fetchPendingPayments();
-      fetchAccounts(); // Refresh to see updated AmountDue if applicable
-      fetchBankAccounts(); // Refresh bank balances
-    } catch {
-      message.error('Failed to post payment');
-    }
-  };
 
   const handleOpenQuickPayment = () => {
     const account = accounts.find(a => a.sysId.toString() === selectedRowKeys[0]?.toString());
@@ -680,9 +676,13 @@ const Accounts: React.FC = () => {
       });
       message.success('Transaction posted');
       transactionForm.resetFields();
-      // Refresh transactions and bank accounts
-      const response = await api.get(`/finance/bankaccounts/${selectedBankAccount.sysId}/transactions`);
-      setBankTransactions(response.data);
+      // Refresh transactions, bank account balance, and bank accounts list
+      const [transactionsRes, accountRes] = await Promise.all([
+        api.get(`/finance/bankaccounts/${selectedBankAccount.sysId}/transactions`),
+        api.get(`/finance/bankaccounts/${selectedBankAccount.sysId}`),
+      ]);
+      setBankTransactions(transactionsRes.data);
+      setSelectedBankAccount(accountRes.data);
       fetchBankAccounts();
     } catch {
       message.error('Failed to post transaction');
@@ -694,9 +694,13 @@ const Accounts: React.FC = () => {
     try {
       await api.delete(`/finance/bankaccounts/${selectedBankAccount.sysId}/transactions/${transactionId}`);
       message.success('Transaction deleted');
-      // Refresh transactions and bank accounts
-      const response = await api.get(`/finance/bankaccounts/${selectedBankAccount.sysId}/transactions`);
-      setBankTransactions(response.data);
+      // Refresh transactions, bank account balance, and bank accounts list
+      const [transactionsRes, accountRes] = await Promise.all([
+        api.get(`/finance/bankaccounts/${selectedBankAccount.sysId}/transactions`),
+        api.get(`/finance/bankaccounts/${selectedBankAccount.sysId}`),
+      ]);
+      setBankTransactions(transactionsRes.data);
+      setSelectedBankAccount(accountRes.data);
       fetchBankAccounts();
     } catch {
       message.error('Failed to delete transaction');
@@ -963,6 +967,13 @@ const Accounts: React.FC = () => {
       width: 120,
     },
     {
+      title: 'Bank Account',
+      dataIndex: 'bankAccountName',
+      key: 'bankAccountName',
+      width: 120,
+      render: (_, record) => record.bankAccountName || '-',
+    },
+    {
       title: 'Amount',
       dataIndex: 'amount',
       key: 'amount',
@@ -1019,20 +1030,15 @@ const Accounts: React.FC = () => {
               />
             </Tooltip>
           </Popconfirm>
-          <Popconfirm
-            title="Delete this payment?"
-            description="This action cannot be undone."
-            onConfirm={() => handleDeletePayment(record.sysId)}
-          >
-            <Tooltip title="Delete">
-              <Button
-                type="text"
-                size="small"
-                danger
-                icon={<DeleteOutlined />}
-              />
-            </Tooltip>
-          </Popconfirm>
+          <Tooltip title="Delete">
+            <Button
+              type="text"
+              size="small"
+              danger
+              icon={<DeleteOutlined />}
+              onClick={() => handleDeletePaymentClick(record)}
+            />
+          </Tooltip>
         </Space>
       ),
     },
@@ -1914,75 +1920,6 @@ const Accounts: React.FC = () => {
           <div style={{ textAlign: 'center', padding: '40px 0' }}>Loading...</div>
         ) : (
           <>
-            {/* Post Payment Form */}
-            <div
-              style={{
-                background: '#fafafa',
-                padding: 12,
-                borderRadius: 6,
-                marginBottom: 16,
-              }}
-            >
-              <div style={{ fontWeight: 600, marginBottom: 8 }}>Post Payment</div>
-              <Form
-                form={postPaymentForm}
-                layout="inline"
-                onFinish={handlePostPayment}
-                size="small"
-                style={{ flexWrap: 'wrap', gap: 4 }}
-              >
-                <Form.Item
-                  name="paymentMethodSysId"
-                  rules={[{ required: true, message: 'Required' }]}
-                  style={{ marginBottom: 4 }}
-                >
-                  <Select
-                    placeholder="Payment Method"
-                    style={{ width: 150 }}
-                    options={paymentMethods.map(pm => ({ label: pm.name, value: pm.sysId }))}
-                  />
-                </Form.Item>
-                <Form.Item
-                  name="bankAccountSysId"
-                  style={{ marginBottom: 4 }}
-                >
-                  <Select
-                    placeholder="Debit Account"
-                    style={{ width: 150 }}
-                    allowClear
-                    options={bankAccounts.map(ba => ({
-                      label: `${ba.name} ($${ba.balance.toFixed(2)})`,
-                      value: ba.sysId
-                    }))}
-                  />
-                </Form.Item>
-                <Form.Item
-                  name="amount"
-                  rules={[{ required: true, message: 'Required' }]}
-                  style={{ marginBottom: 4 }}
-                >
-                  <InputNumber
-                    placeholder="Amount"
-                    prefix="$"
-                    precision={2}
-                    min={0}
-                    style={{ width: 120 }}
-                  />
-                </Form.Item>
-                <Form.Item name="confirmationNumber" style={{ marginBottom: 4 }}>
-                  <Input placeholder="Confirmation #" style={{ width: 130 }} />
-                </Form.Item>
-                <Form.Item name="description" style={{ marginBottom: 4 }}>
-                  <Input placeholder="Description" style={{ width: 150 }} />
-                </Form.Item>
-                <Form.Item style={{ marginBottom: 4 }}>
-                  <Button type="primary" htmlType="submit">
-                    Post
-                  </Button>
-                </Form.Item>
-              </Form>
-            </div>
-
             {/* Bar Chart - Last 12 Months */}
             <div style={{ marginBottom: 16 }}>
               <div style={{ fontWeight: 600, marginBottom: 8 }}>Last 12 Months</div>
@@ -2115,6 +2052,63 @@ const Accounts: React.FC = () => {
             </Form.Item>
           </div>
         </Form>
+      </Modal>
+
+      {/* Delete Payment Confirmation Modal */}
+      <Modal
+        title="Delete Payment"
+        open={deletePaymentModalVisible}
+        onCancel={() => {
+          setDeletePaymentModalVisible(false);
+          setPaymentToDelete(null);
+        }}
+        footer={null}
+        width={450}
+      >
+        {paymentToDelete && (
+          <div>
+            <p>
+              Are you sure you want to delete this payment of{' '}
+              <strong>${paymentToDelete.amount.toFixed(2)}</strong> to{' '}
+              <strong>{paymentToDelete.accountName}</strong>?
+            </p>
+            {paymentToDelete.bankAccountSysId && (
+              <>
+                <p style={{ marginTop: 16, marginBottom: 8 }}>
+                  This payment was debited from <strong>{paymentToDelete.bankAccountName}</strong>.
+                  Would you like to reverse the ledger transaction and restore the balance?
+                </p>
+                <Space style={{ width: '100%', justifyContent: 'flex-end', marginTop: 16 }}>
+                  <Button onClick={() => handleDeletePaymentConfirm(true)} type="primary">
+                    Yes, Reverse Ledger
+                  </Button>
+                  <Button onClick={() => handleDeletePaymentConfirm(false)}>
+                    No, Keep Ledger
+                  </Button>
+                  <Button onClick={() => {
+                    setDeletePaymentModalVisible(false);
+                    setPaymentToDelete(null);
+                  }}>
+                    Cancel
+                  </Button>
+                </Space>
+              </>
+            )}
+            {!paymentToDelete.bankAccountSysId && (
+              <Space style={{ width: '100%', justifyContent: 'flex-end', marginTop: 16 }}>
+                <Button onClick={() => handleDeletePaymentConfirm(false)} type="primary" danger>
+                  Delete
+                </Button>
+                <Button onClick={() => {
+                  setDeletePaymentModalVisible(false);
+                  setPaymentToDelete(null);
+                }}>
+                  Cancel
+                </Button>
+              </Space>
+            )}
+          </div>
+        )}
       </Modal>
 
       {/* Bank Account Create/Edit Modal */}

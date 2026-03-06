@@ -84,11 +84,11 @@ public class PaymentsController : ControllerBase
     }
 
     [HttpDelete("{id}")]
-    public async Task<IActionResult> Delete(long id)
+    public async Task<IActionResult> Delete(long id, [FromQuery] bool reverseLedger = false)
     {
         try
         {
-            var result = await _service.DeleteAsync(id);
+            var result = await _service.DeleteAsync(id, reverseLedger);
             if (!result) return NotFound();
             return NoContent();
         }

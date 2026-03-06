@@ -14,7 +14,7 @@ public interface IPaymentService
     Task<PaymentResponse> CreateAsync(CreatePaymentRequest request);
     Task<PaymentResponse?> UpdateAsync(long id, UpdatePaymentRequest request);
     Task<PaymentResponse?> CompleteAsync(long id);
-    Task<bool> DeleteAsync(long id);
+    Task<bool> DeleteAsync(long id, bool reverseLedger);
 }
 
 public class PaymentService : IPaymentService
@@ -188,14 +188,32 @@ public class PaymentService : IPaymentService
         return MapToResponse(payment);
     }
 
-    public async Task<bool> DeleteAsync(long id)
+    public async Task<bool> DeleteAsync(long id, bool reverseLedger)
     {
-        var payment = await _context.Payments.FindAsync(id);
+        var payment = await _context.Payments
+            .Include(p => p.LedgerTransaction)
+            .FirstOrDefaultAsync(p => p.SysId == id);
         if (payment == null) return false;
 
         // Only allow deleting pending payments
         if (payment.Status != PaymentStatus.Pending)
             throw new InvalidOperationException("Cannot delete a completed payment");
+
+        // Handle linked ledger transaction
+        if (payment.LedgerTransaction != null)
+        {
+            if (reverseLedger)
+            {
+                // Reverse the balance change (add the amount back since it was a withdrawal)
+                var bankAccount = await _context.BankAccounts.FindAsync(payment.LedgerTransaction.BankAccountSysId);
+                if (bankAccount != null)
+                {
+                    bankAccount.Balance += payment.LedgerTransaction.Amount;
+                }
+            }
+            // Remove the ledger transaction
+            _context.LedgerTransactions.Remove(payment.LedgerTransaction);
+        }
 
         _context.Payments.Remove(payment);
         await _context.SaveChangesAsync();
