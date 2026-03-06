@@ -407,7 +407,7 @@ const TrainingTracker: React.FC = () => {
         footer={null}
         width={700}
       >
-        <Form form={form} layout="vertical" onFinish={handleSubmit} size="small" requiredMark={false}>
+        <Form form={form} layout="vertical" onFinish={handleSubmit} size="small" requiredMark={false} autoComplete="off">
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             <Row gutter={16}>
               <Col span={8}>

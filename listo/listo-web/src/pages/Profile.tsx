@@ -63,7 +63,7 @@ const Profile: React.FC = () => {
             label="First Name"
             rules={[{ required: true, message: 'First name is required' }]}
           >
-            <Input />
+            <Input autoComplete="given-name" />
           </Form.Item>
 
           <Form.Item
@@ -71,11 +71,11 @@ const Profile: React.FC = () => {
             label="Last Name"
             rules={[{ required: true, message: 'Last name is required' }]}
           >
-            <Input />
+            <Input autoComplete="family-name" />
           </Form.Item>
 
           <Form.Item name="phoneNumber" label="Phone Number">
-            <Input />
+            <Input autoComplete="tel" />
           </Form.Item>
 
           <Form.Item>
@@ -98,7 +98,7 @@ const Profile: React.FC = () => {
             label="Current Password"
             rules={[{ required: true, message: 'Current password is required' }]}
           >
-            <Input.Password />
+            <Input.Password autoComplete="current-password" />
           </Form.Item>
 
           <Form.Item
@@ -109,7 +109,7 @@ const Profile: React.FC = () => {
               { min: 16, message: 'Password must be at least 16 characters' },
             ]}
           >
-            <Input.Password />
+            <Input.Password autoComplete="new-password" />
           </Form.Item>
 
           <Form.Item
@@ -128,7 +128,7 @@ const Profile: React.FC = () => {
               }),
             ]}
           >
-            <Input.Password />
+            <Input.Password autoComplete="new-password" />
           </Form.Item>
 
           <Form.Item>

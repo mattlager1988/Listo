@@ -81,6 +81,7 @@ const Login: React.FC = () => {
                   prefix={<UserOutlined />}
                   placeholder="Email"
                   size="large"
+                  autoComplete="username"
                 />
               </Form.Item>
 
@@ -92,6 +93,7 @@ const Login: React.FC = () => {
                   prefix={<LockOutlined />}
                   placeholder="Password"
                   size="large"
+                  autoComplete="current-password"
                 />
               </Form.Item>
 
@@ -121,6 +123,7 @@ const Login: React.FC = () => {
                   placeholder="6-digit code"
                   size="large"
                   maxLength={6}
+                  autoComplete="one-time-code"
                 />
               </Form.Item>
 

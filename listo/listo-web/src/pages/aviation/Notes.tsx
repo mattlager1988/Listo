@@ -219,7 +219,7 @@ const Notes: React.FC = () => {
         footer={null}
         width={600}
       >
-        <Form form={form} layout="vertical" onFinish={handleSubmit} size="small" requiredMark={false}>
+        <Form form={form} layout="vertical" onFinish={handleSubmit} size="small" requiredMark={false} autoComplete="off">
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             <Form.Item
               name="subject"

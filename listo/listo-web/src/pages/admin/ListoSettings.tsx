@@ -115,6 +115,7 @@ const ListoSettings: React.FC = () => {
           {...commonProps}
           placeholder="Enter value to change"
           prefix={<LockOutlined />}
+          autoComplete="off"
         />
       );
     }
@@ -166,7 +167,7 @@ const ListoSettings: React.FC = () => {
         style={{ marginBottom: 24 }}
       />
 
-      <Form form={form} layout="vertical">
+      <Form form={form} layout="vertical" autoComplete="off">
         <Collapse
           defaultActiveKey={categories.map(c => c.category)}
           items={categories.map(category => ({

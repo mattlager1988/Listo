@@ -457,7 +457,7 @@ const DocumentList: React.FC<DocumentListProps> = ({
         okText="Save"
         confirmLoading={editSaving}
       >
-        <Form form={editForm} layout="vertical" size="small" requiredMark={false}>
+        <Form form={editForm} layout="vertical" size="small" requiredMark={false} autoComplete="off">
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             <Form.Item name="description" label="Name / Description" style={{ marginBottom: 0 }}>
               <Input placeholder="Enter document name or description" />

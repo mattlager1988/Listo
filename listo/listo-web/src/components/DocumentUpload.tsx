@@ -127,7 +127,7 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({
           </Button>,
         ]}
       >
-        <Form form={form} layout="vertical" size="small" requiredMark={false}>
+        <Form form={form} layout="vertical" size="small" requiredMark={false} autoComplete="off">
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             <Form.Item name="file" label="File" style={{ marginBottom: 0 }}>
               <Dragger {...uploadProps}>

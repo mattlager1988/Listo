@@ -345,6 +345,7 @@ const UserManagement: React.FC = () => {
           initialValues={{ role: 'user', isActive: true }}
           size="small"
           requiredMark={false}
+          autoComplete="off"
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             <Form.Item
@@ -369,7 +370,7 @@ const UserManagement: React.FC = () => {
                 ]}
                 style={{ marginBottom: 0 }}
               >
-                <Input.Password />
+                <Input.Password autoComplete="off" />
               </Form.Item>
             )}
 

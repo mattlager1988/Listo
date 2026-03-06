@@ -130,7 +130,7 @@ const Settings: React.FC = () => {
                 ]}
                 style={{ marginBottom: 0 }}
               >
-                <Input maxLength={6} placeholder="000000" size="large" />
+                <Input maxLength={6} placeholder="000000" size="large" autoComplete="one-time-code" />
               </Form.Item>
 
               <Form.Item style={{ marginBottom: 0, marginTop: 12 }}>
