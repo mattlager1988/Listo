@@ -357,16 +357,24 @@ const CyclePlans: React.FC = () => {
           selectedRowKeys,
           onChange: setSelectedRowKeys,
         }}
-        onRow={(record) => ({
-          onClick: () => {
-            const key = record.sysId;
-            setSelectedRowKeys(prev =>
-              prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]
-            );
-          },
-          onDoubleClick: () => handleEdit(record),
-          style: { cursor: 'pointer' },
-        })}
+        onRow={(record) => {
+          let clickTimer: ReturnType<typeof setTimeout> | null = null;
+          return {
+            onClick: () => {
+              clickTimer = setTimeout(() => {
+                const key = record.sysId;
+                setSelectedRowKeys(prev =>
+                  prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]
+                );
+              }, 200);
+            },
+            onDoubleClick: () => {
+              if (clickTimer) clearTimeout(clickTimer);
+              handleEdit(record);
+            },
+            style: { cursor: 'pointer' },
+          };
+        }}
         toolBarRender={false}
       />
 
