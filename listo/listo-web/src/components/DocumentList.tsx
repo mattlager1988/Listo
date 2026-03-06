@@ -400,37 +400,39 @@ const DocumentList: React.FC<DocumentListProps> = ({
         </div>
       </div>
 
-      <Table
-        columns={columns}
-        dataSource={filteredDocuments}
-        rowKey="sysId"
-        loading={loading}
-        size="small"
-        pagination={false}
-        locale={{ emptyText: 'No documents' }}
-        rowSelection={{
-          selectedRowKeys,
-          onChange: (keys) => setSelectedRowKeys(keys),
-        }}
-        onRow={(record) => {
-          let clickTimer: ReturnType<typeof setTimeout> | null = null;
-          return {
-            onClick: () => {
-              clickTimer = setTimeout(() => {
-                const key = record.sysId;
-                setSelectedRowKeys(prev =>
-                  prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]
-                );
-              }, 200);
-            },
-            onDoubleClick: () => {
-              if (clickTimer) clearTimeout(clickTimer);
-              openEditModal(record);
-            },
-            style: { cursor: 'pointer' },
-          };
-        }}
-      />
+      <div className="condensed-table">
+        <Table
+          columns={columns}
+          dataSource={filteredDocuments}
+          rowKey="sysId"
+          loading={loading}
+          size="small"
+          pagination={false}
+          locale={{ emptyText: 'No documents' }}
+          rowSelection={{
+            selectedRowKeys,
+            onChange: (keys) => setSelectedRowKeys(keys),
+          }}
+          onRow={(record) => {
+            let clickTimer: ReturnType<typeof setTimeout> | null = null;
+            return {
+              onClick: () => {
+                clickTimer = setTimeout(() => {
+                  const key = record.sysId;
+                  setSelectedRowKeys(prev =>
+                    prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]
+                  );
+                }, 200);
+              },
+              onDoubleClick: () => {
+                if (clickTimer) clearTimeout(clickTimer);
+                openEditModal(record);
+              },
+              style: { cursor: 'pointer' },
+            };
+          }}
+        />
+      </div>
       <Modal
         title={viewingDoc?.originalFileName}
         open={!!viewingDoc}
