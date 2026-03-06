@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ProTable } from '@ant-design/pro-components';
 import type { ProColumns, ActionType } from '@ant-design/pro-components';
 import {
@@ -22,6 +23,7 @@ import {
   ReloadOutlined,
   InboxOutlined,
   UndoOutlined,
+  PlayCircleOutlined,
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import api from '../../services/api';
@@ -52,6 +54,7 @@ const statusColors: Record<string, string> = {
 };
 
 const CyclePlans: React.FC = () => {
+  const navigate = useNavigate();
   const [cyclePlans, setCyclePlans] = useState<CyclePlan[]>([]);
   const [cycleGoals, setCycleGoals] = useState<CycleGoal[]>([]);
   const [loading, setLoading] = useState(false);
@@ -294,6 +297,17 @@ const CyclePlans: React.FC = () => {
             onClick={() => {
               const plan = cyclePlans.find(p => p.sysId === selectedRowKeys[0]);
               if (plan) handleEdit(plan);
+            }}
+          />
+        </Tooltip>
+        <Tooltip title="Work On">
+          <Button
+            type="text"
+            size="small"
+            icon={<PlayCircleOutlined />}
+            disabled={selectedRowKeys.length !== 1}
+            onClick={() => {
+              navigate(`/finance/cycleplans/${selectedRowKeys[0]}`);
             }}
           />
         </Tooltip>

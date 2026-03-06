@@ -14,6 +14,7 @@ import UserManagement from './pages/UserManagement';
 import FinanceLayout from './pages/finance';
 import Accounts from './pages/finance/Accounts';
 import CyclePlans from './pages/finance/CyclePlans';
+import CyclePlanWork from './pages/finance/CyclePlanWork';
 import AdminLayout from './pages/admin';
 import ListManager from './pages/admin/ListManager';
 import ListoSettings from './pages/admin/ListoSettings';
@@ -45,6 +46,7 @@ function App() {
                 <Route index element={<Accounts />} />
                 <Route path="accounts" element={<Accounts />} />
                 <Route path="cycleplans" element={<CyclePlans />} />
+                <Route path="cycleplans/:id" element={<CyclePlanWork />} />
               </Route>
               <Route path="aviation" element={<AviationLayout />}>
                 <Route index element={<TrainingTracker />} />

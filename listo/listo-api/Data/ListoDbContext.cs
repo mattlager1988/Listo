@@ -33,6 +33,7 @@ public class ListoDbContext : DbContext
     public DbSet<LedgerTransaction> LedgerTransactions => Set<LedgerTransaction>();
     public DbSet<CycleGoal> CycleGoals => Set<CycleGoal>();
     public DbSet<CyclePlan> CyclePlans => Set<CyclePlan>();
+    public DbSet<CycleTransaction> CycleTransactions => Set<CycleTransaction>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -450,6 +451,29 @@ public class ListoDbContext : DbContext
 
             entity.HasIndex(e => e.CycleGoalSysId);
             entity.HasIndex(e => e.StartDate);
+        });
+
+        modelBuilder.Entity<CycleTransaction>(entity =>
+        {
+            entity.ToTable("cycle_transactions");
+            entity.HasKey(e => e.SysId);
+            entity.Property(e => e.SysId).HasColumnName("sys_id");
+            entity.Property(e => e.CyclePlanSysId).HasColumnName("cycle_plan_sys_id");
+            entity.Property(e => e.AmountIn).HasColumnName("amount_in").HasPrecision(18, 2);
+            entity.Property(e => e.AmountOut).HasColumnName("amount_out").HasPrecision(18, 2);
+            entity.Property(e => e.Description).HasColumnName("description");
+            entity.Property(e => e.TransactionDate).HasColumnName("transaction_date");
+            entity.Property(e => e.CreateTimestamp).HasColumnName("create_timestamp");
+            entity.Property(e => e.ModifyTimestamp).HasColumnName("modify_timestamp");
+            entity.Property(e => e.CreateUser).HasColumnName("create_user");
+            entity.Property(e => e.ModifyUser).HasColumnName("modify_user");
+
+            entity.HasOne(e => e.CyclePlan)
+                .WithMany()
+                .HasForeignKey(e => e.CyclePlanSysId);
+
+            entity.HasIndex(e => e.CyclePlanSysId);
+            entity.HasIndex(e => e.TransactionDate);
         });
     }
 

@@ -248,3 +248,29 @@ public record UpdateCyclePlanRequest(
     string? Status,
     string? Notes
 );
+
+// Cycle Transaction DTOs
+public record CycleTransactionResponse(
+    long SysId,
+    long CyclePlanSysId,
+    decimal AmountIn,
+    decimal AmountOut,
+    string? Description,
+    DateTime TransactionDate,
+    DateTime CreateTimestamp
+);
+
+public record CreateCycleTransactionRequest(
+    long CyclePlanSysId,
+    decimal AmountIn,
+    decimal AmountOut,
+    string? Description,
+    DateTime TransactionDate
+);
+
+public record UpdateCycleTransactionRequest(
+    decimal? AmountIn,
+    decimal? AmountOut,
+    string? Description,
+    DateTime? TransactionDate
+);
