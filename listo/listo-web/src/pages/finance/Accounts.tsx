@@ -1525,9 +1525,7 @@ const Accounts: React.FC = () => {
             onClick: () => {
               if ('isGroupHeader' in record) return;
               const key = record.sysId.toString();
-              setSelectedRowKeys(prev =>
-                prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]
-              );
+              setSelectedRowKeys([key]);
             },
             onDoubleClick: () => {
               if (!('isGroupHeader' in record)) handleEdit(record as Account);
