@@ -347,6 +347,7 @@ const CyclePlans: React.FC = () => {
         loading={loading}
         search={false}
         options={false}
+        tableAlertRender={false}
         pagination={{
           pageSize: 20,
           showSizeChanger: true,
