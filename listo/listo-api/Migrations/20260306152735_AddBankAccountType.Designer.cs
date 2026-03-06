@@ -4,6 +4,7 @@ using Listo.Api.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Listo.Api.Migrations
 {
     [DbContext(typeof(ListoDbContext))]
-    partial class ListoDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260306152735_AddBankAccountType")]
+    partial class AddBankAccountType
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -320,10 +323,6 @@ namespace Listo.Api.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)")
                         .HasColumnName("balance");
-
-                    b.Property<string>("Color")
-                        .HasColumnType("longtext")
-                        .HasColumnName("color");
 
                     b.Property<DateTime>("CreateTimestamp")
                         .HasColumnType("datetime(6)")

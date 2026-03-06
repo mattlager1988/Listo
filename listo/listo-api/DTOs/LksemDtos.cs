@@ -125,7 +125,9 @@ public record PaymentResponse(
     string? ConfirmationNumber,
     string Status,
     DateTime? CompletedDate,
-    DateTime CreateTimestamp
+    DateTime CreateTimestamp,
+    long? BankAccountSysId,
+    string? BankAccountName
 );
 
 public record CreatePaymentRequest(
@@ -133,12 +135,12 @@ public record CreatePaymentRequest(
     long PaymentMethodSysId,
     decimal Amount,
     string? Description,
-    string? ConfirmationNumber
+    string? ConfirmationNumber,
+    long? BankAccountSysId
 );
 
 public record UpdatePaymentRequest(
     long? PaymentMethodSysId,
-    decimal? Amount,
     string? Description,
     string? ConfirmationNumber
 );
@@ -147,4 +149,55 @@ public record PaymentSummaryResponse(
     int Year,
     int Month,
     decimal TotalAmount
+);
+
+// Bank Account DTOs
+public record BankAccountResponse(
+    long SysId,
+    string Name,
+    string AccountType,
+    string? AccountNumber,
+    string? RoutingNumber,
+    decimal Balance,
+    string? Color,
+    bool IsDiscontinued,
+    DateTime? DiscontinuedDate
+);
+
+public record CreateBankAccountRequest(
+    string Name,
+    string AccountType,
+    string? AccountNumber,
+    string? RoutingNumber,
+    decimal Balance,
+    string? Color
+);
+
+public record UpdateBankAccountRequest(
+    string? Name,
+    string? AccountType,
+    string? AccountNumber,
+    string? RoutingNumber,
+    decimal? Balance,
+    string? Color
+);
+
+// Ledger Transaction DTOs
+public record LedgerTransactionResponse(
+    long SysId,
+    long BankAccountSysId,
+    string BankAccountName,
+    string TransactionType,
+    decimal Amount,
+    string? Description,
+    long? PaymentSysId,
+    string? PaymentAccountName,
+    DateTime CreateTimestamp
+);
+
+public record CreateLedgerTransactionRequest(
+    long BankAccountSysId,
+    string TransactionType,
+    decimal Amount,
+    string? Description
 );

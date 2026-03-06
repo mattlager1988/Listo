@@ -74,6 +74,8 @@ builder.Services.AddScoped<ISettingsService, SettingsService>();
 builder.Services.AddScoped<IOpenAIService, OpenAIService>();
 builder.Services.AddScoped<IAiPromptService, AiPromptService>();
 builder.Services.AddScoped<IPaymentMethodService, PaymentMethodService>();
+builder.Services.AddScoped<IBankAccountService, BankAccountService>();
+builder.Services.AddScoped<ILedgerTransactionService, LedgerTransactionService>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
 
 // CORS

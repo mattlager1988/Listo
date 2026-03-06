@@ -41,6 +41,9 @@ import {
   DeleteOutlined,
   UserOutlined,
   KeyOutlined,
+  BankOutlined,
+  ArrowUpOutlined,
+  ArrowDownOutlined,
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import api from '../../services/api';
@@ -94,6 +97,41 @@ interface PaymentMethod {
   sysId: number;
   name: string;
   isDeleted: boolean;
+}
+
+interface BankAccount {
+  sysId: number;
+  name: string;
+  accountType: string;
+  accountNumber: string | null;
+  routingNumber: string | null;
+  balance: number;
+  color: string | null;
+  isDiscontinued: boolean;
+  discontinuedDate: string | null;
+}
+
+const BANK_ACCOUNT_COLORS = [
+  { label: 'Green', value: '#f6ffed', border: '#b7eb8f' },
+  { label: 'Blue', value: '#e6f4ff', border: '#91caff' },
+  { label: 'Purple', value: '#f9f0ff', border: '#d3adf7' },
+  { label: 'Orange', value: '#fff7e6', border: '#ffd591' },
+  { label: 'Cyan', value: '#e6fffb', border: '#87e8de' },
+  { label: 'Pink', value: '#fff0f6', border: '#ffadd2' },
+  { label: 'Yellow', value: '#fffbe6', border: '#ffe58f' },
+  { label: 'Gray', value: '#f5f5f5', border: '#d9d9d9' },
+];
+
+interface LedgerTransaction {
+  sysId: number;
+  bankAccountSysId: number;
+  bankAccountName: string;
+  transactionType: string;
+  amount: number;
+  description: string | null;
+  paymentSysId: number | null;
+  paymentAccountName: string | null;
+  createTimestamp: string;
 }
 
 interface SavedView {
@@ -281,6 +319,17 @@ const Accounts: React.FC = () => {
   const [quickPaymentModalVisible, setQuickPaymentModalVisible] = useState(false);
   const [quickPaymentForm] = Form.useForm();
 
+  // Bank Account state
+  const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
+  const [bankAccountModalVisible, setBankAccountModalVisible] = useState(false);
+  const [editingBankAccount, setEditingBankAccount] = useState<BankAccount | null>(null);
+  const [bankAccountForm] = Form.useForm();
+  const [bankTransactionsModalVisible, setBankTransactionsModalVisible] = useState(false);
+  const [selectedBankAccount, setSelectedBankAccount] = useState<BankAccount | null>(null);
+  const [bankTransactions, setBankTransactions] = useState<LedgerTransaction[]>([]);
+  const [bankTransactionsLoading, setBankTransactionsLoading] = useState(false);
+  const [transactionForm] = Form.useForm();
+
   const fetchAccounts = useCallback(async () => {
     setLoading(true);
     try {
@@ -340,6 +389,15 @@ const Accounts: React.FC = () => {
     }
   }, []);
 
+  const fetchBankAccounts = useCallback(async () => {
+    try {
+      const response = await api.get('/finance/bankaccounts');
+      setBankAccounts(response.data);
+    } catch {
+      // Bank accounts are optional
+    }
+  }, []);
+
   const loadViewConfiguration = (view: SavedView) => {
     setCurrentView(view);
     try {
@@ -361,7 +419,8 @@ const Accounts: React.FC = () => {
     fetchSavedViews();
     fetchPendingPayments();
     fetchPaymentMethods();
-  }, [fetchAccounts, fetchLists, fetchSavedViews, fetchPendingPayments, fetchPaymentMethods]);
+    fetchBankAccounts();
+  }, [fetchAccounts, fetchLists, fetchSavedViews, fetchPendingPayments, fetchPaymentMethods, fetchBankAccounts]);
 
   const handleCreate = () => {
     setEditingAccount(null);
@@ -527,6 +586,7 @@ const Accounts: React.FC = () => {
       fetchAccountPayments(historyAccount.sysId);
       fetchPendingPayments();
       fetchAccounts(); // Refresh to see updated AmountDue if applicable
+      fetchBankAccounts(); // Refresh bank balances
     } catch {
       message.error('Failed to post payment');
     }
@@ -552,8 +612,94 @@ const Accounts: React.FC = () => {
       quickPaymentForm.resetFields();
       fetchPendingPayments();
       fetchAccounts();
+      fetchBankAccounts(); // Refresh bank balances
     } catch {
       message.error('Failed to post payment');
+    }
+  };
+
+  // Bank Account handlers
+  const handleCreateBankAccount = () => {
+    setEditingBankAccount(null);
+    bankAccountForm.resetFields();
+    setBankAccountModalVisible(true);
+  };
+
+  const handleEditBankAccount = (bankAccount: BankAccount) => {
+    setEditingBankAccount(bankAccount);
+    bankAccountForm.setFieldsValue({
+      name: bankAccount.name,
+      accountType: bankAccount.accountType,
+      accountNumber: bankAccount.accountNumber,
+      routingNumber: bankAccount.routingNumber,
+      balance: bankAccount.balance,
+      color: bankAccount.color || BANK_ACCOUNT_COLORS[0].value,
+    });
+    setBankAccountModalVisible(true);
+  };
+
+  const handleBankAccountSubmit = async (values: Record<string, unknown>) => {
+    try {
+      if (editingBankAccount) {
+        await api.put(`/finance/bankaccounts/${editingBankAccount.sysId}`, values);
+        message.success('Bank account updated');
+      } else {
+        await api.post('/finance/bankaccounts', values);
+        message.success('Bank account created');
+      }
+      setBankAccountModalVisible(false);
+      bankAccountForm.resetFields();
+      setEditingBankAccount(null);
+      fetchBankAccounts();
+    } catch {
+      message.error('Failed to save bank account');
+    }
+  };
+
+  const handleOpenBankTransactions = async (bankAccount: BankAccount) => {
+    setSelectedBankAccount(bankAccount);
+    setBankTransactionsModalVisible(true);
+    setBankTransactionsLoading(true);
+    transactionForm.resetFields();
+    try {
+      const response = await api.get(`/finance/bankaccounts/${bankAccount.sysId}/transactions`);
+      setBankTransactions(response.data);
+    } catch {
+      message.error('Failed to fetch transactions');
+    } finally {
+      setBankTransactionsLoading(false);
+    }
+  };
+
+  const handlePostTransaction = async (values: Record<string, unknown>) => {
+    if (!selectedBankAccount) return;
+    try {
+      await api.post(`/finance/bankaccounts/${selectedBankAccount.sysId}/transactions`, {
+        ...values,
+        bankAccountSysId: selectedBankAccount.sysId,
+      });
+      message.success('Transaction posted');
+      transactionForm.resetFields();
+      // Refresh transactions and bank accounts
+      const response = await api.get(`/finance/bankaccounts/${selectedBankAccount.sysId}/transactions`);
+      setBankTransactions(response.data);
+      fetchBankAccounts();
+    } catch {
+      message.error('Failed to post transaction');
+    }
+  };
+
+  const handleDeleteTransaction = async (transactionId: number) => {
+    if (!selectedBankAccount) return;
+    try {
+      await api.delete(`/finance/bankaccounts/${selectedBankAccount.sysId}/transactions/${transactionId}`);
+      message.success('Transaction deleted');
+      // Refresh transactions and bank accounts
+      const response = await api.get(`/finance/bankaccounts/${selectedBankAccount.sysId}/transactions`);
+      setBankTransactions(response.data);
+      fetchBankAccounts();
+    } catch {
+      message.error('Failed to delete transaction');
     }
   };
 
@@ -1011,6 +1157,88 @@ const Accounts: React.FC = () => {
       }}
     >
       <PageHeader title="Accounts" />
+
+      {/* Bank Accounts Section */}
+      {bankAccounts.length > 0 && (
+        <div
+          style={{
+            display: 'flex',
+            gap: 12,
+            marginBottom: 16,
+            flexWrap: 'wrap',
+            flexShrink: 0,
+          }}
+        >
+          {bankAccounts.map(ba => {
+            const colorConfig = BANK_ACCOUNT_COLORS.find(c => c.value === ba.color) || BANK_ACCOUNT_COLORS[0];
+            return (
+            <div
+              key={ba.sysId}
+              style={{
+                background: colorConfig.value,
+                border: `1px solid ${colorConfig.border}`,
+                borderRadius: 8,
+                padding: '12px 16px',
+                minWidth: 180,
+                cursor: 'pointer',
+              }}
+              onClick={() => handleOpenBankTransactions(ba)}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                <BankOutlined style={{ color: '#52c41a' }} />
+                <span style={{ fontWeight: 600 }}>{ba.name}</span>
+                <Tag color={ba.accountType === 'Checking' ? 'blue' : 'green'} style={{ marginLeft: 'auto' }}>
+                  {ba.accountType}
+                </Tag>
+              </div>
+              <div style={{ fontSize: 20, fontWeight: 600, color: ba.balance >= 0 ? '#52c41a' : '#ff4d4f' }}>
+                ${ba.balance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </div>
+              {ba.accountNumber && (
+                <div style={{ fontSize: 11, color: '#8c8c8c', marginTop: 4 }}>
+                  ****{ba.accountNumber.slice(-4)}
+                </div>
+              )}
+            </div>
+          );
+          })}
+          <div
+            style={{
+              background: '#fafafa',
+              border: '1px dashed #d9d9d9',
+              borderRadius: 8,
+              padding: '12px 16px',
+              minWidth: 120,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+            }}
+            onClick={handleCreateBankAccount}
+          >
+            <PlusOutlined style={{ marginRight: 4 }} />
+            Add Account
+          </div>
+        </div>
+      )}
+      {bankAccounts.length === 0 && (
+        <div
+          style={{
+            background: '#fafafa',
+            border: '1px dashed #d9d9d9',
+            borderRadius: 8,
+            padding: 16,
+            marginBottom: 16,
+            textAlign: 'center',
+            cursor: 'pointer',
+            flexShrink: 0,
+          }}
+          onClick={handleCreateBankAccount}
+        >
+          <BankOutlined style={{ fontSize: 24, color: '#8c8c8c', marginBottom: 8 }} />
+          <div style={{ color: '#8c8c8c' }}>Add a bank account to track your ledger balance</div>
+        </div>
+      )}
 
       {/* Pending Payments Section */}
       {pendingPayments.length > 0 && (
@@ -1637,20 +1865,6 @@ const Accounts: React.FC = () => {
               />
             </Form.Item>
 
-            <Form.Item
-              name="amount"
-              label="Amount"
-              rules={[{ required: true, message: 'Amount is required' }]}
-              style={{ marginBottom: 0 }}
-            >
-              <InputNumber
-                prefix="$"
-                precision={2}
-                min={0}
-                style={{ width: '100%' }}
-              />
-            </Form.Item>
-
             <Form.Item name="confirmationNumber" label="Confirmation Number" style={{ marginBottom: 0 }}>
               <Input />
             </Form.Item>
@@ -1726,6 +1940,20 @@ const Accounts: React.FC = () => {
                     placeholder="Payment Method"
                     style={{ width: 150 }}
                     options={paymentMethods.map(pm => ({ label: pm.name, value: pm.sysId }))}
+                  />
+                </Form.Item>
+                <Form.Item
+                  name="bankAccountSysId"
+                  style={{ marginBottom: 4 }}
+                >
+                  <Select
+                    placeholder="Debit Account"
+                    style={{ width: 150 }}
+                    allowClear
+                    options={bankAccounts.map(ba => ({
+                      label: `${ba.name} ($${ba.balance.toFixed(2)})`,
+                      value: ba.sysId
+                    }))}
                   />
                 </Form.Item>
                 <Form.Item
@@ -1836,6 +2064,21 @@ const Accounts: React.FC = () => {
             </Form.Item>
 
             <Form.Item
+              name="bankAccountSysId"
+              label="Debit from Bank Account"
+              style={{ marginBottom: 0 }}
+            >
+              <Select
+                allowClear
+                placeholder="Select bank account (optional)"
+                options={bankAccounts.map(ba => ({
+                  label: `${ba.name} ($${ba.balance.toFixed(2)})`,
+                  value: ba.sysId
+                }))}
+              />
+            </Form.Item>
+
+            <Form.Item
               name="amount"
               label="Amount"
               rules={[{ required: true, message: 'Amount is required' }]}
@@ -1872,6 +2115,269 @@ const Accounts: React.FC = () => {
             </Form.Item>
           </div>
         </Form>
+      </Modal>
+
+      {/* Bank Account Create/Edit Modal */}
+      <Modal
+        title={editingBankAccount ? 'Edit Bank Account' : 'Add Bank Account'}
+        open={bankAccountModalVisible}
+        onCancel={() => {
+          setBankAccountModalVisible(false);
+          bankAccountForm.resetFields();
+          setEditingBankAccount(null);
+        }}
+        footer={null}
+        width={400}
+      >
+        <Form
+          form={bankAccountForm}
+          layout="vertical"
+          onFinish={handleBankAccountSubmit}
+          size="small"
+          requiredMark={false}
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <Form.Item
+              name="name"
+              label="Account Name"
+              rules={[{ required: true, message: 'Name is required' }]}
+              style={{ marginBottom: 0 }}
+            >
+              <Input placeholder="e.g., Chase Checking" />
+            </Form.Item>
+
+            <Form.Item
+              name="accountType"
+              label="Account Type"
+              rules={[{ required: true, message: 'Account type is required' }]}
+              initialValue="Checking"
+              style={{ marginBottom: 0 }}
+            >
+              <Select style={{ width: '100%' }}>
+                <Select.Option value="Checking">Checking</Select.Option>
+                <Select.Option value="Savings">Savings</Select.Option>
+              </Select>
+            </Form.Item>
+
+            <Form.Item name="accountNumber" label="Account Number" style={{ marginBottom: 0 }}>
+              <Input placeholder="Account number" />
+            </Form.Item>
+
+            <Form.Item name="routingNumber" label="Routing Number" style={{ marginBottom: 0 }}>
+              <Input placeholder="Routing number" />
+            </Form.Item>
+
+            <Form.Item
+              name="balance"
+              label="Current Balance"
+              rules={[{ required: true, message: 'Balance is required' }]}
+              style={{ marginBottom: 0 }}
+            >
+              <InputNumber
+                prefix="$"
+                precision={2}
+                style={{ width: '100%' }}
+                placeholder="0.00"
+              />
+            </Form.Item>
+
+            <Form.Item
+              name="color"
+              label="Card Color"
+              initialValue={BANK_ACCOUNT_COLORS[0].value}
+              style={{ marginBottom: 0 }}
+            >
+              <Select>
+                {BANK_ACCOUNT_COLORS.map(c => (
+                  <Select.Option key={c.value} value={c.value}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <div style={{
+                        width: 16,
+                        height: 16,
+                        borderRadius: 4,
+                        background: c.value,
+                        border: `1px solid ${c.border}`,
+                      }} />
+                      {c.label}
+                    </div>
+                  </Select.Option>
+                ))}
+              </Select>
+            </Form.Item>
+
+            <Form.Item style={{ marginBottom: 0, marginTop: 12 }}>
+              <Space>
+                <Button type="primary" htmlType="submit">
+                  {editingBankAccount ? 'Update' : 'Create'}
+                </Button>
+                <Button onClick={() => {
+                  setBankAccountModalVisible(false);
+                  bankAccountForm.resetFields();
+                  setEditingBankAccount(null);
+                }}>
+                  Cancel
+                </Button>
+              </Space>
+            </Form.Item>
+          </div>
+        </Form>
+      </Modal>
+
+      {/* Bank Transactions Modal */}
+      <Modal
+        title={
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <BankOutlined />
+            <span>{selectedBankAccount?.name}</span>
+            <span style={{ fontWeight: 400, color: '#8c8c8c', marginLeft: 8 }}>
+              Balance: <span style={{ color: (selectedBankAccount?.balance ?? 0) >= 0 ? '#52c41a' : '#ff4d4f', fontWeight: 600 }}>
+                ${selectedBankAccount?.balance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </span>
+            </span>
+          </div>
+        }
+        open={bankTransactionsModalVisible}
+        onCancel={() => {
+          setBankTransactionsModalVisible(false);
+          setSelectedBankAccount(null);
+          setBankTransactions([]);
+        }}
+        footer={
+          <Space>
+            <Button onClick={() => {
+              const bankAccount = selectedBankAccount!;
+              setBankTransactionsModalVisible(false);
+              setSelectedBankAccount(null);
+              handleEditBankAccount(bankAccount);
+            }}>
+              <EditOutlined /> Edit Account
+            </Button>
+            <Button onClick={() => {
+              setBankTransactionsModalVisible(false);
+              setSelectedBankAccount(null);
+            }}>
+              Close
+            </Button>
+          </Space>
+        }
+        width={700}
+      >
+        {bankTransactionsLoading ? (
+          <div style={{ textAlign: 'center', padding: '40px 0' }}>Loading...</div>
+        ) : (
+          <>
+            {/* Post Transaction Form */}
+            <div
+              style={{
+                background: '#fafafa',
+                padding: 12,
+                borderRadius: 6,
+                marginBottom: 16,
+              }}
+            >
+              <div style={{ fontWeight: 600, marginBottom: 8 }}>Post Transaction</div>
+              <Form
+                form={transactionForm}
+                layout="inline"
+                onFinish={handlePostTransaction}
+                size="small"
+                style={{ flexWrap: 'wrap', gap: 4 }}
+              >
+                <Form.Item
+                  name="transactionType"
+                  rules={[{ required: true, message: 'Required' }]}
+                  style={{ marginBottom: 4 }}
+                >
+                  <Select placeholder="Type" style={{ width: 150 }}>
+                    <Select.Option value="Deposit">
+                      <ArrowUpOutlined style={{ color: '#52c41a' }} /> Deposit
+                    </Select.Option>
+                    <Select.Option value="Withdrawal">
+                      <ArrowDownOutlined style={{ color: '#ff4d4f' }} /> Withdrawal
+                    </Select.Option>
+                  </Select>
+                </Form.Item>
+                <Form.Item
+                  name="amount"
+                  rules={[{ required: true, message: 'Required' }]}
+                  style={{ marginBottom: 4 }}
+                >
+                  <InputNumber
+                    placeholder="Amount"
+                    prefix="$"
+                    precision={2}
+                    min={0}
+                    style={{ width: 120 }}
+                  />
+                </Form.Item>
+                <Form.Item name="description" style={{ marginBottom: 4 }}>
+                  <Input placeholder="Description" style={{ width: 200 }} />
+                </Form.Item>
+                <Form.Item style={{ marginBottom: 4 }}>
+                  <Button type="primary" htmlType="submit">
+                    Post
+                  </Button>
+                </Form.Item>
+              </Form>
+            </div>
+
+            {/* Transaction History */}
+            <div style={{ fontWeight: 600, marginBottom: 8 }}>
+              Transaction History ({bankTransactions.length})
+            </div>
+            <div style={{ maxHeight: 350, overflow: 'auto' }}>
+              {bankTransactions.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '20px 0', color: '#8c8c8c' }}>
+                  No transactions recorded
+                </div>
+              ) : (
+                bankTransactions.map(tx => (
+                  <div
+                    key={tx.sysId}
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      padding: '8px 12px',
+                      borderBottom: '1px solid #f0f0f0',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      {tx.transactionType === 'Deposit' ? (
+                        <ArrowUpOutlined style={{ color: '#52c41a' }} />
+                      ) : (
+                        <ArrowDownOutlined style={{ color: '#ff4d4f' }} />
+                      )}
+                      <div>
+                        <div style={{ fontWeight: 500 }}>
+                          <span style={{ color: tx.transactionType === 'Deposit' ? '#52c41a' : '#ff4d4f' }}>
+                            {tx.transactionType === 'Deposit' ? '+' : '-'}${tx.amount.toFixed(2)}
+                          </span>
+                          {tx.paymentSysId && (
+                            <Tag color="blue" style={{ marginLeft: 8 }}>Payment</Tag>
+                          )}
+                        </div>
+                        <div style={{ fontSize: 12, color: '#8c8c8c' }}>
+                          {dayjs(tx.createTimestamp).format('MM/DD/YYYY h:mm A')}
+                          {tx.description && ` • ${tx.description}`}
+                        </div>
+                      </div>
+                    </div>
+                    {!tx.paymentSysId && (
+                      <Popconfirm
+                        title="Delete this transaction?"
+                        description="This will reverse the balance change."
+                        onConfirm={() => handleDeleteTransaction(tx.sysId)}
+                      >
+                        <Button type="text" size="small" danger icon={<DeleteOutlined />} />
+                      </Popconfirm>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+          </>
+        )}
       </Modal>
     </div>
   );

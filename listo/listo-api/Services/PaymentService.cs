@@ -20,10 +20,12 @@ public interface IPaymentService
 public class PaymentService : IPaymentService
 {
     private readonly ListoDbContext _context;
+    private readonly ILedgerTransactionService _ledgerTransactionService;
 
-    public PaymentService(ListoDbContext context)
+    public PaymentService(ListoDbContext context, ILedgerTransactionService ledgerTransactionService)
     {
         _context = context;
+        _ledgerTransactionService = ledgerTransactionService;
     }
 
     public async Task<IEnumerable<PaymentResponse>> GetPendingPaymentsAsync()
@@ -31,6 +33,7 @@ public class PaymentService : IPaymentService
         var payments = await _context.Payments
             .Include(p => p.Account)
             .Include(p => p.PaymentMethod)
+            .Include(p => p.BankAccount)
             .Where(p => p.Status == PaymentStatus.Pending)
             .OrderBy(p => p.CreateTimestamp)
             .ToListAsync();
@@ -43,6 +46,7 @@ public class PaymentService : IPaymentService
         var payments = await _context.Payments
             .Include(p => p.Account)
             .Include(p => p.PaymentMethod)
+            .Include(p => p.BankAccount)
             .Where(p => p.AccountSysId == accountSysId)
             .OrderByDescending(p => p.CreateTimestamp)
             .ToListAsync();
@@ -80,6 +84,7 @@ public class PaymentService : IPaymentService
         var payment = await _context.Payments
             .Include(p => p.Account)
             .Include(p => p.PaymentMethod)
+            .Include(p => p.BankAccount)
             .FirstOrDefaultAsync(p => p.SysId == id);
 
         return payment == null ? null : MapToResponse(payment);
@@ -98,7 +103,8 @@ public class PaymentService : IPaymentService
             Amount = request.Amount,
             Description = request.Description,
             ConfirmationNumber = request.ConfirmationNumber,
-            Status = PaymentStatus.Pending
+            Status = PaymentStatus.Pending,
+            BankAccountSysId = request.BankAccountSysId
         };
 
         _context.Payments.Add(payment);
@@ -111,8 +117,23 @@ public class PaymentService : IPaymentService
 
         await _context.SaveChangesAsync();
 
+        // Create ledger transaction if bank account is specified
+        if (request.BankAccountSysId.HasValue)
+        {
+            await _ledgerTransactionService.CreateFromPaymentAsync(
+                request.BankAccountSysId.Value,
+                request.Amount,
+                payment.SysId,
+                account.Name
+            );
+        }
+
         await _context.Entry(payment).Reference(p => p.Account).LoadAsync();
         await _context.Entry(payment).Reference(p => p.PaymentMethod).LoadAsync();
+        if (payment.BankAccountSysId.HasValue)
+        {
+            await _context.Entry(payment).Reference(p => p.BankAccount).LoadAsync();
+        }
 
         return MapToResponse(payment);
     }
@@ -122,6 +143,7 @@ public class PaymentService : IPaymentService
         var payment = await _context.Payments
             .Include(p => p.Account)
             .Include(p => p.PaymentMethod)
+            .Include(p => p.BankAccount)
             .FirstOrDefaultAsync(p => p.SysId == id);
 
         if (payment == null) return null;
@@ -132,8 +154,6 @@ public class PaymentService : IPaymentService
 
         if (request.PaymentMethodSysId.HasValue)
             payment.PaymentMethodSysId = request.PaymentMethodSysId.Value;
-        if (request.Amount.HasValue)
-            payment.Amount = request.Amount.Value;
         if (request.Description != null)
             payment.Description = request.Description;
         if (request.ConfirmationNumber != null)
@@ -142,6 +162,10 @@ public class PaymentService : IPaymentService
         await _context.SaveChangesAsync();
 
         await _context.Entry(payment).Reference(p => p.PaymentMethod).LoadAsync();
+        if (payment.BankAccountSysId.HasValue)
+        {
+            await _context.Entry(payment).Reference(p => p.BankAccount).LoadAsync();
+        }
 
         return MapToResponse(payment);
     }
@@ -151,6 +175,7 @@ public class PaymentService : IPaymentService
         var payment = await _context.Payments
             .Include(p => p.Account)
             .Include(p => p.PaymentMethod)
+            .Include(p => p.BankAccount)
             .FirstOrDefaultAsync(p => p.SysId == id);
 
         if (payment == null) return null;
@@ -188,6 +213,8 @@ public class PaymentService : IPaymentService
         payment.ConfirmationNumber,
         payment.Status.ToString(),
         payment.CompletedDate,
-        payment.CreateTimestamp
+        payment.CreateTimestamp,
+        payment.BankAccountSysId,
+        payment.BankAccount?.Name
     );
 }

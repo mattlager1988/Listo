@@ -15,7 +15,10 @@ public class Payment : BaseEntity
     public string? ConfirmationNumber { get; set; }
     public PaymentStatus Status { get; set; } = PaymentStatus.Pending;
     public DateTime? CompletedDate { get; set; }
+    public long? BankAccountSysId { get; set; }
 
     public Account Account { get; set; } = null!;
     public PaymentMethod PaymentMethod { get; set; } = null!;
+    public BankAccount? BankAccount { get; set; }
+    public LedgerTransaction? LedgerTransaction { get; set; }
 }

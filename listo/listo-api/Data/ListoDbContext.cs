@@ -29,6 +29,8 @@ public class ListoDbContext : DbContext
     public DbSet<AiPrompt> AiPrompts => Set<AiPrompt>();
     public DbSet<PaymentMethod> PaymentMethods => Set<PaymentMethod>();
     public DbSet<Payment> Payments => Set<Payment>();
+    public DbSet<BankAccount> BankAccounts => Set<BankAccount>();
+    public DbSet<LedgerTransaction> LedgerTransactions => Set<LedgerTransaction>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -340,6 +342,7 @@ public class ListoDbContext : DbContext
             entity.Property(e => e.ConfirmationNumber).HasColumnName("confirmation_number");
             entity.Property(e => e.Status).HasColumnName("status").HasConversion<string>();
             entity.Property(e => e.CompletedDate).HasColumnName("completed_date");
+            entity.Property(e => e.BankAccountSysId).HasColumnName("bank_account_sys_id");
             entity.Property(e => e.CreateTimestamp).HasColumnName("create_timestamp");
             entity.Property(e => e.ModifyTimestamp).HasColumnName("modify_timestamp");
             entity.Property(e => e.CreateUser).HasColumnName("create_user");
@@ -353,8 +356,58 @@ public class ListoDbContext : DbContext
                 .WithMany(p => p.Payments)
                 .HasForeignKey(e => e.PaymentMethodSysId);
 
+            entity.HasOne(e => e.BankAccount)
+                .WithMany()
+                .HasForeignKey(e => e.BankAccountSysId);
+
             entity.HasIndex(e => e.AccountSysId);
             entity.HasIndex(e => e.Status);
+        });
+
+        modelBuilder.Entity<BankAccount>(entity =>
+        {
+            entity.ToTable("bank_accounts");
+            entity.HasKey(e => e.SysId);
+            entity.Property(e => e.SysId).HasColumnName("sys_id");
+            entity.Property(e => e.Name).HasColumnName("name").IsRequired();
+            entity.Property(e => e.AccountType).HasColumnName("account_type").HasConversion<string>();
+            entity.Property(e => e.AccountNumber).HasColumnName("account_number");
+            entity.Property(e => e.RoutingNumber).HasColumnName("routing_number");
+            entity.Property(e => e.Balance).HasColumnName("balance").HasPrecision(18, 2);
+            entity.Property(e => e.Color).HasColumnName("color");
+            entity.Property(e => e.IsDiscontinued).HasColumnName("is_discontinued");
+            entity.Property(e => e.DiscontinuedDate).HasColumnName("discontinued_date");
+            entity.Property(e => e.CreateTimestamp).HasColumnName("create_timestamp");
+            entity.Property(e => e.ModifyTimestamp).HasColumnName("modify_timestamp");
+            entity.Property(e => e.CreateUser).HasColumnName("create_user");
+            entity.Property(e => e.ModifyUser).HasColumnName("modify_user");
+        });
+
+        modelBuilder.Entity<LedgerTransaction>(entity =>
+        {
+            entity.ToTable("ledger_transactions");
+            entity.HasKey(e => e.SysId);
+            entity.Property(e => e.SysId).HasColumnName("sys_id");
+            entity.Property(e => e.BankAccountSysId).HasColumnName("bank_account_sys_id");
+            entity.Property(e => e.TransactionType).HasColumnName("transaction_type").HasConversion<string>();
+            entity.Property(e => e.Amount).HasColumnName("amount").HasPrecision(18, 2);
+            entity.Property(e => e.Description).HasColumnName("description");
+            entity.Property(e => e.PaymentSysId).HasColumnName("payment_sys_id");
+            entity.Property(e => e.CreateTimestamp).HasColumnName("create_timestamp");
+            entity.Property(e => e.ModifyTimestamp).HasColumnName("modify_timestamp");
+            entity.Property(e => e.CreateUser).HasColumnName("create_user");
+            entity.Property(e => e.ModifyUser).HasColumnName("modify_user");
+
+            entity.HasOne(e => e.BankAccount)
+                .WithMany(b => b.LedgerTransactions)
+                .HasForeignKey(e => e.BankAccountSysId);
+
+            entity.HasOne(e => e.Payment)
+                .WithOne(p => p.LedgerTransaction)
+                .HasForeignKey<LedgerTransaction>(e => e.PaymentSysId);
+
+            entity.HasIndex(e => e.BankAccountSysId);
+            entity.HasIndex(e => e.PaymentSysId);
         });
     }
 
