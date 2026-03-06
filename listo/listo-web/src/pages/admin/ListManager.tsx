@@ -74,6 +74,8 @@ const ListManager: React.FC = () => {
   }, [activeList, fetchItems]);
 
   const handleSelectList = (list: ListConfig) => {
+    if (activeList?.key === list.key) return; // Already selected
+    setItems([]); // Clear old items immediately
     setActiveList(list);
     setSelectedRowKeys([]);
   };
