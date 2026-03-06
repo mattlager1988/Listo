@@ -4,6 +4,7 @@ using Listo.Api.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Listo.Api.Migrations
 {
     [DbContext(typeof(ListoDbContext))]
-    partial class ListoDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260305222833_AddPaymentMethod")]
+    partial class AddPaymentMethod
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -473,72 +476,6 @@ namespace Listo.Api.Migrations
                     b.ToTable("notes", (string)null);
                 });
 
-            modelBuilder.Entity("Listo.Api.Models.Payment", b =>
-                {
-                    b.Property<long>("SysId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasColumnName("sys_id");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("SysId"));
-
-                    b.Property<long>("AccountSysId")
-                        .HasColumnType("bigint")
-                        .HasColumnName("account_sys_id");
-
-                    b.Property<decimal>("Amount")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)")
-                        .HasColumnName("amount");
-
-                    b.Property<DateTime?>("CompletedDate")
-                        .HasColumnType("datetime(6)")
-                        .HasColumnName("completed_date");
-
-                    b.Property<string>("ConfirmationNumber")
-                        .HasColumnType("longtext")
-                        .HasColumnName("confirmation_number");
-
-                    b.Property<DateTime>("CreateTimestamp")
-                        .HasColumnType("datetime(6)")
-                        .HasColumnName("create_timestamp");
-
-                    b.Property<long?>("CreateUser")
-                        .HasColumnType("bigint")
-                        .HasColumnName("create_user");
-
-                    b.Property<string>("Description")
-                        .HasColumnType("longtext")
-                        .HasColumnName("description");
-
-                    b.Property<DateTime>("ModifyTimestamp")
-                        .HasColumnType("datetime(6)")
-                        .HasColumnName("modify_timestamp");
-
-                    b.Property<long?>("ModifyUser")
-                        .HasColumnType("bigint")
-                        .HasColumnName("modify_user");
-
-                    b.Property<long>("PaymentMethodSysId")
-                        .HasColumnType("bigint")
-                        .HasColumnName("payment_method_sys_id");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasColumnType("varchar(255)")
-                        .HasColumnName("status");
-
-                    b.HasKey("SysId");
-
-                    b.HasIndex("AccountSysId");
-
-                    b.HasIndex("PaymentMethodSysId");
-
-                    b.HasIndex("Status");
-
-                    b.ToTable("payments", (string)null);
-                });
-
             modelBuilder.Entity("Listo.Api.Models.PaymentMethod", b =>
                 {
                     b.Property<long>("SysId")
@@ -986,25 +923,6 @@ namespace Listo.Api.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("Listo.Api.Models.Payment", b =>
-                {
-                    b.HasOne("Listo.Api.Models.Account", "Account")
-                        .WithMany("Payments")
-                        .HasForeignKey("AccountSysId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Listo.Api.Models.PaymentMethod", "PaymentMethod")
-                        .WithMany("Payments")
-                        .HasForeignKey("PaymentMethodSysId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Account");
-
-                    b.Navigation("PaymentMethod");
-                });
-
             modelBuilder.Entity("Listo.Api.Models.RefreshToken", b =>
                 {
                     b.HasOne("Listo.Api.Models.User", "User")
@@ -1052,11 +970,6 @@ namespace Listo.Api.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("Listo.Api.Models.Account", b =>
-                {
-                    b.Navigation("Payments");
-                });
-
             modelBuilder.Entity("Listo.Api.Models.AccountOwner", b =>
                 {
                     b.Navigation("Accounts");
@@ -1075,11 +988,6 @@ namespace Listo.Api.Migrations
             modelBuilder.Entity("Listo.Api.Models.DocumentType", b =>
                 {
                     b.Navigation("Documents");
-                });
-
-            modelBuilder.Entity("Listo.Api.Models.PaymentMethod", b =>
-                {
-                    b.Navigation("Payments");
                 });
 
             modelBuilder.Entity("Listo.Api.Models.TrainingType", b =>

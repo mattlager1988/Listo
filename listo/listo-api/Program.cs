@@ -73,6 +73,8 @@ builder.Services.AddScoped<INoteService, NoteService>();
 builder.Services.AddScoped<ISettingsService, SettingsService>();
 builder.Services.AddScoped<IOpenAIService, OpenAIService>();
 builder.Services.AddScoped<IAiPromptService, AiPromptService>();
+builder.Services.AddScoped<IPaymentMethodService, PaymentMethodService>();
+builder.Services.AddScoped<IPaymentService, PaymentService>();
 
 // CORS
 builder.Services.AddCors(options =>

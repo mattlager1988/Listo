@@ -219,34 +219,38 @@ const Notes: React.FC = () => {
         footer={null}
         width={600}
       >
-        <Form form={form} layout="vertical" onFinish={handleSubmit}>
-          <Form.Item
-            name="subject"
-            label="Subject"
-            rules={[{ required: true, message: 'Subject is required' }]}
-          >
-            <Input placeholder="Enter note subject" />
-          </Form.Item>
+        <Form form={form} layout="vertical" onFinish={handleSubmit} size="small" requiredMark={false}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <Form.Item
+              name="subject"
+              label="Subject"
+              rules={[{ required: true, message: 'Subject is required' }]}
+              style={{ marginBottom: 0 }}
+            >
+              <Input placeholder="Enter note subject" />
+            </Form.Item>
 
-          <Form.Item
-            name="description"
-            label="Description"
-            rules={[{ required: true, message: 'Description is required' }]}
-          >
-            <Input.TextArea
-              rows={6}
-              placeholder="Enter note description"
-            />
-          </Form.Item>
+            <Form.Item
+              name="description"
+              label="Description"
+              rules={[{ required: true, message: 'Description is required' }]}
+              style={{ marginBottom: 0 }}
+            >
+              <Input.TextArea
+                rows={6}
+                placeholder="Enter note description"
+              />
+            </Form.Item>
 
-          <Form.Item>
-            <Space>
-              <Button type="primary" htmlType="submit">
-                {editingNote ? 'Update' : 'Create'}
-              </Button>
-              <Button onClick={() => setModalVisible(false)}>Cancel</Button>
-            </Space>
-          </Form.Item>
+            <Form.Item style={{ marginBottom: 0, marginTop: 12 }}>
+              <Space>
+                <Button type="primary" htmlType="submit">
+                  {editingNote ? 'Update' : 'Create'}
+                </Button>
+                <Button onClick={() => setModalVisible(false)}>Cancel</Button>
+              </Space>
+            </Form.Item>
+          </div>
         </Form>
       </Modal>
     </div>

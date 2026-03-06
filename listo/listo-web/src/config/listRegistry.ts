@@ -47,6 +47,13 @@ export const listRegistry: ModuleConfig[] = [
         singularLabel: 'Account Owner',
         usageCountField: 'accountCount',
       },
+      {
+        key: 'paymentmethods',
+        label: 'Payment Methods',
+        endpoint: '/lksem/paymentmethods',
+        singularLabel: 'Payment Method',
+        usageCountField: 'paymentCount',
+      },
     ],
   },
   {

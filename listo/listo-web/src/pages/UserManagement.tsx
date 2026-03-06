@@ -343,83 +343,93 @@ const UserManagement: React.FC = () => {
           layout="vertical"
           onFinish={handleSubmit}
           initialValues={{ role: 'user', isActive: true }}
+          size="small"
+          requiredMark={false}
         >
-          <Form.Item
-            name="email"
-            label="Email"
-            rules={[
-              { required: true, message: 'Email is required' },
-              { type: 'email', message: 'Please enter a valid email' },
-            ]}
-          >
-            <Input />
-          </Form.Item>
-
-          {!editingUser && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             <Form.Item
-              name="password"
-              label="Password"
+              name="email"
+              label="Email"
               rules={[
-                { required: true, message: 'Password is required' },
-                { min: 16, message: 'Password must be at least 16 characters' },
+                { required: true, message: 'Email is required' },
+                { type: 'email', message: 'Please enter a valid email' },
               ]}
+              style={{ marginBottom: 0 }}
             >
-              <Input.Password />
+              <Input />
             </Form.Item>
-          )}
 
-          <Form.Item
-            name="firstName"
-            label="First Name"
-            rules={[{ required: true, message: 'First name is required' }]}
-          >
-            <Input />
-          </Form.Item>
+            {!editingUser && (
+              <Form.Item
+                name="password"
+                label="Password"
+                rules={[
+                  { required: true, message: 'Password is required' },
+                  { min: 16, message: 'Password must be at least 16 characters' },
+                ]}
+                style={{ marginBottom: 0 }}
+              >
+                <Input.Password />
+              </Form.Item>
+            )}
 
-          <Form.Item
-            name="lastName"
-            label="Last Name"
-            rules={[{ required: true, message: 'Last name is required' }]}
-          >
-            <Input />
-          </Form.Item>
-
-          <Form.Item name="phoneNumber" label="Phone Number">
-            <Input />
-          </Form.Item>
-
-          <Form.Item
-            name="role"
-            label="Role"
-            rules={[{ required: true }]}
-          >
-            <Select>
-              <Select.Option value="user">User</Select.Option>
-              <Select.Option value="admin">Admin</Select.Option>
-            </Select>
-          </Form.Item>
-
-          {editingUser && (
             <Form.Item
-              name="isActive"
-              label="Status"
+              name="firstName"
+              label="First Name"
+              rules={[{ required: true, message: 'First name is required' }]}
+              style={{ marginBottom: 0 }}
+            >
+              <Input />
+            </Form.Item>
+
+            <Form.Item
+              name="lastName"
+              label="Last Name"
+              rules={[{ required: true, message: 'Last name is required' }]}
+              style={{ marginBottom: 0 }}
+            >
+              <Input />
+            </Form.Item>
+
+            <Form.Item name="phoneNumber" label="Phone Number" style={{ marginBottom: 0 }}>
+              <Input />
+            </Form.Item>
+
+            <Form.Item
+              name="role"
+              label="Role"
               rules={[{ required: true }]}
+              style={{ marginBottom: 0 }}
             >
               <Select>
-                <Select.Option value={true}>Active</Select.Option>
-                <Select.Option value={false}>Inactive</Select.Option>
+                <Select.Option value="user">User</Select.Option>
+                <Select.Option value="admin">Admin</Select.Option>
               </Select>
             </Form.Item>
-          )}
 
-          <Form.Item>
-            <Space>
-              <Button type="primary" htmlType="submit">
-                {editingUser ? 'Update' : 'Create'}
-              </Button>
-              <Button onClick={() => setModalVisible(false)}>Cancel</Button>
-            </Space>
-          </Form.Item>
+            {editingUser && (
+              <Form.Item
+                name="isActive"
+                label="Status"
+                rules={[{ required: true }]}
+                style={{ marginBottom: 0 }}
+              >
+                <Select>
+                  <Select.Option value={true}>Active</Select.Option>
+                  <Select.Option value={false}>Inactive</Select.Option>
+                </Select>
+              </Form.Item>
+            )}
+
+            <Form.Item style={{ marginBottom: 0, marginTop: 12 }}>
+              <Space>
+                <Button type="primary" htmlType="submit">
+                  {editingUser ? 'Update' : 'Create'}
+                </Button>
+                <Button onClick={() => setModalVisible(false)}>Cancel</Button>
+              </Space>
+            </Form.Item>
+          </div>
         </Form>
       </Modal>
 

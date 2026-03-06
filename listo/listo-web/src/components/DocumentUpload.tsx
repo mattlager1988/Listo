@@ -113,12 +113,13 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({
         open={modalVisible}
         onCancel={() => setModalVisible(false)}
         footer={[
-          <Button key="cancel" onClick={() => setModalVisible(false)}>
+          <Button key="cancel" size="small" onClick={() => setModalVisible(false)}>
             Cancel
           </Button>,
           <Button
             key="upload"
             type="primary"
+            size="small"
             loading={uploading}
             onClick={handleUpload}
           >
@@ -126,35 +127,37 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({
           </Button>,
         ]}
       >
-        <Form form={form} layout="vertical">
-          <Form.Item name="file" label="File">
-            <Dragger {...uploadProps}>
-              <p className="ant-upload-drag-icon">
-                <InboxOutlined />
-              </p>
-              <p className="ant-upload-text">Click or drag file to upload</p>
-              <p className="ant-upload-hint">
-                Supported: PDF, DOC, DOCX, XLS, XLSX, PNG, JPG, GIF, TXT (max 250MB)
-              </p>
-            </Dragger>
-          </Form.Item>
-          <Form.Item name="description" label="Name">
-            <Input placeholder="Document name..." />
-          </Form.Item>
-          {showDocumentType && documentTypes.length > 0 && (
-            <Form.Item name="documentTypeSysId" label="Document Type">
-              <Select
-                placeholder="Select a document type"
-                allowClear
-                options={documentTypes.map(dt => ({ value: dt.sysId, label: dt.name }))}
-              />
+        <Form form={form} layout="vertical" size="small" requiredMark={false}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <Form.Item name="file" label="File" style={{ marginBottom: 0 }}>
+              <Dragger {...uploadProps}>
+                <p className="ant-upload-drag-icon">
+                  <InboxOutlined />
+                </p>
+                <p className="ant-upload-text">Click or drag file to upload</p>
+                <p className="ant-upload-hint">
+                  Supported: PDF, DOC, DOCX, XLS, XLSX, PNG, JPG, GIF, TXT (max 250MB)
+                </p>
+              </Dragger>
             </Form.Item>
-          )}
-          {uploading && (
-            <Form.Item label="Upload Progress">
-              <Progress percent={uploadProgress} status="active" />
+            <Form.Item name="description" label="Name" style={{ marginBottom: 0 }}>
+              <Input placeholder="Document name..." />
             </Form.Item>
-          )}
+            {showDocumentType && documentTypes.length > 0 && (
+              <Form.Item name="documentTypeSysId" label="Document Type" style={{ marginBottom: 0 }}>
+                <Select
+                  placeholder="Select a document type"
+                  allowClear
+                  options={documentTypes.map(dt => ({ value: dt.sysId, label: dt.name }))}
+                />
+              </Form.Item>
+            )}
+            {uploading && (
+              <Form.Item label="Upload Progress" style={{ marginBottom: 0 }}>
+                <Progress percent={uploadProgress} status="active" />
+              </Form.Item>
+            )}
+          </div>
         </Form>
       </Modal>
     </>

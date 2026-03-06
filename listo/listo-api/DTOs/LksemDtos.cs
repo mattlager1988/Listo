@@ -22,6 +22,17 @@ public record AccountOwnerResponse(
 public record CreateAccountOwnerRequest(string Name);
 public record UpdateAccountOwnerRequest(string? Name);
 
+// Payment Method DTOs
+public record PaymentMethodResponse(
+    long SysId,
+    string Name,
+    bool IsDeleted,
+    int PaymentCount
+);
+
+public record CreatePaymentMethodRequest(string Name);
+public record UpdatePaymentMethodRequest(string? Name);
+
 // Account DTOs
 public record AccountResponse(
     long SysId,
@@ -42,7 +53,8 @@ public record AccountResponse(
     string AccountFlag,
     string? Notes,
     bool IsDiscontinued,
-    DateTime? DiscontinuedDate
+    DateTime? DiscontinuedDate,
+    DateTime? LastPaymentDate
 );
 
 public record CreateAccountRequest(
@@ -99,4 +111,40 @@ public record UpdateSavedViewRequest(
     string? Name,
     string? Configuration,
     bool? IsDefault
+);
+
+// Payment DTOs
+public record PaymentResponse(
+    long SysId,
+    long AccountSysId,
+    string AccountName,
+    long PaymentMethodSysId,
+    string PaymentMethodName,
+    decimal Amount,
+    string? Description,
+    string? ConfirmationNumber,
+    string Status,
+    DateTime? CompletedDate,
+    DateTime CreateTimestamp
+);
+
+public record CreatePaymentRequest(
+    long AccountSysId,
+    long PaymentMethodSysId,
+    decimal Amount,
+    string? Description,
+    string? ConfirmationNumber
+);
+
+public record UpdatePaymentRequest(
+    long? PaymentMethodSysId,
+    decimal? Amount,
+    string? Description,
+    string? ConfirmationNumber
+);
+
+public record PaymentSummaryResponse(
+    int Year,
+    int Month,
+    decimal TotalAmount
 );

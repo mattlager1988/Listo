@@ -29,4 +29,5 @@ public class Account : BaseEntity
 
     public AccountType AccountType { get; set; } = null!;
     public AccountOwner AccountOwner { get; set; } = null!;
+    public ICollection<Payment> Payments { get; set; } = new List<Payment>();
 }

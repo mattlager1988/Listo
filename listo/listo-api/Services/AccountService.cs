@@ -32,6 +32,7 @@ public class AccountService : IAccountService
         var accounts = await _context.Accounts
             .Include(a => a.AccountType)
             .Include(a => a.AccountOwner)
+            .Include(a => a.Payments)
             .Where(a => !a.IsDiscontinued)
             .ToListAsync();
 
@@ -43,6 +44,7 @@ public class AccountService : IAccountService
         var accounts = await _context.Accounts
             .Include(a => a.AccountType)
             .Include(a => a.AccountOwner)
+            .Include(a => a.Payments)
             .Where(a => a.IsDiscontinued)
             .OrderByDescending(a => a.DiscontinuedDate)
             .ToListAsync();
@@ -55,6 +57,7 @@ public class AccountService : IAccountService
         var account = await _context.Accounts
             .Include(a => a.AccountType)
             .Include(a => a.AccountOwner)
+            .Include(a => a.Payments)
             .FirstOrDefaultAsync(a => a.SysId == id);
         return account == null ? null : MapToResponse(account);
     }
@@ -181,6 +184,7 @@ public class AccountService : IAccountService
         account.AccountFlag.ToString(),
         account.Notes,
         account.IsDiscontinued,
-        account.DiscontinuedDate
+        account.DiscontinuedDate,
+        account.Payments?.OrderByDescending(p => p.CreateTimestamp).FirstOrDefault()?.CreateTimestamp
     );
 }

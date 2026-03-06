@@ -457,37 +457,39 @@ const DocumentList: React.FC<DocumentListProps> = ({
         okText="Save"
         confirmLoading={editSaving}
       >
-        <Form form={editForm} layout="vertical">
-          <Form.Item name="description" label="Name / Description">
-            <Input placeholder="Enter document name or description" />
-          </Form.Item>
-          {showDocumentType && (
-            <Form.Item name="documentTypeSysId" label="Document Type">
-              <Select
-                placeholder="Select document type"
-                allowClear
-                options={documentTypes.map(dt => ({ value: dt.sysId, label: dt.name }))}
-              />
+        <Form form={editForm} layout="vertical" size="small" requiredMark={false}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <Form.Item name="description" label="Name / Description" style={{ marginBottom: 0 }}>
+              <Input placeholder="Enter document name or description" />
             </Form.Item>
-          )}
-          <Form.Item label="Replace File">
-            <Upload
-              maxCount={1}
-              beforeUpload={() => false}
-              fileList={editFileList}
-              onChange={({ fileList }) => setEditFileList(fileList)}
-            >
-              <Button icon={<UploadOutlined />}>Select New File</Button>
-            </Upload>
-            <div style={{ marginTop: 8, color: '#888', fontSize: 12 }}>
-              Leave empty to keep current file: {editingDoc?.originalFileName}
-            </div>
-          </Form.Item>
-          {editSaving && editFileList.length > 0 && (
-            <Form.Item label="Upload Progress">
-              <Progress percent={editUploadProgress} status="active" />
+            {showDocumentType && (
+              <Form.Item name="documentTypeSysId" label="Document Type" style={{ marginBottom: 0 }}>
+                <Select
+                  placeholder="Select document type"
+                  allowClear
+                  options={documentTypes.map(dt => ({ value: dt.sysId, label: dt.name }))}
+                />
+              </Form.Item>
+            )}
+            <Form.Item label="Replace File" style={{ marginBottom: 0 }}>
+              <Upload
+                maxCount={1}
+                beforeUpload={() => false}
+                fileList={editFileList}
+                onChange={({ fileList }) => setEditFileList(fileList)}
+              >
+                <Button icon={<UploadOutlined />} size="small">Select New File</Button>
+              </Upload>
+              <div style={{ marginTop: 4, color: '#888', fontSize: 12 }}>
+                Leave empty to keep current file: {editingDoc?.originalFileName}
+              </div>
             </Form.Item>
-          )}
+            {editSaving && editFileList.length > 0 && (
+              <Form.Item label="Upload Progress" style={{ marginBottom: 0 }}>
+                <Progress percent={editUploadProgress} status="active" />
+              </Form.Item>
+            )}
+          </div>
         </Form>
       </Modal>
     </div>

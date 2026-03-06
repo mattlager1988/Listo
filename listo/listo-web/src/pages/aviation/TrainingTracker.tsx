@@ -407,71 +407,76 @@ const TrainingTracker: React.FC = () => {
         footer={null}
         width={700}
       >
-        <Form form={form} layout="vertical" onFinish={handleSubmit}>
-          <Row gutter={16}>
-            <Col span={8}>
-              <Form.Item
-                name="date"
-                label="Date"
-                rules={[{ required: true, message: 'Date is required' }]}
-              >
-                <DatePicker style={{ width: '100%' }} />
-              </Form.Item>
-            </Col>
-            <Col span={8}>
-              <Form.Item
-                name="trainingTypeSysId"
-                label="Training Type"
-                rules={[{ required: true, message: 'Training type is required' }]}
-              >
-                <Select placeholder="Select type">
-                  {trainingTypes.map(t => (
-                    <Select.Option key={t.sysId} value={t.sysId}>
-                      {t.name}
-                    </Select.Option>
-                  ))}
-                </Select>
-              </Form.Item>
-            </Col>
-            <Col span={8}>
-              <Form.Item name="hoursFlown" label="Hours" rules={[{ required: true }]}>
-                <InputNumber
-                  min={0}
-                  max={24}
-                  step={0.1}
-                  precision={1}
-                  style={{ width: '100%' }}
-                />
-              </Form.Item>
-            </Col>
-          </Row>
+        <Form form={form} layout="vertical" onFinish={handleSubmit} size="small" requiredMark={false}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <Row gutter={16}>
+              <Col span={8}>
+                <Form.Item
+                  name="date"
+                  label="Date"
+                  rules={[{ required: true, message: 'Date is required' }]}
+                  style={{ marginBottom: 0 }}
+                >
+                  <DatePicker style={{ width: '100%' }} />
+                </Form.Item>
+              </Col>
+              <Col span={8}>
+                <Form.Item
+                  name="trainingTypeSysId"
+                  label="Training Type"
+                  rules={[{ required: true, message: 'Training type is required' }]}
+                  style={{ marginBottom: 0 }}
+                >
+                  <Select placeholder="Select type">
+                    {trainingTypes.map(t => (
+                      <Select.Option key={t.sysId} value={t.sysId}>
+                        {t.name}
+                      </Select.Option>
+                    ))}
+                  </Select>
+                </Form.Item>
+              </Col>
+              <Col span={8}>
+                <Form.Item name="hoursFlown" label="Hours" rules={[{ required: true }]} style={{ marginBottom: 0 }}>
+                  <InputNumber
+                    min={0}
+                    max={24}
+                    step={0.1}
+                    precision={1}
+                    style={{ width: '100%' }}
+                  />
+                </Form.Item>
+              </Col>
+            </Row>
 
-          <Form.Item name="aircraftSysId" label="Aircraft">
-            <Select placeholder="Select aircraft (optional)" allowClear>
-              {aircraft.map(a => (
-                <Select.Option key={a.sysId} value={a.sysId}>
-                  {a.planeId} - {a.name}
-                </Select.Option>
-              ))}
-            </Select>
-          </Form.Item>
+            <Form.Item name="aircraftSysId" label="Aircraft" style={{ marginBottom: 0 }}>
+              <Select placeholder="Select aircraft (optional)" allowClear>
+                {aircraft.map(a => (
+                  <Select.Option key={a.sysId} value={a.sysId}>
+                    {a.planeId} - {a.name}
+                  </Select.Option>
+                ))}
+              </Select>
+            </Form.Item>
 
-          <Form.Item
-            name="description"
-            label="Description"
-            rules={[{ required: true, message: 'Description is required' }]}
-          >
-            <RichTextEditor placeholder="Describe your training activity..." />
-          </Form.Item>
+            <Form.Item
+              name="description"
+              label="Description"
+              rules={[{ required: true, message: 'Description is required' }]}
+              style={{ marginBottom: 0 }}
+            >
+              <RichTextEditor placeholder="Describe your training activity..." />
+            </Form.Item>
 
-          <Form.Item>
-            <Space>
-              <Button type="primary" htmlType="submit">
-                {editingLog ? 'Update' : 'Create'}
-              </Button>
-              <Button onClick={() => setModalVisible(false)}>Cancel</Button>
-            </Space>
-          </Form.Item>
+            <Form.Item style={{ marginBottom: 0, marginTop: 12 }}>
+              <Space>
+                <Button type="primary" htmlType="submit">
+                  {editingLog ? 'Update' : 'Create'}
+                </Button>
+                <Button onClick={() => setModalVisible(false)}>Cancel</Button>
+              </Space>
+            </Form.Item>
+          </div>
         </Form>
       </Modal>
 

@@ -365,48 +365,52 @@ const ListManager: React.FC = () => {
             message={submitError}
             type="error"
             showIcon
-            style={{ marginBottom: 16 }}
+            style={{ marginBottom: 12 }}
             closable
             onClose={() => setSubmitError(null)}
           />
         )}
-        <Form form={form} layout="vertical" onFinish={handleSubmit}>
-          <Form.Item
-            name="name"
-            label="Name"
-            rules={[{ required: true, message: 'Name is required' }]}
-          >
-            <Input />
-          </Form.Item>
-
-          {/* Render custom form fields */}
-          {activeList?.formFields?.map(field => (
+        <Form form={form} layout="vertical" onFinish={handleSubmit} size="small" requiredMark={false}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             <Form.Item
-              key={field.name}
-              name={field.name}
-              label={field.label}
-              rules={field.required ? [{ required: true, message: `${field.label} is required` }] : []}
+              name="name"
+              label="Name"
+              rules={[{ required: true, message: 'Name is required' }]}
+              style={{ marginBottom: 0 }}
             >
-              {field.type === 'number' ? (
-                <InputNumber style={{ width: '100%' }} placeholder={field.placeholder} />
-              ) : field.type === 'textarea' ? (
-                <Input.TextArea rows={field.rows || 4} placeholder={field.placeholder} />
-              ) : (
-                <Input placeholder={field.placeholder} />
-              )}
+              <Input />
             </Form.Item>
-          ))}
 
-          <Form.Item>
-            <Space>
-              <Button type="primary" htmlType="submit" loading={submitting}>
-                {editingItem ? 'Update' : 'Create'}
-              </Button>
-              <Button onClick={() => setModalVisible(false)} disabled={submitting}>
-                Cancel
-              </Button>
-            </Space>
-          </Form.Item>
+            {/* Render custom form fields */}
+            {activeList?.formFields?.map(field => (
+              <Form.Item
+                key={field.name}
+                name={field.name}
+                label={field.label}
+                rules={field.required ? [{ required: true, message: `${field.label} is required` }] : []}
+                style={{ marginBottom: 0 }}
+              >
+                {field.type === 'number' ? (
+                  <InputNumber style={{ width: '100%' }} placeholder={field.placeholder} />
+                ) : field.type === 'textarea' ? (
+                  <Input.TextArea rows={field.rows || 4} placeholder={field.placeholder} />
+                ) : (
+                  <Input placeholder={field.placeholder} />
+                )}
+              </Form.Item>
+            ))}
+
+            <Form.Item style={{ marginBottom: 0, marginTop: 12 }}>
+              <Space>
+                <Button type="primary" htmlType="submit" loading={submitting}>
+                  {editingItem ? 'Update' : 'Create'}
+                </Button>
+                <Button onClick={() => setModalVisible(false)} disabled={submitting}>
+                  Cancel
+                </Button>
+              </Space>
+            </Form.Item>
+          </div>
         </Form>
       </Modal>
 

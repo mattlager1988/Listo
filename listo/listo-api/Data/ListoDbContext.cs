@@ -27,6 +27,8 @@ public class ListoDbContext : DbContext
     public DbSet<Note> Notes => Set<Note>();
     public DbSet<Setting> Settings => Set<Setting>();
     public DbSet<AiPrompt> AiPrompts => Set<AiPrompt>();
+    public DbSet<PaymentMethod> PaymentMethods => Set<PaymentMethod>();
+    public DbSet<Payment> Payments => Set<Payment>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -310,6 +312,49 @@ public class ListoDbContext : DbContext
             entity.Property(e => e.CreateUser).HasColumnName("create_user");
             entity.Property(e => e.ModifyUser).HasColumnName("modify_user");
             entity.HasIndex(e => e.Name).IsUnique();
+        });
+
+        modelBuilder.Entity<PaymentMethod>(entity =>
+        {
+            entity.ToTable("payment_methods");
+            entity.HasKey(e => e.SysId);
+            entity.Property(e => e.SysId).HasColumnName("sys_id");
+            entity.Property(e => e.Name).HasColumnName("name").IsRequired();
+            entity.Property(e => e.IsDeleted).HasColumnName("is_deleted");
+            entity.Property(e => e.CreateTimestamp).HasColumnName("create_timestamp");
+            entity.Property(e => e.ModifyTimestamp).HasColumnName("modify_timestamp");
+            entity.Property(e => e.CreateUser).HasColumnName("create_user");
+            entity.Property(e => e.ModifyUser).HasColumnName("modify_user");
+            entity.HasIndex(e => e.Name).IsUnique();
+        });
+
+        modelBuilder.Entity<Payment>(entity =>
+        {
+            entity.ToTable("payments");
+            entity.HasKey(e => e.SysId);
+            entity.Property(e => e.SysId).HasColumnName("sys_id");
+            entity.Property(e => e.AccountSysId).HasColumnName("account_sys_id");
+            entity.Property(e => e.PaymentMethodSysId).HasColumnName("payment_method_sys_id");
+            entity.Property(e => e.Amount).HasColumnName("amount").HasPrecision(18, 2);
+            entity.Property(e => e.Description).HasColumnName("description");
+            entity.Property(e => e.ConfirmationNumber).HasColumnName("confirmation_number");
+            entity.Property(e => e.Status).HasColumnName("status").HasConversion<string>();
+            entity.Property(e => e.CompletedDate).HasColumnName("completed_date");
+            entity.Property(e => e.CreateTimestamp).HasColumnName("create_timestamp");
+            entity.Property(e => e.ModifyTimestamp).HasColumnName("modify_timestamp");
+            entity.Property(e => e.CreateUser).HasColumnName("create_user");
+            entity.Property(e => e.ModifyUser).HasColumnName("modify_user");
+
+            entity.HasOne(e => e.Account)
+                .WithMany(a => a.Payments)
+                .HasForeignKey(e => e.AccountSysId);
+
+            entity.HasOne(e => e.PaymentMethod)
+                .WithMany(p => p.Payments)
+                .HasForeignKey(e => e.PaymentMethodSysId);
+
+            entity.HasIndex(e => e.AccountSysId);
+            entity.HasIndex(e => e.Status);
         });
     }
 

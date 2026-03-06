@@ -119,23 +119,26 @@ const Settings: React.FC = () => {
             type="info"
           />
 
-          <Form onFinish={handleEnableMfa} layout="vertical">
-            <Form.Item
-              name="code"
-              label="Enter the 6-digit code from your app"
-              rules={[
-                { required: true, message: 'Please enter the code' },
-                { len: 6, message: 'Code must be 6 digits' },
-              ]}
-            >
-              <Input maxLength={6} placeholder="000000" size="large" />
-            </Form.Item>
+          <Form onFinish={handleEnableMfa} layout="vertical" size="small" requiredMark={false}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <Form.Item
+                name="code"
+                label="Enter the 6-digit code from your app"
+                rules={[
+                  { required: true, message: 'Please enter the code' },
+                  { len: 6, message: 'Code must be 6 digits' },
+                ]}
+                style={{ marginBottom: 0 }}
+              >
+                <Input maxLength={6} placeholder="000000" size="large" />
+              </Form.Item>
 
-            <Form.Item>
-              <Button type="primary" htmlType="submit" loading={loading} block>
-                Verify & Enable MFA
-              </Button>
-            </Form.Item>
+              <Form.Item style={{ marginBottom: 0, marginTop: 12 }}>
+                <Button type="primary" htmlType="submit" loading={loading} block>
+                  Verify & Enable MFA
+                </Button>
+              </Form.Item>
+            </div>
           </Form>
         </Space>
       </Modal>

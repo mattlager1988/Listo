@@ -35,6 +35,12 @@ import {
   LoginOutlined,
   MinusSquareOutlined,
   PlusSquareOutlined,
+  CheckOutlined,
+  HistoryOutlined,
+  CreditCardOutlined,
+  DeleteOutlined,
+  UserOutlined,
+  KeyOutlined,
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import api from '../../services/api';
@@ -61,9 +67,30 @@ interface Account {
   notes: string | null;
   isDiscontinued: boolean;
   discontinuedDate: string | null;
+  lastPaymentDate: string | null;
 }
 
 interface ListItem {
+  sysId: number;
+  name: string;
+  isDeleted: boolean;
+}
+
+interface Payment {
+  sysId: number;
+  accountSysId: number;
+  accountName: string;
+  paymentMethodSysId: number;
+  paymentMethodName: string;
+  amount: number;
+  description: string | null;
+  confirmationNumber: string | null;
+  status: string;
+  completedDate: string | null;
+  createTimestamp: string;
+}
+
+interface PaymentMethod {
   sysId: number;
   name: string;
   isDeleted: boolean;
@@ -116,6 +143,97 @@ const FLAG_DISPLAY_NAMES: Record<string, string> = {
   OnHold: 'On Hold',
 };
 
+const PaymentChart: React.FC<{ data: { year: number; month: number; totalAmount: number }[] }> = ({ data }) => {
+  // Generate last 12 months for x-axis
+  const months: { year: number; month: number; label: string }[] = [];
+  const now = dayjs();
+  for (let i = 11; i >= 0; i--) {
+    const d = now.subtract(i, 'month');
+    months.push({
+      year: d.year(),
+      month: d.month() + 1,
+      label: d.format('MMM'),
+    });
+  }
+
+  // Map data to months
+  const chartData = months.map(m => {
+    const found = data.find(d => d.year === m.year && d.month === m.month);
+    return {
+      label: m.label,
+      amount: found?.totalAmount ?? 0,
+    };
+  });
+
+  const maxAmount = Math.max(...chartData.map(d => d.amount), 1);
+  const chartHeight = 120;
+  const barAreaHeight = 80;
+
+  // Generate Y-axis tick values
+  const yTicks = [0, Math.round(maxAmount / 2), Math.round(maxAmount)];
+
+  return (
+    <div style={{ display: 'flex', height: chartHeight }}>
+      {/* Y-axis */}
+      <div
+        style={{
+          width: 50,
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'space-between',
+          alignItems: 'flex-end',
+          paddingRight: 8,
+          paddingBottom: 20,
+          fontSize: 10,
+          color: '#8c8c8c',
+        }}
+      >
+        <span>${yTicks[2]}</span>
+        <span>${yTicks[1]}</span>
+        <span>${yTicks[0]}</span>
+      </div>
+
+      {/* Bars */}
+      <div style={{ flex: 1, display: 'flex', alignItems: 'flex-end', gap: 4 }}>
+        {chartData.map((d, i) => (
+          <Tooltip key={i} title={`${d.label}: $${d.amount.toFixed(2)}`}>
+            <div
+              style={{
+                flex: 1,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                height: chartHeight,
+                justifyContent: 'flex-end',
+              }}
+            >
+              {/* Amount label above bar */}
+              {d.amount > 0 && (
+                <div style={{ fontSize: 9, color: '#1677ff', fontWeight: 500, marginBottom: 2 }}>
+                  ${d.amount >= 1000 ? `${(d.amount / 1000).toFixed(1)}k` : d.amount.toFixed(0)}
+                </div>
+              )}
+              {/* Bar */}
+              <div
+                style={{
+                  width: '100%',
+                  height: d.amount > 0 ? Math.max((d.amount / maxAmount) * barAreaHeight, 4) : 0,
+                  background: '#1677ff',
+                  borderRadius: 2,
+                }}
+              />
+              {/* Month label */}
+              <div style={{ fontSize: 10, color: '#8c8c8c', marginTop: 4 }}>
+                {d.label}
+              </div>
+            </div>
+          </Tooltip>
+        ))}
+      </div>
+    </div>
+  );
+};
+
 const Accounts: React.FC = () => {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [accountTypes, setAccountTypes] = useState<ListItem[]>([]);
@@ -141,7 +259,27 @@ const Accounts: React.FC = () => {
   const [discontinuedLoading, setDiscontinuedLoading] = useState(false);
   const [form] = Form.useForm();
   const [saveViewForm] = Form.useForm();
+  const [paymentForm] = Form.useForm();
   const actionRef = useRef<ActionType>(null);
+
+  // Payment-related state
+  const [pendingPayments, setPendingPayments] = useState<Payment[]>([]);
+  const [pendingLoading, setPendingLoading] = useState(false);
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
+  const [editingPayment, setEditingPayment] = useState<Payment | null>(null);
+  const [paymentModalVisible, setPaymentModalVisible] = useState(false);
+
+  // Payment History modal state
+  const [historyModalVisible, setHistoryModalVisible] = useState(false);
+  const [historyAccount, setHistoryAccount] = useState<Account | null>(null);
+  const [accountPayments, setAccountPayments] = useState<Payment[]>([]);
+  const [paymentSummary, setPaymentSummary] = useState<{ year: number; month: number; totalAmount: number }[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [postPaymentForm] = Form.useForm();
+
+  // Quick Post Payment modal state
+  const [quickPaymentModalVisible, setQuickPaymentModalVisible] = useState(false);
+  const [quickPaymentForm] = Form.useForm();
 
   const fetchAccounts = useCallback(async () => {
     setLoading(true);
@@ -181,6 +319,27 @@ const Accounts: React.FC = () => {
     }
   }, []);
 
+  const fetchPendingPayments = useCallback(async () => {
+    setPendingLoading(true);
+    try {
+      const response = await api.get('/lksem/payments/pending');
+      setPendingPayments(response.data);
+    } catch {
+      message.error('Failed to fetch pending payments');
+    } finally {
+      setPendingLoading(false);
+    }
+  }, []);
+
+  const fetchPaymentMethods = useCallback(async () => {
+    try {
+      const response = await api.get('/lksem/paymentmethods');
+      setPaymentMethods(response.data.filter((pm: PaymentMethod) => !pm.isDeleted));
+    } catch {
+      // Payment methods are needed for forms
+    }
+  }, []);
+
   const loadViewConfiguration = (view: SavedView) => {
     setCurrentView(view);
     try {
@@ -200,7 +359,9 @@ const Accounts: React.FC = () => {
     fetchAccounts();
     fetchLists();
     fetchSavedViews();
-  }, [fetchAccounts, fetchLists, fetchSavedViews]);
+    fetchPendingPayments();
+    fetchPaymentMethods();
+  }, [fetchAccounts, fetchLists, fetchSavedViews, fetchPendingPayments, fetchPaymentMethods]);
 
   const handleCreate = () => {
     setEditingAccount(null);
@@ -279,6 +440,121 @@ const Accounts: React.FC = () => {
   const handleOpenDiscontinuedModal = () => {
     setDiscontinuedModalVisible(true);
     fetchDiscontinuedAccounts();
+  };
+
+  const handleEditPayment = (payment: Payment) => {
+    setEditingPayment(payment);
+    paymentForm.setFieldsValue({
+      paymentMethodSysId: payment.paymentMethodSysId,
+      amount: payment.amount,
+      description: payment.description,
+      confirmationNumber: payment.confirmationNumber,
+    });
+    setPaymentModalVisible(true);
+  };
+
+  const handlePaymentSubmit = async (values: Record<string, unknown>) => {
+    if (!editingPayment) return;
+    try {
+      await api.put(`/lksem/payments/${editingPayment.sysId}`, values);
+      message.success('Payment updated');
+      setPaymentModalVisible(false);
+      setEditingPayment(null);
+      fetchPendingPayments();
+    } catch {
+      message.error('Failed to update payment');
+    }
+  };
+
+  const handleCompletePayment = async (paymentId: number) => {
+    try {
+      await api.post(`/lksem/payments/${paymentId}/complete`);
+      message.success('Payment marked as complete');
+      fetchPendingPayments();
+      fetchAccounts(); // Refresh to update Last Payment column
+    } catch {
+      message.error('Failed to complete payment');
+    }
+  };
+
+  const handleDeletePayment = async (paymentId: number) => {
+    try {
+      await api.delete(`/lksem/payments/${paymentId}`);
+      message.success('Payment deleted');
+      fetchPendingPayments();
+      fetchAccounts(); // Refresh to update Last Payment column
+    } catch {
+      message.error('Failed to delete payment');
+    }
+  };
+
+  const pendingTotal = pendingPayments.reduce((sum, p) => sum + p.amount, 0);
+
+  const fetchAccountPayments = async (accountSysId: number) => {
+    setHistoryLoading(true);
+    try {
+      const [paymentsRes, summaryRes] = await Promise.all([
+        api.get(`/lksem/payments/account/${accountSysId}`),
+        api.get(`/lksem/payments/account/${accountSysId}/summary?months=12`),
+      ]);
+      setAccountPayments(paymentsRes.data);
+      setPaymentSummary(summaryRes.data);
+    } catch {
+      message.error('Failed to fetch payment history');
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+
+  const handleOpenHistory = () => {
+    const account = accounts.find(a => a.sysId.toString() === selectedRowKeys[0]?.toString());
+    if (!account) return;
+    setHistoryAccount(account);
+    setHistoryModalVisible(true);
+    fetchAccountPayments(account.sysId);
+    postPaymentForm.resetFields();
+  };
+
+  const handlePostPayment = async (values: Record<string, unknown>) => {
+    if (!historyAccount) return;
+    try {
+      await api.post('/lksem/payments', {
+        ...values,
+        accountSysId: historyAccount.sysId,
+      });
+      message.success('Payment posted');
+      postPaymentForm.resetFields();
+      fetchAccountPayments(historyAccount.sysId);
+      fetchPendingPayments();
+      fetchAccounts(); // Refresh to see updated AmountDue if applicable
+    } catch {
+      message.error('Failed to post payment');
+    }
+  };
+
+  const handleOpenQuickPayment = () => {
+    const account = accounts.find(a => a.sysId.toString() === selectedRowKeys[0]?.toString());
+    if (!account) return;
+    quickPaymentForm.resetFields();
+    setQuickPaymentModalVisible(true);
+  };
+
+  const handleQuickPaymentSubmit = async (values: Record<string, unknown>) => {
+    const account = accounts.find(a => a.sysId.toString() === selectedRowKeys[0]?.toString());
+    if (!account) return;
+    try {
+      await api.post('/lksem/payments', {
+        ...values,
+        accountSysId: account.sysId,
+      });
+      message.success('Payment posted');
+      setQuickPaymentModalVisible(false);
+      quickPaymentForm.resetFields();
+      fetchPendingPayments();
+      fetchAccounts();
+    } catch {
+      message.error('Failed to post payment');
+    }
   };
 
   const handleTotalSelected = () => {
@@ -422,7 +698,8 @@ const Accounts: React.FC = () => {
       key: 'name',
       sorter: false,
       sortOrder: sorterState?.field === 'name' ? sorterState.order : undefined,
-      width: 150,
+      width: 220,
+      ellipsis: false,
       render: (_, record) => {
         if ('isGroupHeader' in record && record.isGroupHeader) {
           return (
@@ -499,6 +776,19 @@ const Accounts: React.FC = () => {
       width: 120,
     },
     {
+      title: 'Last Payment',
+      dataIndex: 'lastPaymentDate',
+      key: 'lastPaymentDate',
+      sorter: false,
+      sortOrder: sorterState?.field === 'lastPaymentDate' ? sorterState.order : undefined,
+      render: (_, record) => {
+        if ('isGroupHeader' in record) return null;
+        const account = record as Account;
+        return account.lastPaymentDate ? dayjs(account.lastPaymentDate).format('MM/DD/YYYY') : '-';
+      },
+      width: 110,
+    },
+    {
       title: 'Notes',
       dataIndex: 'notes',
       key: 'notes',
@@ -510,6 +800,95 @@ const Accounts: React.FC = () => {
       },
       width: 150,
       ellipsis: true,
+    },
+  ];
+
+  const pendingColumns: ProColumns<Payment>[] = [
+    {
+      title: 'Account',
+      dataIndex: 'accountName',
+      key: 'accountName',
+      width: 150,
+    },
+    {
+      title: 'Payment Method',
+      dataIndex: 'paymentMethodName',
+      key: 'paymentMethodName',
+      width: 120,
+    },
+    {
+      title: 'Amount',
+      dataIndex: 'amount',
+      key: 'amount',
+      width: 100,
+      align: 'right',
+      render: (_, record) => `$${record.amount.toFixed(2)}`,
+    },
+    {
+      title: 'Confirmation #',
+      dataIndex: 'confirmationNumber',
+      key: 'confirmationNumber',
+      width: 130,
+      render: (_, record) => record.confirmationNumber || '-',
+    },
+    {
+      title: 'Description',
+      dataIndex: 'description',
+      key: 'description',
+      width: 150,
+      ellipsis: true,
+      render: (_, record) => record.description || '-',
+    },
+    {
+      title: 'Date Posted',
+      dataIndex: 'createTimestamp',
+      key: 'createTimestamp',
+      width: 100,
+      render: (_, record) => dayjs(record.createTimestamp).format('MM/DD/YYYY'),
+    },
+    {
+      title: 'Actions',
+      key: 'actions',
+      width: 150,
+      render: (_, record) => (
+        <Space size="small">
+          <Tooltip title="Edit">
+            <Button
+              type="text"
+              size="small"
+              icon={<EditOutlined />}
+              onClick={() => handleEditPayment(record)}
+            />
+          </Tooltip>
+          <Popconfirm
+            title="Mark as complete?"
+            description="This payment has been reconciled with your bank."
+            onConfirm={() => handleCompletePayment(record.sysId)}
+          >
+            <Tooltip title="Complete">
+              <Button
+                type="text"
+                size="small"
+                icon={<CheckOutlined />}
+              />
+            </Tooltip>
+          </Popconfirm>
+          <Popconfirm
+            title="Delete this payment?"
+            description="This action cannot be undone."
+            onConfirm={() => handleDeletePayment(record.sysId)}
+          >
+            <Tooltip title="Delete">
+              <Button
+                type="text"
+                size="small"
+                danger
+                icon={<DeleteOutlined />}
+              />
+            </Tooltip>
+          </Popconfirm>
+        </Space>
+      ),
     },
   ];
 
@@ -633,6 +1012,46 @@ const Accounts: React.FC = () => {
     >
       <PageHeader title="Accounts" />
 
+      {/* Pending Payments Section */}
+      {pendingPayments.length > 0 && (
+        <div
+          style={{
+            background: '#fffbe6',
+            border: '1px solid #ffe58f',
+            borderRadius: 6,
+            padding: 12,
+            marginBottom: 16,
+            flexShrink: 0,
+          }}
+        >
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: 8,
+            }}
+          >
+            <span style={{ fontWeight: 600 }}>
+              Pending Payments ({pendingPayments.length})
+            </span>
+            <Tag color="gold" style={{ fontSize: 14 }}>
+              Total: ${pendingTotal.toFixed(2)}
+            </Tag>
+          </div>
+          <ProTable<Payment>
+            rowKey="sysId"
+            columns={pendingColumns}
+            dataSource={pendingPayments}
+            loading={pendingLoading}
+            search={false}
+            options={false}
+            pagination={false}
+            size="small"
+          />
+        </div>
+      )}
+
       {/* Action Toolbar */}
       <div
         style={{
@@ -662,11 +1081,12 @@ const Accounts: React.FC = () => {
             icon={<EditOutlined />}
             disabled={selectedRowKeys.length !== 1}
             onClick={() => {
-              const account = accounts.find(a => a.sysId === selectedRowKeys[0]);
+              const account = accounts.find(a => a.sysId.toString() === selectedRowKeys[0]?.toString());
               if (account) handleEdit(account);
             }}
           />
         </Tooltip>
+        <div style={{ borderLeft: '1px solid #d9d9d9', height: 16, margin: '0 8px' }} />
         <Tooltip title="Discontinue">
           <Popconfirm
             title={`Discontinue ${selectedRowKeys.length} account${selectedRowKeys.length > 1 ? 's' : ''}?`}
@@ -691,6 +1111,26 @@ const Accounts: React.FC = () => {
             onClick={handleOpenDiscontinuedModal}
           />
         </Tooltip>
+        <div style={{ borderLeft: '1px solid #d9d9d9', height: 16, margin: '0 8px' }} />
+        <Tooltip title="Post Payment">
+          <Button
+            type="text"
+            size="small"
+            icon={<CreditCardOutlined />}
+            disabled={selectedRowKeys.length !== 1}
+            onClick={handleOpenQuickPayment}
+          />
+        </Tooltip>
+        <Tooltip title="Payment History">
+          <Button
+            type="text"
+            size="small"
+            icon={<HistoryOutlined />}
+            disabled={selectedRowKeys.length !== 1}
+            onClick={handleOpenHistory}
+          />
+        </Tooltip>
+        <div style={{ borderLeft: '1px solid #d9d9d9', height: 16, margin: '0 8px' }} />
         <Tooltip title="Total Amount Due">
           <Button
             type="text"
@@ -710,6 +1150,58 @@ const Accounts: React.FC = () => {
               !accounts.find(a => a.sysId.toString() === selectedRowKeys[0]?.toString())?.webAddress
             }
             onClick={handleLaunchAccount}
+          />
+        </Tooltip>
+        <Tooltip title="Copy Username">
+          <Button
+            type="text"
+            size="small"
+            icon={<UserOutlined />}
+            disabled={
+              selectedRowKeys.length !== 1 ||
+              !accounts.find(a => a.sysId.toString() === selectedRowKeys[0]?.toString())?.username
+            }
+            onClick={() => {
+              const account = accounts.find(a => a.sysId.toString() === selectedRowKeys[0]?.toString());
+              if (account?.username) {
+                const textArea = document.createElement('textarea');
+                textArea.value = account.username;
+                textArea.style.position = 'fixed';
+                textArea.style.left = '-9999px';
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                message.success('Username copied to clipboard');
+              }
+            }}
+          />
+        </Tooltip>
+        <Tooltip title="Copy Password">
+          <Button
+            type="text"
+            size="small"
+            icon={<KeyOutlined />}
+            disabled={
+              selectedRowKeys.length !== 1 ||
+              !accounts.find(a => a.sysId.toString() === selectedRowKeys[0]?.toString())?.password
+            }
+            onClick={() => {
+              const account = accounts.find(a => a.sysId.toString() === selectedRowKeys[0]?.toString());
+              if (account?.password) {
+                const textArea = document.createElement('textarea');
+                textArea.value = account.password;
+                textArea.style.position = 'fixed';
+                textArea.style.left = '-9999px';
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                message.success('Password copied to clipboard');
+              }
+            }}
           />
         </Tooltip>
         <div style={{ borderLeft: '1px solid #d9d9d9', height: 16, margin: '0 8px' }} />
@@ -755,6 +1247,7 @@ const Accounts: React.FC = () => {
               style: 'isGroupHeader' in record ? { display: 'none' } : undefined,
             }),
           }}
+          tableAlertRender={false}
           expandable={{
             expandedRowKeys: expandedGroups,
             onExpandedRowsChange: (keys) => setExpandedGroups(keys as React.Key[]),
@@ -830,127 +1323,133 @@ const Accounts: React.FC = () => {
           form={form}
           layout="vertical"
           onFinish={handleSubmit}
+          size="small"
+          requiredMark={false}
         >
-          <Form.Item
-            name="name"
-            label="Name"
-            rules={[{ required: true, message: 'Name is required' }]}
-          >
-            <Input />
-          </Form.Item>
-
-          <Space style={{ width: '100%' }} size="large">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             <Form.Item
-              name="accountTypeSysId"
-              label="Type"
-              rules={[{ required: true, message: 'Type is required' }]}
-              style={{ width: 250 }}
+              name="name"
+              label="Name"
+              rules={[{ required: true, message: 'Name is required' }]}
+              style={{ marginBottom: 0 }}
             >
-              <Select
-                options={accountTypes.map(t => ({ label: t.name, value: t.sysId }))}
-                placeholder="Select type"
-              />
-            </Form.Item>
-
-            <Form.Item
-              name="accountOwnerSysId"
-              label="Owner"
-              rules={[{ required: true, message: 'Owner is required' }]}
-              style={{ width: 250 }}
-            >
-              <Select
-                options={accountOwners.map(o => ({ label: o.name, value: o.sysId }))}
-                placeholder="Select owner"
-              />
-            </Form.Item>
-          </Space>
-
-          <Space style={{ width: '100%' }} size="large">
-            <Form.Item
-              name="amountDue"
-              label="Amount Due"
-              rules={[{ required: true, message: 'Amount is required' }]}
-              style={{ width: 150 }}
-            >
-              <InputNumber
-                prefix="$"
-                precision={2}
-                min={0}
-                style={{ width: '100%' }}
-              />
-            </Form.Item>
-
-            <Form.Item
-              name="dueDate"
-              label="Due Date"
-              style={{ width: 150 }}
-            >
-              <DatePicker style={{ width: '100%' }} />
-            </Form.Item>
-
-            <Form.Item
-              name="accountFlag"
-              label="Flag"
-              rules={[{ required: true }]}
-              style={{ width: 150 }}
-            >
-              <Select>
-                <Select.Option value="Standard">Standard</Select.Option>
-                <Select.Option value="Alert">Alert</Select.Option>
-                <Select.Option value="Static">Static</Select.Option>
-                <Select.Option value="OnHold">On Hold</Select.Option>
-              </Select>
-            </Form.Item>
-          </Space>
-
-          <Form.Item name="accountNumber" label="Account Number">
-            <Input />
-          </Form.Item>
-
-          <Form.Item name="phoneNumber" label="Phone Number">
-            <PhoneInput />
-          </Form.Item>
-
-          <Form.Item
-            name="webAddress"
-            label="Web Address"
-            rules={[{ type: 'url', message: 'Please enter a valid URL' }]}
-          >
-            <Input placeholder="https://example.com" />
-          </Form.Item>
-
-          <Space style={{ width: '100%' }} size="large">
-            <Form.Item name="username" label="Username" style={{ width: 250 }}>
               <Input />
             </Form.Item>
 
-            <Form.Item name="password" label="Password" style={{ width: 250 }}>
-              <Input.Password visibilityToggle />
-            </Form.Item>
-          </Space>
+            <Space style={{ width: '100%' }} size="middle">
+              <Form.Item
+                name="accountTypeSysId"
+                label="Type"
+                rules={[{ required: true, message: 'Type is required' }]}
+                style={{ width: 250, marginBottom: 0 }}
+              >
+                <Select
+                  options={accountTypes.map(t => ({ label: t.name, value: t.sysId }))}
+                  placeholder="Select type"
+                />
+              </Form.Item>
 
-          <Space style={{ width: '100%' }} size="large">
-            <Form.Item name="autoPay" label="Auto Pay" valuePropName="checked">
-              <Switch />
-            </Form.Item>
-
-            <Form.Item name="resetAmountDue" label="Reset Amount Due" valuePropName="checked">
-              <Switch />
-            </Form.Item>
-          </Space>
-
-          <Form.Item name="notes" label="Notes">
-            <Input placeholder="Short note about this account" maxLength={200} />
-          </Form.Item>
-
-          <Form.Item>
-            <Space>
-              <Button type="primary" htmlType="submit">
-                {editingAccount ? 'Update' : 'Create'}
-              </Button>
-              <Button onClick={() => setModalVisible(false)}>Cancel</Button>
+              <Form.Item
+                name="accountOwnerSysId"
+                label="Owner"
+                rules={[{ required: true, message: 'Owner is required' }]}
+                style={{ width: 250, marginBottom: 0 }}
+              >
+                <Select
+                  options={accountOwners.map(o => ({ label: o.name, value: o.sysId }))}
+                  placeholder="Select owner"
+                />
+              </Form.Item>
             </Space>
-          </Form.Item>
+
+            <Space style={{ width: '100%' }} size="middle">
+              <Form.Item
+                name="amountDue"
+                label="Amount Due"
+                rules={[{ required: true, message: 'Amount is required' }]}
+                style={{ width: 150, marginBottom: 0 }}
+              >
+                <InputNumber
+                  prefix="$"
+                  precision={2}
+                  min={0}
+                  style={{ width: '100%' }}
+                />
+              </Form.Item>
+
+              <Form.Item
+                name="dueDate"
+                label="Due Date"
+                style={{ width: 150, marginBottom: 0 }}
+              >
+                <DatePicker style={{ width: '100%' }} />
+              </Form.Item>
+
+              <Form.Item
+                name="accountFlag"
+                label="Flag"
+                rules={[{ required: true }]}
+                style={{ width: 150, marginBottom: 0 }}
+              >
+                <Select>
+                  <Select.Option value="Standard">Standard</Select.Option>
+                  <Select.Option value="Alert">Alert</Select.Option>
+                  <Select.Option value="Static">Static</Select.Option>
+                  <Select.Option value="OnHold">On Hold</Select.Option>
+                </Select>
+              </Form.Item>
+            </Space>
+
+            <Form.Item name="accountNumber" label="Account Number" style={{ marginBottom: 0 }}>
+              <Input />
+            </Form.Item>
+
+            <Form.Item name="phoneNumber" label="Phone Number" style={{ marginBottom: 0 }}>
+              <PhoneInput />
+            </Form.Item>
+
+            <Form.Item
+              name="webAddress"
+              label="Web Address"
+              rules={[{ type: 'url', message: 'Please enter a valid URL' }]}
+              style={{ marginBottom: 0 }}
+            >
+              <Input placeholder="https://example.com" />
+            </Form.Item>
+
+            <Space style={{ width: '100%' }} size="middle">
+              <Form.Item name="username" label="Username" style={{ width: 250, marginBottom: 0 }}>
+                <Input />
+              </Form.Item>
+
+              <Form.Item name="password" label="Password" style={{ width: 250, marginBottom: 0 }}>
+                <Input.Password visibilityToggle />
+              </Form.Item>
+            </Space>
+
+            <Space style={{ width: '100%' }} size="middle">
+              <Form.Item name="autoPay" label="Auto Pay" valuePropName="checked" style={{ marginBottom: 0 }}>
+                <Switch />
+              </Form.Item>
+
+              <Form.Item name="resetAmountDue" label="Reset Amount Due" valuePropName="checked" style={{ marginBottom: 0 }}>
+                <Switch />
+              </Form.Item>
+            </Space>
+
+            <Form.Item name="notes" label="Notes" style={{ marginBottom: 0 }}>
+              <Input placeholder="Short note about this account" maxLength={200} />
+            </Form.Item>
+
+            <Form.Item style={{ marginBottom: 0, marginTop: 12 }}>
+              <Space>
+                <Button type="primary" htmlType="submit">
+                  {editingAccount ? 'Update' : 'Create'}
+                </Button>
+                <Button onClick={() => setModalVisible(false)}>Cancel</Button>
+              </Space>
+            </Form.Item>
+          </div>
         </Form>
       </Modal>
 
@@ -966,58 +1465,64 @@ const Accounts: React.FC = () => {
           form={saveViewForm}
           layout="vertical"
           onFinish={handleSaveView}
+          size="small"
+          requiredMark={false}
         >
-          {currentView && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            {currentView && (
+              <Form.Item
+                name="saveMode"
+                label="Save Option"
+                rules={[{ required: true }]}
+                style={{ marginBottom: 0 }}
+              >
+                <Radio.Group>
+                  <Space direction="vertical" size="small">
+                    <Radio value="update">
+                      Update "{currentView.name}"
+                    </Radio>
+                    <Radio value="new">
+                      Save as new view
+                    </Radio>
+                  </Space>
+                </Radio.Group>
+              </Form.Item>
+            )}
+
             <Form.Item
-              name="saveMode"
-              label="Save Option"
-              rules={[{ required: true }]}
+              noStyle
+              shouldUpdate={(prev, curr) => prev.saveMode !== curr.saveMode}
             >
-              <Radio.Group>
-                <Space direction="vertical">
-                  <Radio value="update">
-                    Update "{currentView.name}"
-                  </Radio>
-                  <Radio value="new">
-                    Save as new view
-                  </Radio>
-                </Space>
-              </Radio.Group>
+              {({ getFieldValue }) => {
+                const saveMode = getFieldValue('saveMode');
+                const showNameField = !currentView || saveMode === 'new';
+
+                return showNameField ? (
+                  <Form.Item
+                    name="name"
+                    label="View Name"
+                    rules={[{ required: true, message: 'Name is required' }]}
+                    style={{ marginBottom: 0 }}
+                  >
+                    <Input placeholder="My Custom View" />
+                  </Form.Item>
+                ) : null;
+              }}
             </Form.Item>
-          )}
 
-          <Form.Item
-            noStyle
-            shouldUpdate={(prev, curr) => prev.saveMode !== curr.saveMode}
-          >
-            {({ getFieldValue }) => {
-              const saveMode = getFieldValue('saveMode');
-              const showNameField = !currentView || saveMode === 'new';
+            <Form.Item name="isDefault" label="Set as Default" valuePropName="checked" style={{ marginBottom: 0 }}>
+              <Switch />
+            </Form.Item>
 
-              return showNameField ? (
-                <Form.Item
-                  name="name"
-                  label="View Name"
-                  rules={[{ required: true, message: 'Name is required' }]}
-                >
-                  <Input placeholder="My Custom View" />
-                </Form.Item>
-              ) : null;
-            }}
-          </Form.Item>
-
-          <Form.Item name="isDefault" label="Set as Default" valuePropName="checked">
-            <Switch />
-          </Form.Item>
-
-          <Form.Item>
-            <Space>
-              <Button type="primary" htmlType="submit">
-                Save
-              </Button>
-              <Button onClick={() => setSaveViewModalVisible(false)}>Cancel</Button>
-            </Space>
-          </Form.Item>
+            <Form.Item style={{ marginBottom: 0, marginTop: 12 }}>
+              <Space>
+                <Button type="primary" htmlType="submit">
+                  Save
+                </Button>
+                <Button onClick={() => setSaveViewModalVisible(false)}>Cancel</Button>
+              </Space>
+            </Form.Item>
+          </div>
         </Form>
       </Modal>
 
@@ -1099,6 +1604,274 @@ const Accounts: React.FC = () => {
             ))}
           </div>
         )}
+      </Modal>
+
+      {/* Edit Payment Modal */}
+      <Modal
+        title="Edit Payment"
+        open={paymentModalVisible}
+        onCancel={() => {
+          setPaymentModalVisible(false);
+          setEditingPayment(null);
+        }}
+        footer={null}
+        width={450}
+      >
+        <Form
+          form={paymentForm}
+          layout="vertical"
+          onFinish={handlePaymentSubmit}
+          size="small"
+          requiredMark={false}
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <Form.Item
+              name="paymentMethodSysId"
+              label="Payment Method"
+              rules={[{ required: true, message: 'Payment method is required' }]}
+              style={{ marginBottom: 0 }}
+            >
+              <Select
+                options={paymentMethods.map(pm => ({ label: pm.name, value: pm.sysId }))}
+                placeholder="Select payment method"
+              />
+            </Form.Item>
+
+            <Form.Item
+              name="amount"
+              label="Amount"
+              rules={[{ required: true, message: 'Amount is required' }]}
+              style={{ marginBottom: 0 }}
+            >
+              <InputNumber
+                prefix="$"
+                precision={2}
+                min={0}
+                style={{ width: '100%' }}
+              />
+            </Form.Item>
+
+            <Form.Item name="confirmationNumber" label="Confirmation Number" style={{ marginBottom: 0 }}>
+              <Input />
+            </Form.Item>
+
+            <Form.Item name="description" label="Description" style={{ marginBottom: 0 }}>
+              <Input />
+            </Form.Item>
+
+            <Form.Item style={{ marginBottom: 0, marginTop: 12 }}>
+              <Space>
+                <Button type="primary" htmlType="submit">
+                  Update
+                </Button>
+                <Button onClick={() => {
+                  setPaymentModalVisible(false);
+                  setEditingPayment(null);
+                }}>
+                  Cancel
+                </Button>
+              </Space>
+            </Form.Item>
+          </div>
+        </Form>
+      </Modal>
+
+      {/* Payment History Modal */}
+      <Modal
+        title={historyAccount ? `Payment History - ${historyAccount.name}` : 'Payment History'}
+        open={historyModalVisible}
+        onCancel={() => {
+          setHistoryModalVisible(false);
+          setHistoryAccount(null);
+          setAccountPayments([]);
+          setPaymentSummary([]);
+        }}
+        footer={
+          <Button onClick={() => {
+            setHistoryModalVisible(false);
+            setHistoryAccount(null);
+          }}>
+            Close
+          </Button>
+        }
+        width={800}
+      >
+        {historyLoading ? (
+          <div style={{ textAlign: 'center', padding: '40px 0' }}>Loading...</div>
+        ) : (
+          <>
+            {/* Post Payment Form */}
+            <div
+              style={{
+                background: '#fafafa',
+                padding: 12,
+                borderRadius: 6,
+                marginBottom: 16,
+              }}
+            >
+              <div style={{ fontWeight: 600, marginBottom: 8 }}>Post Payment</div>
+              <Form
+                form={postPaymentForm}
+                layout="inline"
+                onFinish={handlePostPayment}
+                size="small"
+                style={{ flexWrap: 'wrap', gap: 4 }}
+              >
+                <Form.Item
+                  name="paymentMethodSysId"
+                  rules={[{ required: true, message: 'Required' }]}
+                  style={{ marginBottom: 4 }}
+                >
+                  <Select
+                    placeholder="Payment Method"
+                    style={{ width: 150 }}
+                    options={paymentMethods.map(pm => ({ label: pm.name, value: pm.sysId }))}
+                  />
+                </Form.Item>
+                <Form.Item
+                  name="amount"
+                  rules={[{ required: true, message: 'Required' }]}
+                  style={{ marginBottom: 4 }}
+                >
+                  <InputNumber
+                    placeholder="Amount"
+                    prefix="$"
+                    precision={2}
+                    min={0}
+                    style={{ width: 120 }}
+                  />
+                </Form.Item>
+                <Form.Item name="confirmationNumber" style={{ marginBottom: 4 }}>
+                  <Input placeholder="Confirmation #" style={{ width: 130 }} />
+                </Form.Item>
+                <Form.Item name="description" style={{ marginBottom: 4 }}>
+                  <Input placeholder="Description" style={{ width: 150 }} />
+                </Form.Item>
+                <Form.Item style={{ marginBottom: 4 }}>
+                  <Button type="primary" htmlType="submit">
+                    Post
+                  </Button>
+                </Form.Item>
+              </Form>
+            </div>
+
+            {/* Bar Chart - Last 12 Months */}
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ fontWeight: 600, marginBottom: 8 }}>Last 12 Months</div>
+              <PaymentChart data={paymentSummary} />
+            </div>
+
+            {/* Payment History List */}
+            <div style={{ fontWeight: 600, marginBottom: 8 }}>
+              All Payments ({accountPayments.length})
+            </div>
+            <div style={{ maxHeight: 250, overflow: 'auto' }}>
+              {accountPayments.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '20px 0', color: '#8c8c8c' }}>
+                  No payments recorded
+                </div>
+              ) : (
+                accountPayments.map(payment => (
+                  <div
+                    key={payment.sysId}
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      padding: '8px 12px',
+                      borderBottom: '1px solid #f0f0f0',
+                      background: payment.status === 'Pending' ? '#fffbe6' : undefined,
+                    }}
+                  >
+                    <div>
+                      <div style={{ fontWeight: 500 }}>
+                        ${payment.amount.toFixed(2)} - {payment.paymentMethodName}
+                        {payment.status === 'Pending' && (
+                          <Tag color="warning" style={{ marginLeft: 8 }}>Pending</Tag>
+                        )}
+                      </div>
+                      <div style={{ fontSize: 12, color: '#8c8c8c' }}>
+                        {dayjs(payment.createTimestamp).format('MM/DD/YYYY')}
+                        {payment.confirmationNumber && ` • ${payment.confirmationNumber}`}
+                        {payment.description && ` • ${payment.description}`}
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </>
+        )}
+      </Modal>
+
+      {/* Quick Post Payment Modal */}
+      <Modal
+        title={`Post Payment - ${accounts.find(a => a.sysId.toString() === selectedRowKeys[0]?.toString())?.name || ''}`}
+        open={quickPaymentModalVisible}
+        onCancel={() => {
+          setQuickPaymentModalVisible(false);
+          quickPaymentForm.resetFields();
+        }}
+        footer={null}
+        width={450}
+      >
+        <Form
+          form={quickPaymentForm}
+          layout="vertical"
+          onFinish={handleQuickPaymentSubmit}
+          size="small"
+          requiredMark={false}
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <Form.Item
+              name="paymentMethodSysId"
+              label="Payment Method"
+              rules={[{ required: true, message: 'Payment method is required' }]}
+              style={{ marginBottom: 0 }}
+            >
+              <Select
+                options={paymentMethods.map(pm => ({ label: pm.name, value: pm.sysId }))}
+                placeholder="Select payment method"
+              />
+            </Form.Item>
+
+            <Form.Item
+              name="amount"
+              label="Amount"
+              rules={[{ required: true, message: 'Amount is required' }]}
+              style={{ marginBottom: 0 }}
+            >
+              <InputNumber
+                prefix="$"
+                precision={2}
+                min={0}
+                style={{ width: '100%' }}
+              />
+            </Form.Item>
+
+            <Form.Item name="confirmationNumber" label="Confirmation Number" style={{ marginBottom: 0 }}>
+              <Input />
+            </Form.Item>
+
+            <Form.Item name="description" label="Description" style={{ marginBottom: 0 }}>
+              <Input />
+            </Form.Item>
+
+            <Form.Item style={{ marginBottom: 0, marginTop: 12 }}>
+              <Space>
+                <Button type="primary" htmlType="submit">
+                  Post Payment
+                </Button>
+                <Button onClick={() => {
+                  setQuickPaymentModalVisible(false);
+                  quickPaymentForm.resetFields();
+                }}>
+                  Cancel
+                </Button>
+              </Space>
+            </Form.Item>
+          </div>
+        </Form>
       </Modal>
     </div>
   );
