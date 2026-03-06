@@ -168,6 +168,10 @@ const ListoSettings: React.FC = () => {
       />
 
       <Form form={form} layout="vertical" autoComplete="off">
+        {/* Hidden fields to prevent browser password save prompts */}
+        <input type="text" name="fake_username" style={{ display: 'none' }} autoComplete="username" />
+        <input type="password" name="fake_password" style={{ display: 'none' }} autoComplete="current-password" />
+
         <Collapse
           defaultActiveKey={categories.map(c => c.category)}
           items={categories.map(category => ({

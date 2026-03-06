@@ -347,6 +347,10 @@ const UserManagement: React.FC = () => {
           requiredMark={false}
           autoComplete="off"
         >
+          {/* Hidden fields to prevent browser password save prompts */}
+          <input type="text" name="fake_username" style={{ display: 'none' }} autoComplete="username" />
+          <input type="password" name="fake_password" style={{ display: 'none' }} autoComplete="current-password" />
+
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             <Form.Item
               name="email"
@@ -357,7 +361,7 @@ const UserManagement: React.FC = () => {
               ]}
               style={{ marginBottom: 0 }}
             >
-              <Input />
+              <Input autoComplete="off" />
             </Form.Item>
 
             {!editingUser && (

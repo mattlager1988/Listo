@@ -1693,9 +1693,13 @@ const Accounts: React.FC = () => {
               <Input placeholder="https://example.com" />
             </Form.Item>
 
+            {/* Hidden fields to prevent browser password save prompts */}
+            <input type="text" name="fake_username" style={{ display: 'none' }} autoComplete="username" />
+            <input type="password" name="fake_password" style={{ display: 'none' }} autoComplete="current-password" />
+
             <Space style={{ width: '100%' }} size="middle">
               <Form.Item name="username" label="Username" style={{ width: 250, marginBottom: 0 }}>
-                <Input />
+                <Input autoComplete="off" />
               </Form.Item>
 
               <Form.Item name="password" label="Password" style={{ width: 250, marginBottom: 0 }}>
