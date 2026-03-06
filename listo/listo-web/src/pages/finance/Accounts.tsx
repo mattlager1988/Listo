@@ -1521,22 +1521,30 @@ const Accounts: React.FC = () => {
             childrenColumnName: 'children',
             defaultExpandAllRows: true,
           }}
-          onRow={(record) => ({
-            onClick: () => {
-              if ('isGroupHeader' in record) return;
-              const key = record.sysId.toString();
-              setSelectedRowKeys([key]);
-            },
-            onDoubleClick: () => {
-              if (!('isGroupHeader' in record)) handleEdit(record as Account);
-            },
-            style: {
-              cursor: 'isGroupHeader' in record ? 'default' : 'pointer',
-              background: 'isGroupHeader' in record ? '#f5f5f5' : undefined,
-              fontWeight: 'isGroupHeader' in record ? 600 : undefined,
-              color: 'isGroupHeader' in record ? undefined : accountFlagTextColors[record.accountFlag],
-            },
-          })}
+          onRow={(record) => {
+            let clickTimer: ReturnType<typeof setTimeout> | null = null;
+            return {
+              onClick: () => {
+                if ('isGroupHeader' in record) return;
+                // Delay selection to avoid changing it on double-click
+                clickTimer = setTimeout(() => {
+                  const key = record.sysId.toString();
+                  setSelectedRowKeys([key]);
+                }, 200);
+              },
+              onDoubleClick: () => {
+                // Cancel pending selection change
+                if (clickTimer) clearTimeout(clickTimer);
+                if (!('isGroupHeader' in record)) handleEdit(record as Account);
+              },
+              style: {
+                cursor: 'isGroupHeader' in record ? 'default' : 'pointer',
+                background: 'isGroupHeader' in record ? '#f5f5f5' : undefined,
+                fontWeight: 'isGroupHeader' in record ? 600 : undefined,
+                color: 'isGroupHeader' in record ? undefined : accountFlagTextColors[record.accountFlag],
+              },
+            };
+          }}
           columns={columns}
           dataSource={groupedAccounts}
           loading={loading}
