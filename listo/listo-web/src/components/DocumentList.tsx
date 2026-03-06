@@ -412,16 +412,24 @@ const DocumentList: React.FC<DocumentListProps> = ({
           selectedRowKeys,
           onChange: (keys) => setSelectedRowKeys(keys),
         }}
-        onRow={(record) => ({
-          onClick: () => {
-            const key = record.sysId;
-            setSelectedRowKeys(prev =>
-              prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]
-            );
-          },
-          onDoubleClick: () => openEditModal(record),
-          style: { cursor: 'pointer' },
-        })}
+        onRow={(record) => {
+          let clickTimer: ReturnType<typeof setTimeout> | null = null;
+          return {
+            onClick: () => {
+              clickTimer = setTimeout(() => {
+                const key = record.sysId;
+                setSelectedRowKeys(prev =>
+                  prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]
+                );
+              }, 200);
+            },
+            onDoubleClick: () => {
+              if (clickTimer) clearTimeout(clickTimer);
+              openEditModal(record);
+            },
+            style: { cursor: 'pointer' },
+          };
+        }}
       />
       <Modal
         title={viewingDoc?.originalFileName}
