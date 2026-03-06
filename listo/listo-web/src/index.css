@@ -156,3 +156,28 @@ body {
   border-top: 1px solid #d9d9d9;
   margin: 1em 0;
 }
+
+/* Condensed table styling */
+.condensed-table .ant-table,
+.condensed-table .ant-pro-table {
+  font-size: 12px !important;
+}
+
+.condensed-table .ant-table-thead > tr > th,
+.condensed-table .ant-table-tbody > tr > td,
+.condensed-table .ant-table-thead > tr > th.ant-table-cell,
+.condensed-table .ant-table-tbody > tr > td.ant-table-cell {
+  font-size: 12px !important;
+  padding: 4px 8px !important;
+}
+
+.condensed-table .ant-table-row .ant-tag,
+.condensed-table .ant-tag {
+  font-size: 12px;
+  line-height: 18px;
+  padding: 0 4px;
+}
+
+.condensed-table .ant-pro-table-list-toolbar {
+  font-size: 12px;
+}

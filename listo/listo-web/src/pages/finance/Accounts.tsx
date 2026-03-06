@@ -1298,16 +1298,18 @@ const Accounts: React.FC = () => {
               Total: ${pendingTotal.toFixed(2)}
             </Tag>
           </div>
-          <ProTable<Payment>
-            rowKey="sysId"
-            columns={pendingColumns}
-            dataSource={pendingPayments}
-            loading={pendingLoading}
-            search={false}
-            options={false}
-            pagination={false}
-            size="small"
-          />
+          <div className="condensed-table">
+            <ProTable<Payment>
+              rowKey="sysId"
+              columns={pendingColumns}
+              dataSource={pendingPayments}
+              loading={pendingLoading}
+              search={false}
+              options={false}
+              pagination={false}
+              size="small"
+            />
+          </div>
         </div>
       )}
 
@@ -1502,7 +1504,7 @@ const Accounts: React.FC = () => {
       </div>
 
       {/* Table Container - fills remaining space and scrolls */}
-      <div style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
+      <div className="condensed-table" style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
         <ProTable<TableRecord>
           actionRef={actionRef}
           rowKey={(record) => record.sysId.toString()}
