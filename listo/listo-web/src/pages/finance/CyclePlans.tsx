@@ -209,22 +209,6 @@ const CyclePlans: React.FC = () => {
       dataIndex: 'notes',
       ellipsis: true,
     },
-    {
-      title: 'Actions',
-      key: 'actions',
-      width: 80,
-      render: (_, record) => (
-        <Button
-          type="text"
-          size="small"
-          icon={<EditOutlined />}
-          onClick={(e) => {
-            e.stopPropagation();
-            handleEdit(record);
-          }}
-        />
-      ),
-    },
   ];
 
   const discontinuedColumns = [
