@@ -119,7 +119,7 @@ const Settings: React.FC = () => {
             type="info"
           />
 
-          <Form onFinish={handleEnableMfa} layout="vertical" size="small" requiredMark={false}>
+          <Form onFinish={handleEnableMfa} layout="vertical" size="small" requiredMark={false} autoComplete="off">
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
               <Form.Item
                 name="code"
@@ -130,7 +130,7 @@ const Settings: React.FC = () => {
                 ]}
                 style={{ marginBottom: 0 }}
               >
-                <Input maxLength={6} placeholder="000000" size="large" autoComplete="one-time-code" />
+                <Input maxLength={6} placeholder="000000" size="large" />
               </Form.Item>
 
               <Form.Item style={{ marginBottom: 0, marginTop: 12 }}>

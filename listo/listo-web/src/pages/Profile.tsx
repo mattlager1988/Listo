@@ -57,13 +57,14 @@ const Profile: React.FC = () => {
           }}
           onFinish={handleProfileUpdate}
           style={{ maxWidth: 400 }}
+          autoComplete="off"
         >
           <Form.Item
             name="firstName"
             label="First Name"
             rules={[{ required: true, message: 'First name is required' }]}
           >
-            <Input autoComplete="given-name" />
+            <Input />
           </Form.Item>
 
           <Form.Item
@@ -71,11 +72,11 @@ const Profile: React.FC = () => {
             label="Last Name"
             rules={[{ required: true, message: 'Last name is required' }]}
           >
-            <Input autoComplete="family-name" />
+            <Input />
           </Form.Item>
 
           <Form.Item name="phoneNumber" label="Phone Number">
-            <Input autoComplete="tel" />
+            <Input />
           </Form.Item>
 
           <Form.Item>
@@ -92,13 +93,14 @@ const Profile: React.FC = () => {
           layout="vertical"
           onFinish={handlePasswordChange}
           style={{ maxWidth: 400 }}
+          autoComplete="off"
         >
           <Form.Item
             name="currentPassword"
             label="Current Password"
             rules={[{ required: true, message: 'Current password is required' }]}
           >
-            <Input.Password autoComplete="current-password" />
+            <Input.Password autoComplete="off" />
           </Form.Item>
 
           <Form.Item
@@ -109,7 +111,7 @@ const Profile: React.FC = () => {
               { min: 16, message: 'Password must be at least 16 characters' },
             ]}
           >
-            <Input.Password autoComplete="new-password" />
+            <Input.Password autoComplete="off" />
           </Form.Item>
 
           <Form.Item
@@ -128,7 +130,7 @@ const Profile: React.FC = () => {
               }),
             ]}
           >
-            <Input.Password autoComplete="new-password" />
+            <Input.Password autoComplete="off" />
           </Form.Item>
 
           <Form.Item>
