@@ -46,6 +46,8 @@ import {
   ArrowDownOutlined,
   PauseCircleOutlined,
   ControlOutlined,
+  EyeOutlined,
+  EyeInvisibleOutlined,
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import api from '../../services/api';
@@ -303,6 +305,7 @@ const Accounts: React.FC = () => {
   const [discontinuedAccounts, setDiscontinuedAccounts] = useState<Account[]>([]);
   const [discontinuedLoading, setDiscontinuedLoading] = useState(false);
   const [showGridOptions, setShowGridOptions] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [form] = Form.useForm();
   const [saveViewForm] = Form.useForm();
   const [paymentForm] = Form.useForm();
@@ -437,6 +440,7 @@ const Accounts: React.FC = () => {
     setEditingAccount(null);
     form.resetFields();
     form.setFieldsValue({ accountFlag: 'Standard', autoPay: false, resetAmountDue: false, amountDue: 0 });
+    setShowPassword(false);
     setModalVisible(true);
   };
 
@@ -446,6 +450,7 @@ const Accounts: React.FC = () => {
       ...account,
       dueDate: account.dueDate ? dayjs(account.dueDate) : null,
     });
+    setShowPassword(false);
     setModalVisible(true);
     setSelectedRowKeys([]);
   };
@@ -1693,17 +1698,25 @@ const Accounts: React.FC = () => {
               <Input placeholder="https://example.com" />
             </Form.Item>
 
-            {/* Hidden fields to prevent browser password save prompts */}
-            <input type="text" name="fake_username" style={{ display: 'none' }} autoComplete="username" />
-            <input type="password" name="fake_password" style={{ display: 'none' }} autoComplete="current-password" />
-
             <Space style={{ width: '100%' }} size="middle">
               <Form.Item name="username" label="Username" style={{ width: 250, marginBottom: 0 }}>
                 <Input autoComplete="off" />
               </Form.Item>
 
               <Form.Item name="password" label="Password" style={{ width: 250, marginBottom: 0 }}>
-                <Input.Password visibilityToggle autoComplete="off" />
+                <Input
+                  autoComplete="off"
+                  style={!showPassword ? { WebkitTextSecurity: 'disc' } as React.CSSProperties : undefined}
+                  suffix={
+                    <Button
+                      type="text"
+                      size="small"
+                      icon={showPassword ? <EyeInvisibleOutlined /> : <EyeOutlined />}
+                      onClick={() => setShowPassword(!showPassword)}
+                      style={{ border: 'none', padding: 0, height: 'auto' }}
+                    />
+                  }
+                />
               </Form.Item>
             </Space>
 
