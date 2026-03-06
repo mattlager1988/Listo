@@ -16,6 +16,7 @@ public class Payment : BaseEntity
     public PaymentStatus Status { get; set; } = PaymentStatus.Pending;
     public DateTime? CompletedDate { get; set; }
     public long? BankAccountSysId { get; set; }
+    public DateTime? DueDate { get; set; }
 
     public Account Account { get; set; } = null!;
     public PaymentMethod PaymentMethod { get; set; } = null!;

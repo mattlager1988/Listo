@@ -127,7 +127,8 @@ public record PaymentResponse(
     DateTime? CompletedDate,
     DateTime CreateTimestamp,
     long? BankAccountSysId,
-    string? BankAccountName
+    string? BankAccountName,
+    DateTime? DueDate
 );
 
 public record CreatePaymentRequest(

@@ -104,7 +104,8 @@ public class PaymentService : IPaymentService
             Description = request.Description,
             ConfirmationNumber = request.ConfirmationNumber,
             Status = PaymentStatus.Pending,
-            BankAccountSysId = request.BankAccountSysId
+            BankAccountSysId = request.BankAccountSysId,
+            DueDate = account.DueDate
         };
 
         _context.Payments.Add(payment);
@@ -233,6 +234,7 @@ public class PaymentService : IPaymentService
         payment.CompletedDate,
         payment.CreateTimestamp,
         payment.BankAccountSysId,
-        payment.BankAccount?.Name
+        payment.BankAccount?.Name,
+        payment.DueDate
     );
 }

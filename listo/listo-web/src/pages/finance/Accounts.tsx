@@ -93,6 +93,7 @@ interface Payment {
   createTimestamp: string;
   bankAccountSysId: number | null;
   bankAccountName: string | null;
+  dueDate: string | null;
 }
 
 interface PaymentMethod {
@@ -972,6 +973,13 @@ const Accounts: React.FC = () => {
       key: 'bankAccountName',
       width: 120,
       render: (_, record) => record.bankAccountName || '-',
+    },
+    {
+      title: 'Due Date',
+      dataIndex: 'dueDate',
+      key: 'dueDate',
+      width: 100,
+      render: (_, record) => record.dueDate ? dayjs(record.dueDate).format('MM/DD/YYYY') : '-',
     },
     {
       title: 'Amount',
@@ -1957,6 +1965,7 @@ const Accounts: React.FC = () => {
                       </div>
                       <div style={{ fontSize: 12, color: '#8c8c8c' }}>
                         {dayjs(payment.createTimestamp).format('MM/DD/YYYY')}
+                        {payment.dueDate && ` • Due: ${dayjs(payment.dueDate).format('MM/DD/YYYY')}`}
                         {payment.confirmationNumber && ` • ${payment.confirmationNumber}`}
                         {payment.description && ` • ${payment.description}`}
                       </div>

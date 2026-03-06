@@ -343,6 +343,7 @@ public class ListoDbContext : DbContext
             entity.Property(e => e.Status).HasColumnName("status").HasConversion<string>();
             entity.Property(e => e.CompletedDate).HasColumnName("completed_date");
             entity.Property(e => e.BankAccountSysId).HasColumnName("bank_account_sys_id");
+            entity.Property(e => e.DueDate).HasColumnName("due_date");
             entity.Property(e => e.CreateTimestamp).HasColumnName("create_timestamp");
             entity.Property(e => e.ModifyTimestamp).HasColumnName("modify_timestamp");
             entity.Property(e => e.CreateUser).HasColumnName("create_user");
