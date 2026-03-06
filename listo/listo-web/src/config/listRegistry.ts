@@ -31,7 +31,7 @@ export interface ModuleConfig {
 export const listRegistry: ModuleConfig[] = [
   {
     key: 'finance',
-    label: 'Finance',
+    label: 'Finance & Bills',
     lists: [
       {
         key: 'accounttypes',

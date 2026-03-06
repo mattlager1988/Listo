@@ -59,7 +59,7 @@ const MainLayout: React.FC = () => {
     {
       key: '/finance',
       icon: <BankOutlined />,
-      label: 'Finance',
+      label: 'Finance & Bills',
       children: [
         {
           key: '/finance/accounts',
@@ -148,6 +148,7 @@ const MainLayout: React.FC = () => {
         trigger={null}
         collapsible
         collapsed={collapsed}
+        width={220}
         style={{ position: 'fixed', left: 0, top: 0, bottom: 0, zIndex: 100 }}
       >
         <div style={{
@@ -178,7 +179,7 @@ const MainLayout: React.FC = () => {
           onClick={({ key }) => navigate(key)}
         />
       </Sider>
-      <Layout style={{ marginLeft: collapsed ? 80 : 200, transition: 'margin-left 0.2s' }}>
+      <Layout style={{ marginLeft: collapsed ? 80 : 220, transition: 'margin-left 0.2s' }}>
         <Header style={{
           padding: '0 24px',
           background: '#fff',
