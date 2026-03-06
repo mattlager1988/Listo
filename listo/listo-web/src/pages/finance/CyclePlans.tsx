@@ -46,9 +46,9 @@ interface CycleGoal {
 }
 
 const statusColors: Record<string, string> = {
-  Pending: 'default',
-  Active: 'processing',
-  Completed: 'success',
+  Pending: 'orange',
+  Active: 'success',
+  Completed: 'error',
 };
 
 const CyclePlans: React.FC = () => {
