@@ -44,6 +44,8 @@ import {
   BankOutlined,
   ArrowUpOutlined,
   ArrowDownOutlined,
+  PauseCircleOutlined,
+  ControlOutlined,
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import api from '../../services/api';
@@ -300,6 +302,7 @@ const Accounts: React.FC = () => {
   const [discontinuedModalVisible, setDiscontinuedModalVisible] = useState(false);
   const [discontinuedAccounts, setDiscontinuedAccounts] = useState<Account[]>([]);
   const [discontinuedLoading, setDiscontinuedLoading] = useState(false);
+  const [showGridOptions, setShowGridOptions] = useState(false);
   const [form] = Form.useForm();
   const [saveViewForm] = Form.useForm();
   const [paymentForm] = Form.useForm();
@@ -1475,14 +1478,22 @@ const Accounts: React.FC = () => {
             }}
           />
         </Tooltip>
-        <Space size="small">
-          <Switch
+        <Tooltip title={showOnHold ? 'Hide On Hold' : 'Show On Hold'}>
+          <Button
             size="small"
-            checked={showOnHold}
-            onChange={setShowOnHold}
+            icon={<PauseCircleOutlined />}
+            type={showOnHold ? 'primary' : 'text'}
+            onClick={() => setShowOnHold(!showOnHold)}
           />
-          <span style={{ fontSize: 12, color: '#595959' }}>On Hold</span>
-        </Space>
+        </Tooltip>
+        <Tooltip title={showGridOptions ? 'Hide Grid Options' : 'Show Grid Options'}>
+          <Button
+            size="small"
+            icon={<ControlOutlined />}
+            type={showGridOptions ? 'primary' : 'text'}
+            onClick={() => setShowGridOptions(!showGridOptions)}
+          />
+        </Tooltip>
         <div style={{ marginLeft: 'auto', fontSize: 12, color: '#8c8c8c' }}>
           {selectedRowKeys.length > 0
             ? `${selectedRowKeys.length} selected`
@@ -1548,13 +1559,13 @@ const Accounts: React.FC = () => {
           }}
           defaultSize="small"
           scroll={{ x: 'max-content' }}
-          toolBarRender={() => [
+          toolBarRender={showGridOptions ? () => [
             <Dropdown key="views" menu={{ items: viewMenuItems }}>
               <Button>
                 {currentView ? currentView.name : 'Views'} <DownOutlined />
               </Button>
             </Dropdown>,
-          ]}
+          ] : false}
           pagination={false}
           locale={{
             emptyText: (
