@@ -54,6 +54,13 @@ export const listRegistry: ModuleConfig[] = [
         singularLabel: 'Payment Method',
         usageCountField: 'paymentCount',
       },
+      {
+        key: 'cyclegoals',
+        label: 'Cycle Goals',
+        endpoint: '/finance/cyclegoals',
+        singularLabel: 'Cycle Goal',
+        usageCountField: 'cyclePlanCount',
+      },
     ],
   },
   {

@@ -31,6 +31,8 @@ public class ListoDbContext : DbContext
     public DbSet<Payment> Payments => Set<Payment>();
     public DbSet<BankAccount> BankAccounts => Set<BankAccount>();
     public DbSet<LedgerTransaction> LedgerTransactions => Set<LedgerTransaction>();
+    public DbSet<CycleGoal> CycleGoals => Set<CycleGoal>();
+    public DbSet<CyclePlan> CyclePlans => Set<CyclePlan>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -409,6 +411,45 @@ public class ListoDbContext : DbContext
 
             entity.HasIndex(e => e.BankAccountSysId);
             entity.HasIndex(e => e.PaymentSysId);
+        });
+
+        modelBuilder.Entity<CycleGoal>(entity =>
+        {
+            entity.ToTable("cycle_goals");
+            entity.HasKey(e => e.SysId);
+            entity.Property(e => e.SysId).HasColumnName("sys_id");
+            entity.Property(e => e.Name).HasColumnName("name").IsRequired();
+            entity.Property(e => e.IsDeleted).HasColumnName("is_deleted");
+            entity.Property(e => e.CreateTimestamp).HasColumnName("create_timestamp");
+            entity.Property(e => e.ModifyTimestamp).HasColumnName("modify_timestamp");
+            entity.Property(e => e.CreateUser).HasColumnName("create_user");
+            entity.Property(e => e.ModifyUser).HasColumnName("modify_user");
+            entity.HasIndex(e => e.Name).IsUnique();
+        });
+
+        modelBuilder.Entity<CyclePlan>(entity =>
+        {
+            entity.ToTable("cycle_plans");
+            entity.HasKey(e => e.SysId);
+            entity.Property(e => e.SysId).HasColumnName("sys_id");
+            entity.Property(e => e.Name).HasColumnName("name").IsRequired();
+            entity.Property(e => e.StartDate).HasColumnName("start_date");
+            entity.Property(e => e.EndDate).HasColumnName("end_date");
+            entity.Property(e => e.CycleGoalSysId).HasColumnName("cycle_goal_sys_id");
+            entity.Property(e => e.Notes).HasColumnName("notes").HasColumnType("text");
+            entity.Property(e => e.IsDiscontinued).HasColumnName("is_discontinued");
+            entity.Property(e => e.DiscontinuedDate).HasColumnName("discontinued_date");
+            entity.Property(e => e.CreateTimestamp).HasColumnName("create_timestamp");
+            entity.Property(e => e.ModifyTimestamp).HasColumnName("modify_timestamp");
+            entity.Property(e => e.CreateUser).HasColumnName("create_user");
+            entity.Property(e => e.ModifyUser).HasColumnName("modify_user");
+
+            entity.HasOne(e => e.CycleGoal)
+                .WithMany(g => g.CyclePlans)
+                .HasForeignKey(e => e.CycleGoalSysId);
+
+            entity.HasIndex(e => e.CycleGoalSysId);
+            entity.HasIndex(e => e.StartDate);
         });
     }
 

@@ -13,6 +13,7 @@ import Settings from './pages/Settings';
 import UserManagement from './pages/UserManagement';
 import FinanceLayout from './pages/finance';
 import Accounts from './pages/finance/Accounts';
+import CyclePlans from './pages/finance/CyclePlans';
 import AdminLayout from './pages/admin';
 import ListManager from './pages/admin/ListManager';
 import ListoSettings from './pages/admin/ListoSettings';
@@ -43,6 +44,7 @@ function App() {
               <Route path="finance" element={<FinanceLayout />}>
                 <Route index element={<Accounts />} />
                 <Route path="accounts" element={<Accounts />} />
+                <Route path="cycleplans" element={<CyclePlans />} />
               </Route>
               <Route path="aviation" element={<AviationLayout />}>
                 <Route index element={<TrainingTracker />} />

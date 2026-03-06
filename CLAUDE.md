@@ -110,3 +110,74 @@ Copy `appsettings.json.example` to `appsettings.json` and configure:
 
 ## API Documentation
 Swagger UI available at http://localhost:5286/swagger during development.
+
+## UI Patterns
+
+### Action Toolbar
+Pages with grids use a custom action toolbar above the table instead of ProTable's built-in toolbar:
+
+```tsx
+<div
+  style={{
+    display: 'flex',
+    alignItems: 'center',
+    padding: '8px 12px',
+    marginBottom: 16,
+    background: '#fafafa',
+    border: '1px solid #e8e8e8',
+    borderRadius: 6,
+    gap: 4,
+    flexShrink: 0,
+  }}
+>
+  <Tooltip title="Add Item">
+    <Button type="text" size="small" icon={<PlusOutlined />} onClick={handleCreate} />
+  </Tooltip>
+  <Tooltip title="Edit">
+    <Button type="text" size="small" icon={<EditOutlined />} disabled={selectedRowKeys.length !== 1} />
+  </Tooltip>
+  {/* Divider between button groups */}
+  <div style={{ borderLeft: '1px solid #d9d9d9', height: 16, margin: '0 8px' }} />
+  {/* More buttons... */}
+  <div style={{ flex: 1 }} />
+  {selectedRowKeys.length > 0 && (
+    <span style={{ color: '#8c8c8c', fontSize: 12 }}>{selectedRowKeys.length} selected</span>
+  )}
+</div>
+```
+
+Key patterns:
+- Icon-only buttons with `type="text"` and `size="small"`
+- Tooltips on all buttons
+- Vertical dividers (`borderLeft`) between logical button groups
+- Selection count on the right side
+
+### Modal Forms
+All modal forms use a compact, dense layout:
+
+```tsx
+<Modal title="Add Item" open={visible} onCancel={onClose} footer={null} width={500}>
+  <Form form={form} layout="vertical" onFinish={handleSubmit} size="small" requiredMark={false} autoComplete="off">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+      <Form.Item name="field" label="Label" rules={[{ required: true }]} style={{ marginBottom: 0 }}>
+        <Input />
+      </Form.Item>
+      {/* More fields... */}
+      <Form.Item style={{ marginBottom: 0, marginTop: 12 }}>
+        <Space>
+          <Button type="primary" htmlType="submit">Create</Button>
+          <Button onClick={onClose}>Cancel</Button>
+        </Space>
+      </Form.Item>
+    </div>
+  </Form>
+</Modal>
+```
+
+Key patterns:
+- Form with `size="small"` and `requiredMark={false}`
+- Wrapper div with `display: flex; flexDirection: column; gap: 4`
+- All Form.Items have `style={{ marginBottom: 0 }}`
+- Submit button row has `marginTop: 12`
+- Primary action button comes first, then Cancel
+- Use `<Space size="middle">` to place multiple fields on same row

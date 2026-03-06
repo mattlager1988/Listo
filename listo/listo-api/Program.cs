@@ -77,6 +77,8 @@ builder.Services.AddScoped<IPaymentMethodService, PaymentMethodService>();
 builder.Services.AddScoped<IBankAccountService, BankAccountService>();
 builder.Services.AddScoped<ILedgerTransactionService, LedgerTransactionService>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
+builder.Services.AddScoped<ICycleGoalService, CycleGoalService>();
+builder.Services.AddScoped<ICyclePlanService, CyclePlanService>();
 
 // CORS
 builder.Services.AddCors(options =>

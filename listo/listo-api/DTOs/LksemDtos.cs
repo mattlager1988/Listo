@@ -208,3 +208,43 @@ public record CreateLedgerTransactionRequest(
     decimal Amount,
     string? Description
 );
+
+// Cycle Goal DTOs
+public record CycleGoalResponse(
+    long SysId,
+    string Name,
+    bool IsDeleted,
+    int CyclePlanCount
+);
+
+public record CreateCycleGoalRequest(string Name);
+public record UpdateCycleGoalRequest(string? Name);
+
+// Cycle Plan DTOs
+public record CyclePlanResponse(
+    long SysId,
+    string Name,
+    DateTime StartDate,
+    DateTime EndDate,
+    long CycleGoalSysId,
+    string CycleGoalName,
+    string? Notes,
+    bool IsDiscontinued,
+    DateTime? DiscontinuedDate
+);
+
+public record CreateCyclePlanRequest(
+    string Name,
+    DateTime StartDate,
+    DateTime EndDate,
+    long CycleGoalSysId,
+    string? Notes
+);
+
+public record UpdateCyclePlanRequest(
+    string? Name,
+    DateTime? StartDate,
+    DateTime? EndDate,
+    long? CycleGoalSysId,
+    string? Notes
+);
