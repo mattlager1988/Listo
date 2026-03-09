@@ -100,7 +100,28 @@ const CyclePlans: React.FC = () => {
   const handleCreate = () => {
     setEditingPlan(null);
     form.resetFields();
-    form.setFieldsValue({ status: 'Pending', amountIn: 0, amountOut: 0 });
+
+    // Find prior cycle plan with most recent end date
+    const sortedPlans = [...cyclePlans]
+      .filter(p => p.endDate)
+      .sort((a, b) => dayjs(b.endDate).unix() - dayjs(a.endDate).unix());
+
+    const priorPlan = sortedPlans[0];
+    let startDate: dayjs.Dayjs | undefined;
+    let endDate: dayjs.Dayjs | undefined;
+
+    if (priorPlan) {
+      startDate = dayjs(priorPlan.endDate).add(1, 'day');
+      endDate = startDate.add(13, 'day');
+    }
+
+    form.setFieldsValue({
+      status: 'Pending',
+      amountIn: 0,
+      amountOut: 0,
+      startDate,
+      endDate,
+    });
     setModalVisible(true);
   };
 
