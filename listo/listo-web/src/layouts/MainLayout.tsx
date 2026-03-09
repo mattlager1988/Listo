@@ -18,12 +18,14 @@ import type { MenuProps } from 'antd';
 const { Header, Sider, Content } = Layout;
 const { Text } = Typography;
 
+declare const __APP_VERSION__: string;
+
 const MainLayout: React.FC = () => {
   const { user, logout } = useAuth();
   const [collapsed, setCollapsed] = useState(user?.sidebarCollapsed ?? true);
   const navigate = useNavigate();
   const location = useLocation();
-  const [version, setVersion] = useState<string>('');
+  const [apiVersion, setApiVersion] = useState<string>('');
   const [openKeys, setOpenKeys] = useState<string[]>(() => {
     if (location.pathname.startsWith('/finance')) return ['/finance'];
     if (location.pathname.startsWith('/aviation')) return ['/aviation'];
@@ -46,7 +48,7 @@ const MainLayout: React.FC = () => {
   React.useEffect(() => {
     fetch('/api/system/version')
       .then(res => res.json())
-      .then(data => setVersion(data.version))
+      .then(data => setApiVersion(data.apiVersion))
       .catch(() => {});
   }, []);
 
@@ -138,7 +140,7 @@ const MainLayout: React.FC = () => {
     },
     {
       key: 'version',
-      label: `Version ${version}`,
+      label: `Web ${__APP_VERSION__} / API ${apiVersion}`,
       disabled: true,
     },
     {

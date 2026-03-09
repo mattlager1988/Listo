@@ -1,3 +1,4 @@
+using System.Reflection;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Listo.Api.Controllers;
@@ -6,17 +7,11 @@ namespace Listo.Api.Controllers;
 [Route("api/[controller]")]
 public class SystemController : ControllerBase
 {
-    private readonly IConfiguration _config;
-
-    public SystemController(IConfiguration config)
-    {
-        _config = config;
-    }
-
     [HttpGet("version")]
     public IActionResult GetVersion()
     {
-        return Ok(new { version = _config["AppVersion"] });
+        var version = Assembly.GetExecutingAssembly().GetName().Version;
+        return Ok(new { apiVersion = version?.ToString(3) ?? "0.0.0" });
     }
 
     [HttpGet("health")]

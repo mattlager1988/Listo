@@ -79,7 +79,6 @@ The application uses a two-tier settings system:
 - `Jwt`: JWT secret, issuer, audience, token expiration
 - `InitialAdmin`: Seed admin user credentials
 - `Encryption.Key`: AES encryption key for sensitive data
-- `AppVersion`: Application version number
 
 **Database settings (configurable via Admin > Listo Settings)**
 - `OpenAI:ApiKey`: OpenAI API key (encrypted)

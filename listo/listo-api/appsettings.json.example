@@ -19,7 +19,6 @@
   "Encryption": {
     "Key": "YOUR-ENCRYPTION-KEY-MIN-32-CHARS"
   },
-  "AppVersion": "1.0.0",
   "Logging": {
     "LogLevel": {
       "Default": "Information",
