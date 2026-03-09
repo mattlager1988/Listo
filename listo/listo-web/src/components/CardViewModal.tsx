@@ -38,7 +38,8 @@ interface AccountCard {
   expirationDate: string | null;
   cvv: string | null;
   phoneNumber: string | null;
-  imageDocumentSysId: number | null;
+  hasFrontImage: boolean;
+  hasBackImage: boolean;
   createTimestamp: string;
 }
 
@@ -61,9 +62,11 @@ const CardViewModal: React.FC<CardViewModalProps> = ({
   const [editingCard, setEditingCard] = useState<AccountCard | null>(null);
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [form] = Form.useForm();
-  const [fileList, setFileList] = useState<UploadFile[]>([]);
+  const [frontFileList, setFrontFileList] = useState<UploadFile[]>([]);
+  const [backFileList, setBackFileList] = useState<UploadFile[]>([]);
   const [saving, setSaving] = useState(false);
-  const [cardImages, setCardImages] = useState<Record<number, string>>({});
+  const [cardFrontImages, setCardFrontImages] = useState<Record<number, string>>({});
+  const [cardBackImages, setCardBackImages] = useState<Record<number, string>>({});
 
   const fetchCards = useCallback(async () => {
     if (!accountSysId) return;
@@ -78,18 +81,21 @@ const CardViewModal: React.FC<CardViewModalProps> = ({
     }
   }, [accountSysId]);
 
-  const fetchCardImage = useCallback(async (card: AccountCard) => {
-    if (!card.imageDocumentSysId) return;
+  const fetchCardImage = useCallback(async (cardSysId: number, side: 'front' | 'back') => {
     try {
-      const response = await api.get(`/documents/${card.imageDocumentSysId}/download`, {
+      const response = await api.get(`/finance/accounts/${accountSysId}/cards/${cardSysId}/image/${side}`, {
         responseType: 'blob',
       });
       const url = URL.createObjectURL(new Blob([response.data]));
-      setCardImages(prev => ({ ...prev, [card.sysId]: url }));
+      if (side === 'front') {
+        setCardFrontImages(prev => ({ ...prev, [cardSysId]: url }));
+      } else {
+        setCardBackImages(prev => ({ ...prev, [cardSysId]: url }));
+      }
     } catch {
       // Ignore image load errors
     }
-  }, []);
+  }, [accountSysId]);
 
   useEffect(() => {
     if (visible && accountSysId) {
@@ -101,18 +107,27 @@ const CardViewModal: React.FC<CardViewModalProps> = ({
   useEffect(() => {
     // Load images for all cards
     cards.forEach(card => {
-      if (card.imageDocumentSysId && !cardImages[card.sysId]) {
-        fetchCardImage(card);
+      if (card.hasFrontImage && !cardFrontImages[card.sysId]) {
+        fetchCardImage(card.sysId, 'front');
+      }
+      if (card.hasBackImage && !cardBackImages[card.sysId]) {
+        fetchCardImage(card.sysId, 'back');
       }
     });
-  }, [cards, cardImages, fetchCardImage]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cards, fetchCardImage]);
 
-  // Cleanup blob URLs on unmount
+  // Clear image cache when modal closes
   useEffect(() => {
-    return () => {
-      Object.values(cardImages).forEach(url => URL.revokeObjectURL(url));
-    };
-  }, [cardImages]);
+    if (!visible) {
+      // Revoke all blob URLs when modal closes
+      Object.values(cardFrontImages).forEach(url => URL.revokeObjectURL(url));
+      Object.values(cardBackImages).forEach(url => URL.revokeObjectURL(url));
+      setCardFrontImages({});
+      setCardBackImages({});
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible]);
 
   const handleCopy = async (value: string | null, label: string) => {
     if (!value) return;
@@ -137,7 +152,8 @@ const CardViewModal: React.FC<CardViewModalProps> = ({
   const handleCreate = () => {
     setEditingCard(null);
     form.resetFields();
-    setFileList([]);
+    setFrontFileList([]);
+    setBackFileList([]);
     setEditModalVisible(true);
   };
 
@@ -150,7 +166,8 @@ const CardViewModal: React.FC<CardViewModalProps> = ({
       cvv: card.cvv,
       phoneNumber: card.phoneNumber,
     });
-    setFileList([]);
+    setFrontFileList([]);
+    setBackFileList([]);
     setEditModalVisible(true);
   };
 
@@ -161,10 +178,18 @@ const CardViewModal: React.FC<CardViewModalProps> = ({
       if (selectedCard?.sysId === cardSysId) {
         setSelectedCard(null);
       }
-      // Cleanup image URL
-      if (cardImages[cardSysId]) {
-        URL.revokeObjectURL(cardImages[cardSysId]);
-        setCardImages(prev => {
+      // Cleanup image URLs
+      if (cardFrontImages[cardSysId]) {
+        URL.revokeObjectURL(cardFrontImages[cardSysId]);
+        setCardFrontImages(prev => {
+          const updated = { ...prev };
+          delete updated[cardSysId];
+          return updated;
+        });
+      }
+      if (cardBackImages[cardSysId]) {
+        URL.revokeObjectURL(cardBackImages[cardSysId]);
+        setCardBackImages(prev => {
           const updated = { ...prev };
           delete updated[cardSysId];
           return updated;
@@ -196,29 +221,59 @@ const CardViewModal: React.FC<CardViewModalProps> = ({
         message.success('Card created');
       }
 
-      // Upload image if provided
-      if (fileList.length > 0 && fileList[0].originFileObj) {
-        const formData = new FormData();
-        formData.append('file', fileList[0].originFileObj);
-        await api.post(`/finance/accounts/${accountSysId}/cards/${cardSysId}/image`, formData, {
-          headers: { 'Content-Type': 'multipart/form-data' },
-        });
-        // Clear cached image URL for this card
-        if (cardImages[cardSysId]) {
-          URL.revokeObjectURL(cardImages[cardSysId]);
-          setCardImages(prev => {
-            const updated = { ...prev };
-            delete updated[cardSysId];
-            return updated;
+      // Upload front image if provided
+      if (frontFileList.length > 0 && frontFileList[0].originFileObj) {
+        try {
+          const formData = new FormData();
+          formData.append('file', frontFileList[0].originFileObj);
+          await api.post(`/finance/accounts/${accountSysId}/cards/${cardSysId}/image/front`, formData, {
+            headers: { 'Content-Type': 'multipart/form-data' },
           });
+        } catch (err) {
+          console.error('Front image upload failed:', err);
+          message.error('Failed to upload front image');
         }
       }
 
+      // Upload back image if provided
+      if (backFileList.length > 0 && backFileList[0].originFileObj) {
+        try {
+          const formData = new FormData();
+          formData.append('file', backFileList[0].originFileObj);
+          await api.post(`/finance/accounts/${accountSysId}/cards/${cardSysId}/image/back`, formData, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+          });
+        } catch (err) {
+          console.error('Back image upload failed:', err);
+          message.error('Failed to upload back image');
+        }
+      }
+
+      // Clear cached images for this card so they get refetched
+      if (cardFrontImages[cardSysId]) {
+        URL.revokeObjectURL(cardFrontImages[cardSysId]);
+      }
+      if (cardBackImages[cardSysId]) {
+        URL.revokeObjectURL(cardBackImages[cardSysId]);
+      }
+      setCardFrontImages(prev => {
+        const updated = { ...prev };
+        delete updated[cardSysId];
+        return updated;
+      });
+      setCardBackImages(prev => {
+        const updated = { ...prev };
+        delete updated[cardSysId];
+        return updated;
+      });
+
       setEditModalVisible(false);
       form.resetFields();
-      setFileList([]);
+      setFrontFileList([]);
+      setBackFileList([]);
       fetchCards();
-    } catch {
+    } catch (err) {
+      console.error('Card save failed:', err);
       message.error('Failed to save card');
     } finally {
       setSaving(false);
@@ -226,7 +281,7 @@ const CardViewModal: React.FC<CardViewModalProps> = ({
   };
 
   const renderCardTile = (card: AccountCard) => {
-    const imageUrl = cardImages[card.sysId];
+    const frontImageUrl = cardFrontImages[card.sysId];
     const isSelected = selectedCard?.sysId === card.sysId;
 
     return (
@@ -244,14 +299,14 @@ const CardViewModal: React.FC<CardViewModalProps> = ({
         <div
           style={{
             height: 120,
-            background: imageUrl ? `url(${imageUrl}) center/cover` : '#f5f5f5',
+            background: frontImageUrl ? `url(${frontImageUrl}) center/cover` : '#f5f5f5',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             borderRadius: '8px 8px 0 0',
           }}
         >
-          {!imageUrl && <CreditCardOutlined style={{ fontSize: 48, color: '#bfbfbf' }} />}
+          {!frontImageUrl && <CreditCardOutlined style={{ fontSize: 48, color: '#bfbfbf' }} />}
         </div>
         <div style={{ padding: 12 }}>
           <Text strong ellipsis style={{ display: 'block' }}>{card.name}</Text>
@@ -339,12 +394,24 @@ const CardViewModal: React.FC<CardViewModalProps> = ({
                 {renderDetailRow('CVV', selectedCard.cvv)}
                 {renderDetailRow('Phone', selectedCard.phoneNumber)}
 
-                {cardImages[selectedCard.sysId] && (
+                {cardFrontImages[selectedCard.sysId] && (
                   <>
                     <Divider style={{ margin: '12px 0' }} />
+                    <Text type="secondary" style={{ fontSize: 12, marginBottom: 4, display: 'block' }}>Front</Text>
                     <img
-                      src={cardImages[selectedCard.sysId]}
-                      alt={selectedCard.name}
+                      src={cardFrontImages[selectedCard.sysId]}
+                      alt={`${selectedCard.name} - Front`}
+                      style={{ width: '100%', borderRadius: 4 }}
+                    />
+                  </>
+                )}
+                {cardBackImages[selectedCard.sysId] && (
+                  <>
+                    <Divider style={{ margin: '12px 0' }} />
+                    <Text type="secondary" style={{ fontSize: 12, marginBottom: 4, display: 'block' }}>Back</Text>
+                    <img
+                      src={cardBackImages[selectedCard.sysId]}
+                      alt={`${selectedCard.name} - Back`}
                       style={{ width: '100%', borderRadius: 4 }}
                     />
                   </>
@@ -361,7 +428,8 @@ const CardViewModal: React.FC<CardViewModalProps> = ({
         onCancel={() => {
           setEditModalVisible(false);
           form.resetFields();
-          setFileList([]);
+          setFrontFileList([]);
+          setBackFileList([]);
         }}
         onOk={handleSave}
         confirmLoading={saving}
@@ -389,17 +457,31 @@ const CardViewModal: React.FC<CardViewModalProps> = ({
             <Form.Item name="phoneNumber" label="Phone Number" style={{ marginBottom: 0 }}>
               <PhoneInput />
             </Form.Item>
-            <Form.Item label="Card Image" style={{ marginBottom: 0 }}>
+            <Form.Item label="Front Image" style={{ marginBottom: 0 }}>
               <Upload
                 maxCount={1}
                 beforeUpload={() => false}
-                fileList={fileList}
-                onChange={({ fileList: fl }) => setFileList(fl)}
+                fileList={frontFileList}
+                onChange={({ fileList: fl }) => setFrontFileList(fl)}
                 accept="image/*"
                 listType="picture"
               >
                 <Button icon={<UploadOutlined />} size="small">
-                  {editingCard?.imageDocumentSysId ? 'Replace Image' : 'Upload Image'}
+                  {editingCard?.hasFrontImage ? 'Replace Front' : 'Upload Front'}
+                </Button>
+              </Upload>
+            </Form.Item>
+            <Form.Item label="Back Image" style={{ marginBottom: 0 }}>
+              <Upload
+                maxCount={1}
+                beforeUpload={() => false}
+                fileList={backFileList}
+                onChange={({ fileList: fl }) => setBackFileList(fl)}
+                accept="image/*"
+                listType="picture"
+              >
+                <Button icon={<UploadOutlined />} size="small">
+                  {editingCard?.hasBackImage ? 'Replace Back' : 'Upload Back'}
                 </Button>
               </Upload>
             </Form.Item>

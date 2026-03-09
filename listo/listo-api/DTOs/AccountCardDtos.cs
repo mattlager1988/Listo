@@ -9,7 +9,8 @@ public record AccountCardResponse(
     string? ExpirationDate,
     string? Cvv,             // Decrypted
     string? PhoneNumber,
-    long? ImageDocumentSysId,
+    bool HasFrontImage,
+    bool HasBackImage,
     DateTime CreateTimestamp
 );
 

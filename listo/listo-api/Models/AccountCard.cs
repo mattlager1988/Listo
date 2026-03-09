@@ -9,7 +9,11 @@ public class AccountCard : BaseEntity
     public string? EncryptedCvv { get; set; }
     public string? PhoneNumber { get; set; }
 
-    // Image stored via Document system (module=finance, entityType=account_card, entitySysId=this.SysId)
+    // Card images stored as blobs
+    public byte[]? FrontImage { get; set; }
+    public string? FrontImageMimeType { get; set; }
+    public byte[]? BackImage { get; set; }
+    public string? BackImageMimeType { get; set; }
 
     public Account Account { get; set; } = null!;
 }

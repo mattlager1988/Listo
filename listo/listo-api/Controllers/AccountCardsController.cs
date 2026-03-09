@@ -5,7 +5,6 @@ using Listo.Api.Data;
 using Listo.Api.DTOs;
 using Listo.Api.Models;
 using Listo.Api.Services;
-using System.Security.Claims;
 
 namespace Listo.Api.Controllers;
 
@@ -16,26 +15,13 @@ public class AccountCardsController : ControllerBase
 {
     private readonly ListoDbContext _context;
     private readonly IEncryptionService _encryptionService;
-    private readonly IDocumentService _documentService;
-    private readonly ISettingsService _settingsService;
 
     public AccountCardsController(
         ListoDbContext context,
-        IEncryptionService encryptionService,
-        IDocumentService documentService,
-        ISettingsService settingsService)
+        IEncryptionService encryptionService)
     {
         _context = context;
         _encryptionService = encryptionService;
-        _documentService = documentService;
-        _settingsService = settingsService;
-    }
-
-    private long? GetCurrentUserId()
-    {
-        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
-            ?? User.FindFirst("sub")?.Value;
-        return long.TryParse(userIdClaim, out var userId) ? userId : null;
     }
 
     private string MaskCardNumber(string? cardNumber)
@@ -45,13 +31,28 @@ public class AccountCardsController : ControllerBase
         return $"****{cardNumber[^4..]}";
     }
 
-    private async Task<long?> GetCardImageDocumentSysIdAsync(long cardSysId)
+    private AccountCardResponse MapToResponse(AccountCard card)
     {
-        var doc = await _context.Documents
-            .Where(d => d.Module == "finance" && d.EntityType == "account_card" && d.EntitySysId == cardSysId)
-            .OrderByDescending(d => d.CreateTimestamp)
-            .FirstOrDefaultAsync();
-        return doc?.SysId;
+        var cardNumber = !string.IsNullOrEmpty(card.EncryptedCardNumber)
+            ? _encryptionService.Decrypt(card.EncryptedCardNumber)
+            : null;
+        var cvv = !string.IsNullOrEmpty(card.EncryptedCvv)
+            ? _encryptionService.Decrypt(card.EncryptedCvv)
+            : null;
+
+        return new AccountCardResponse(
+            card.SysId,
+            card.AccountSysId,
+            card.Name,
+            MaskCardNumber(cardNumber),
+            cardNumber,
+            card.ExpirationDate,
+            cvv,
+            card.PhoneNumber,
+            card.FrontImage != null,
+            card.BackImage != null,
+            card.CreateTimestamp
+        );
     }
 
     [HttpGet]
@@ -62,32 +63,7 @@ public class AccountCardsController : ControllerBase
             .OrderBy(c => c.Name)
             .ToListAsync();
 
-        var responses = new List<AccountCardResponse>();
-        foreach (var card in cards)
-        {
-            var cardNumber = !string.IsNullOrEmpty(card.EncryptedCardNumber)
-                ? _encryptionService.Decrypt(card.EncryptedCardNumber)
-                : null;
-            var cvv = !string.IsNullOrEmpty(card.EncryptedCvv)
-                ? _encryptionService.Decrypt(card.EncryptedCvv)
-                : null;
-            var imageDocId = await GetCardImageDocumentSysIdAsync(card.SysId);
-
-            responses.Add(new AccountCardResponse(
-                card.SysId,
-                card.AccountSysId,
-                card.Name,
-                MaskCardNumber(cardNumber),
-                cardNumber,
-                card.ExpirationDate,
-                cvv,
-                card.PhoneNumber,
-                imageDocId,
-                card.CreateTimestamp
-            ));
-        }
-
-        return Ok(responses);
+        return Ok(cards.Select(MapToResponse));
     }
 
     [HttpGet("{id}")]
@@ -98,26 +74,44 @@ public class AccountCardsController : ControllerBase
 
         if (card == null) return NotFound();
 
-        var cardNumber = !string.IsNullOrEmpty(card.EncryptedCardNumber)
-            ? _encryptionService.Decrypt(card.EncryptedCardNumber)
-            : null;
-        var cvv = !string.IsNullOrEmpty(card.EncryptedCvv)
-            ? _encryptionService.Decrypt(card.EncryptedCvv)
-            : null;
-        var imageDocId = await GetCardImageDocumentSysIdAsync(card.SysId);
+        return Ok(MapToResponse(card));
+    }
 
-        return Ok(new AccountCardResponse(
-            card.SysId,
-            card.AccountSysId,
-            card.Name,
-            MaskCardNumber(cardNumber),
-            cardNumber,
-            card.ExpirationDate,
-            cvv,
-            card.PhoneNumber,
-            imageDocId,
-            card.CreateTimestamp
-        ));
+    [HttpGet("{id}/image/{side}")]
+    public async Task<IActionResult> GetImage(long accountId, long id, string side)
+    {
+        if (side != "front" && side != "back")
+        {
+            return BadRequest(new { message = "Side must be 'front' or 'back'" });
+        }
+
+        var card = await _context.AccountCards
+            .FirstOrDefaultAsync(c => c.SysId == id && c.AccountSysId == accountId);
+
+        if (card == null) return NotFound();
+
+        byte[]? encryptedData;
+        string? mimeType;
+
+        if (side == "front")
+        {
+            encryptedData = card.FrontImage;
+            mimeType = card.FrontImageMimeType;
+        }
+        else
+        {
+            encryptedData = card.BackImage;
+            mimeType = card.BackImageMimeType;
+        }
+
+        if (encryptedData == null || string.IsNullOrEmpty(mimeType))
+        {
+            return NotFound();
+        }
+
+        // Decrypt the image data
+        var imageData = _encryptionService.DecryptBytes(encryptedData);
+        return File(imageData, mimeType);
     }
 
     [HttpPost]
@@ -143,18 +137,7 @@ public class AccountCardsController : ControllerBase
         _context.AccountCards.Add(card);
         await _context.SaveChangesAsync();
 
-        return CreatedAtAction(nameof(GetCard), new { accountId, id = card.SysId }, new AccountCardResponse(
-            card.SysId,
-            card.AccountSysId,
-            card.Name,
-            MaskCardNumber(request.CardNumber),
-            request.CardNumber,
-            card.ExpirationDate,
-            request.Cvv,
-            card.PhoneNumber,
-            null,
-            card.CreateTimestamp
-        ));
+        return CreatedAtAction(nameof(GetCard), new { accountId, id = card.SysId }, MapToResponse(card));
     }
 
     [HttpPut("{id}")]
@@ -183,26 +166,7 @@ public class AccountCardsController : ControllerBase
 
         await _context.SaveChangesAsync();
 
-        var cardNumber = !string.IsNullOrEmpty(card.EncryptedCardNumber)
-            ? _encryptionService.Decrypt(card.EncryptedCardNumber)
-            : null;
-        var cvv = !string.IsNullOrEmpty(card.EncryptedCvv)
-            ? _encryptionService.Decrypt(card.EncryptedCvv)
-            : null;
-        var imageDocId = await GetCardImageDocumentSysIdAsync(card.SysId);
-
-        return Ok(new AccountCardResponse(
-            card.SysId,
-            card.AccountSysId,
-            card.Name,
-            MaskCardNumber(cardNumber),
-            cardNumber,
-            card.ExpirationDate,
-            cvv,
-            card.PhoneNumber,
-            imageDocId,
-            card.CreateTimestamp
-        ));
+        return Ok(MapToResponse(card));
     }
 
     [HttpDelete("{id}")]
@@ -213,29 +177,21 @@ public class AccountCardsController : ControllerBase
 
         if (card == null) return NotFound();
 
-        // Delete associated card images
-        var images = await _context.Documents
-            .Where(d => d.Module == "finance" && d.EntityType == "account_card" && d.EntitySysId == id)
-            .ToListAsync();
-
-        foreach (var image in images)
-        {
-            await _documentService.DeleteAsync(image.SysId);
-        }
-
         _context.AccountCards.Remove(card);
         await _context.SaveChangesAsync();
 
         return NoContent();
     }
 
-    [HttpPost("{id}/image")]
+    [HttpPost("{id}/image/{side}")]
     [RequestSizeLimit(10_485_760)] // 10MB for images
     [RequestFormLimits(MultipartBodyLengthLimit = 10_485_760)]
-    public async Task<IActionResult> UploadImage(long accountId, long id, IFormFile file)
+    public async Task<IActionResult> UploadImage(long accountId, long id, string side, IFormFile file)
     {
-        var userId = GetCurrentUserId();
-        if (!userId.HasValue) return Unauthorized();
+        if (side != "front" && side != "back")
+        {
+            return BadRequest(new { message = "Side must be 'front' or 'back'" });
+        }
 
         var card = await _context.AccountCards
             .FirstOrDefaultAsync(c => c.SysId == id && c.AccountSysId == accountId);
@@ -243,54 +199,59 @@ public class AccountCardsController : ControllerBase
         if (card == null) return NotFound();
 
         // Validate file type (images only)
-        var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
-        var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".webp" };
-        if (!allowedExtensions.Contains(extension))
+        var allowedMimeTypes = new[] { "image/jpeg", "image/png", "image/gif", "image/webp" };
+        if (!allowedMimeTypes.Contains(file.ContentType.ToLowerInvariant()))
         {
             return BadRequest(new { message = "Only image files are allowed" });
         }
 
-        // Delete existing image if any
-        var existingImages = await _context.Documents
-            .Where(d => d.Module == "finance" && d.EntityType == "account_card" && d.EntitySysId == id)
-            .ToListAsync();
+        // Read file into byte array and encrypt
+        using var memoryStream = new MemoryStream();
+        await file.CopyToAsync(memoryStream);
+        var imageData = memoryStream.ToArray();
+        var encryptedData = _encryptionService.EncryptBytes(imageData);
 
-        foreach (var img in existingImages)
+        if (side == "front")
         {
-            await _documentService.DeleteAsync(img.SysId);
+            card.FrontImage = encryptedData;
+            card.FrontImageMimeType = file.ContentType;
+        }
+        else
+        {
+            card.BackImage = encryptedData;
+            card.BackImageMimeType = file.ContentType;
         }
 
-        // Upload new image
-        var request = new CreateDocumentRequest(
-            card.Name,
-            "finance",
-            "account_card",
-            id,
-            null
-        );
+        await _context.SaveChangesAsync();
 
-        using var stream = file.OpenReadStream();
-        var document = await _documentService.UploadAsync(stream, file.FileName, request, userId.Value);
-
-        return Ok(new { documentSysId = document.SysId });
+        return Ok(new { success = true });
     }
 
-    [HttpDelete("{id}/image")]
-    public async Task<IActionResult> DeleteImage(long accountId, long id)
+    [HttpDelete("{id}/image/{side}")]
+    public async Task<IActionResult> DeleteImage(long accountId, long id, string side)
     {
+        if (side != "front" && side != "back")
+        {
+            return BadRequest(new { message = "Side must be 'front' or 'back'" });
+        }
+
         var card = await _context.AccountCards
             .FirstOrDefaultAsync(c => c.SysId == id && c.AccountSysId == accountId);
 
         if (card == null) return NotFound();
 
-        var images = await _context.Documents
-            .Where(d => d.Module == "finance" && d.EntityType == "account_card" && d.EntitySysId == id)
-            .ToListAsync();
-
-        foreach (var img in images)
+        if (side == "front")
         {
-            await _documentService.DeleteAsync(img.SysId);
+            card.FrontImage = null;
+            card.FrontImageMimeType = null;
         }
+        else
+        {
+            card.BackImage = null;
+            card.BackImageMimeType = null;
+        }
+
+        await _context.SaveChangesAsync();
 
         return NoContent();
     }

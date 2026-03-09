@@ -490,6 +490,10 @@ public class ListoDbContext : DbContext
             entity.Property(e => e.ExpirationDate).HasColumnName("expiration_date");
             entity.Property(e => e.EncryptedCvv).HasColumnName("encrypted_cvv");
             entity.Property(e => e.PhoneNumber).HasColumnName("phone_number");
+            entity.Property(e => e.FrontImage).HasColumnName("front_image").HasColumnType("mediumblob");
+            entity.Property(e => e.FrontImageMimeType).HasColumnName("front_image_mime_type");
+            entity.Property(e => e.BackImage).HasColumnName("back_image").HasColumnType("mediumblob");
+            entity.Property(e => e.BackImageMimeType).HasColumnName("back_image_mime_type");
             entity.Property(e => e.CreateTimestamp).HasColumnName("create_timestamp");
             entity.Property(e => e.ModifyTimestamp).HasColumnName("modify_timestamp");
             entity.Property(e => e.CreateUser).HasColumnName("create_user");
