@@ -183,8 +183,8 @@ const CyclePlanWork: React.FC = () => {
     form.resetFields();
     form.setFieldsValue({
       amount: 0,
-      transactionType: 'Credit',
-      status: 'Estimated',
+      transactionType: 'Debit',
+      status: 'Planned',
     });
     setModalVisible(true);
   };
