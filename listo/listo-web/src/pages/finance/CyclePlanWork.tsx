@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Button,
@@ -48,7 +48,25 @@ interface CycleTransaction {
   status: string;
   notes: string | null;
   createTimestamp: string;
+  modifyTimestamp: string;
 }
+
+interface TransactionGroup {
+  sysId: string;
+  isGroupHeader: true;
+  transactionType: string;
+  children: CycleTransaction[];
+  transactionCount: number;
+  totalAmount: number;
+}
+
+type TableRecord = CycleTransaction | TransactionGroup;
+
+const TYPE_ORDER = ['Credit', 'Debit'];
+const TYPE_DISPLAY_NAMES: Record<string, string> = {
+  Credit: 'Credits',
+  Debit: 'Debits',
+};
 
 const cyclePlanStatusColors: Record<string, string> = {
   Pending: 'orange',
@@ -75,6 +93,7 @@ const CyclePlanWork: React.FC = () => {
   const [editingAmountField, setEditingAmountField] = useState<'amountIn' | 'amountOut' | null>(null);
   const [editingAmountValue, setEditingAmountValue] = useState<number>(0);
   const [editingStatusId, setEditingStatusId] = useState<number | null>(null);
+  const [expandedGroups, setExpandedGroups] = useState<React.Key[]>(['group-Credit', 'group-Debit']);
   const [form] = Form.useForm();
 
   const fetchCyclePlan = useCallback(async () => {
@@ -108,6 +127,26 @@ const CyclePlanWork: React.FC = () => {
     fetchCyclePlan();
     fetchTransactions();
   }, [fetchCyclePlan, fetchTransactions]);
+
+  const groupedTransactions = useMemo((): TransactionGroup[] => {
+    const groups: TransactionGroup[] = [];
+
+    TYPE_ORDER.forEach(type => {
+      const typeTransactions = transactions.filter(t => t.transactionType === type);
+      if (typeTransactions.length > 0) {
+        groups.push({
+          sysId: `group-${type}`,
+          isGroupHeader: true,
+          transactionType: type,
+          children: typeTransactions,
+          transactionCount: typeTransactions.length,
+          totalAmount: typeTransactions.reduce((sum, t) => sum + t.amount, 0),
+        });
+      }
+    });
+
+    return groups;
+  }, [transactions]);
 
   const handleAmountEdit = (field: 'amountIn' | 'amountOut') => {
     if (!cyclePlan) return;
@@ -209,41 +248,62 @@ const CyclePlanWork: React.FC = () => {
       dataIndex: 'name',
       key: 'name',
       width: 180,
-      sorter: (a: CycleTransaction, b: CycleTransaction) => a.name.localeCompare(b.name),
+      render: (_: unknown, record: TableRecord) => {
+        if ('isGroupHeader' in record && record.isGroupHeader) {
+          return (
+            <span>
+              {TYPE_DISPLAY_NAMES[record.transactionType]} ({record.transactionCount})
+              <span style={{ marginLeft: 12, color: record.transactionType === 'Credit' ? '#52c41a' : '#ff4d4f' }}>
+                ${record.totalAmount.toFixed(2)}
+              </span>
+            </span>
+          );
+        }
+        return (record as CycleTransaction).name;
+      },
+      sorter: (a: TableRecord, b: TableRecord) => {
+        if ('isGroupHeader' in a || 'isGroupHeader' in b) return 0;
+        return (a as CycleTransaction).name.localeCompare((b as CycleTransaction).name);
+      },
     },
     {
       title: 'Status',
       dataIndex: 'status',
       key: 'status',
       width: 110,
-      render: (status: string, record: CycleTransaction) => (
-        <Popover
-          trigger="click"
-          open={editingStatusId === record.sysId}
-          onOpenChange={(open) => setEditingStatusId(open ? record.sysId : null)}
-          content={
-            <Select
-              size="small"
-              value={status}
-              style={{ width: 110 }}
-              onChange={(value) => handleStatusChange(record.sysId, value)}
-              autoFocus
-            >
-              <Select.Option value="Confirmed">Confirmed</Select.Option>
-              <Select.Option value="Planned">Planned</Select.Option>
-              <Select.Option value="Estimated">Estimated</Select.Option>
-            </Select>
-          }
-        >
-          <Tag color={transactionStatusColors[status]} style={{ cursor: 'pointer' }}>{status}</Tag>
-        </Popover>
-      ),
+      render: (status: string, record: TableRecord) => {
+        if ('isGroupHeader' in record) return null;
+        const txn = record as CycleTransaction;
+        return (
+          <Popover
+            trigger="click"
+            open={editingStatusId === txn.sysId}
+            onOpenChange={(open) => setEditingStatusId(open ? txn.sysId : null)}
+            content={
+              <Select
+                size="small"
+                value={status}
+                style={{ width: 110 }}
+                onChange={(value) => handleStatusChange(txn.sysId, value)}
+                autoFocus
+              >
+                <Select.Option value="Confirmed">Confirmed</Select.Option>
+                <Select.Option value="Planned">Planned</Select.Option>
+                <Select.Option value="Estimated">Estimated</Select.Option>
+              </Select>
+            }
+          >
+            <Tag color={transactionStatusColors[status]} style={{ cursor: 'pointer' }}>{status}</Tag>
+          </Popover>
+        );
+      },
       filters: [
         { text: 'Confirmed', value: 'Confirmed' },
         { text: 'Planned', value: 'Planned' },
         { text: 'Estimated', value: 'Estimated' },
       ],
-      onFilter: (value: React.Key | boolean, record: CycleTransaction) => record.status === value,
+      onFilter: (value: React.Key | boolean, record: TableRecord) =>
+        'isGroupHeader' in record || (record as CycleTransaction).status === value,
     },
     {
       title: 'Amount',
@@ -251,18 +311,57 @@ const CyclePlanWork: React.FC = () => {
       key: 'amount',
       width: 120,
       align: 'right' as const,
-      render: (_: number, record: CycleTransaction) => (
-        <Tag color={record.transactionType === 'Credit' ? 'green' : 'red'}>
-          {record.transactionType === 'Debit' ? '-' : ''}${record.amount.toFixed(2)}
-        </Tag>
-      ),
-      sorter: (a: CycleTransaction, b: CycleTransaction) => a.amount - b.amount,
+      render: (_: unknown, record: TableRecord) => {
+        if ('isGroupHeader' in record) return null;
+        const txn = record as CycleTransaction;
+        return (
+          <Tag color={txn.transactionType === 'Credit' ? 'green' : 'red'}>
+            {txn.transactionType === 'Debit' ? '-' : ''}${txn.amount.toFixed(2)}
+          </Tag>
+        );
+      },
+      sorter: (a: TableRecord, b: TableRecord) => {
+        if ('isGroupHeader' in a || 'isGroupHeader' in b) return 0;
+        return (a as CycleTransaction).amount - (b as CycleTransaction).amount;
+      },
+    },
+    {
+      title: 'Created On',
+      dataIndex: 'createTimestamp',
+      key: 'createTimestamp',
+      width: 120,
+      render: (value: string, record: TableRecord) => {
+        if ('isGroupHeader' in record) return null;
+        return dayjs(value).format('MM/DD/YYYY');
+      },
+      sorter: (a: TableRecord, b: TableRecord) => {
+        if ('isGroupHeader' in a || 'isGroupHeader' in b) return 0;
+        return dayjs((a as CycleTransaction).createTimestamp).unix() - dayjs((b as CycleTransaction).createTimestamp).unix();
+      },
+    },
+    {
+      title: 'Last Modified',
+      dataIndex: 'modifyTimestamp',
+      key: 'modifyTimestamp',
+      width: 120,
+      render: (value: string, record: TableRecord) => {
+        if ('isGroupHeader' in record) return null;
+        return dayjs(value).format('MM/DD/YYYY');
+      },
+      sorter: (a: TableRecord, b: TableRecord) => {
+        if ('isGroupHeader' in a || 'isGroupHeader' in b) return 0;
+        return dayjs((a as CycleTransaction).modifyTimestamp).unix() - dayjs((b as CycleTransaction).modifyTimestamp).unix();
+      },
     },
     {
       title: 'Notes',
       dataIndex: 'notes',
       key: 'notes',
       ellipsis: true,
+      render: (value: string, record: TableRecord) => {
+        if ('isGroupHeader' in record) return null;
+        return value;
+      },
     },
   ];
 
@@ -458,30 +557,45 @@ const CyclePlanWork: React.FC = () => {
 
       {/* Table Container */}
       <div className="condensed-table" style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
-        <Table
+        <Table<TableRecord>
           columns={columns}
-          dataSource={transactions}
-          rowKey="sysId"
+          dataSource={groupedTransactions}
+          rowKey={(record) => record.sysId.toString()}
           loading={loading}
           size="small"
-          pagination={{ pageSize: 25, size: 'small' }}
+          pagination={false}
           rowSelection={{
             selectedRowKeys,
             onChange: setSelectedRowKeys,
+            getCheckboxProps: (record) => ({
+              disabled: 'isGroupHeader' in record,
+              style: 'isGroupHeader' in record ? { display: 'none' } : undefined,
+            }),
+          }}
+          expandable={{
+            expandedRowKeys: expandedGroups,
+            onExpandedRowsChange: (keys) => setExpandedGroups(keys as React.Key[]),
+            childrenColumnName: 'children',
+            defaultExpandAllRows: true,
           }}
           onRow={(record) => {
             let clickTimer: ReturnType<typeof setTimeout> | null = null;
             return {
               onClick: () => {
+                if ('isGroupHeader' in record) return;
                 clickTimer = setTimeout(() => {
-                  setSelectedRowKeys([record.sysId]);
+                  setSelectedRowKeys([(record as CycleTransaction).sysId]);
                 }, 200);
               },
               onDoubleClick: () => {
                 if (clickTimer) clearTimeout(clickTimer);
-                handleEdit(record);
+                if (!('isGroupHeader' in record)) handleEdit(record as CycleTransaction);
               },
-              style: { cursor: 'pointer' },
+              style: {
+                cursor: 'isGroupHeader' in record ? 'default' : 'pointer',
+                background: 'isGroupHeader' in record ? '#f5f5f5' : undefined,
+                fontWeight: 'isGroupHeader' in record ? 600 : undefined,
+              },
             };
           }}
         />
