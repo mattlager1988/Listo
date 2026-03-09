@@ -55,6 +55,7 @@ public record AccountResponse(
     bool IsDiscontinued,
     DateTime? DiscontinuedDate,
     DateTime? LastPaymentDate,
+    decimal? LastPaymentAmount,
     long? DefaultPaymentMethodSysId,
     long? DefaultBankAccountSysId
 );

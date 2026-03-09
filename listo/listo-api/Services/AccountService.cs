@@ -167,30 +167,35 @@ public class AccountService : IAccountService
         return MapToResponse(account);
     }
 
-    private AccountResponse MapToResponse(Account account) => new(
-        account.SysId,
-        account.Name,
-        account.AccountTypeSysId,
-        account.AccountType.Name,
-        account.AccountOwnerSysId,
-        account.AccountOwner.Name,
-        account.AmountDue,
-        account.DueDate,
-        account.AccountNumber,
-        account.PhoneNumber,
-        account.WebAddress,
-        account.Username,
-        string.IsNullOrEmpty(account.EncryptedPassword)
-            ? null
-            : _encryptionService.Decrypt(account.EncryptedPassword),
-        account.AutoPay,
-        account.ResetAmountDue,
-        account.AccountFlag.ToString(),
-        account.Notes,
-        account.IsDiscontinued,
-        account.DiscontinuedDate,
-        account.Payments?.OrderByDescending(p => p.CreateTimestamp).FirstOrDefault()?.CreateTimestamp,
-        account.DefaultPaymentMethodSysId,
-        account.DefaultBankAccountSysId
-    );
+    private AccountResponse MapToResponse(Account account)
+    {
+        var lastPayment = account.Payments?.OrderByDescending(p => p.CreateTimestamp).FirstOrDefault();
+        return new(
+            account.SysId,
+            account.Name,
+            account.AccountTypeSysId,
+            account.AccountType.Name,
+            account.AccountOwnerSysId,
+            account.AccountOwner.Name,
+            account.AmountDue,
+            account.DueDate,
+            account.AccountNumber,
+            account.PhoneNumber,
+            account.WebAddress,
+            account.Username,
+            string.IsNullOrEmpty(account.EncryptedPassword)
+                ? null
+                : _encryptionService.Decrypt(account.EncryptedPassword),
+            account.AutoPay,
+            account.ResetAmountDue,
+            account.AccountFlag.ToString(),
+            account.Notes,
+            account.IsDiscontinued,
+            account.DiscontinuedDate,
+            lastPayment?.CreateTimestamp,
+            lastPayment?.Amount,
+            account.DefaultPaymentMethodSysId,
+            account.DefaultBankAccountSysId
+        );
+    }
 }

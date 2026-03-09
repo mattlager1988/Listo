@@ -77,6 +77,7 @@ interface Account {
   isDiscontinued: boolean;
   discontinuedDate: string | null;
   lastPaymentDate: string | null;
+  lastPaymentAmount: number | null;
   defaultPaymentMethodSysId: number | null;
   defaultBankAccountSysId: number | null;
 }
@@ -1068,6 +1069,20 @@ const Accounts: React.FC = () => {
         return account.lastPaymentDate ? dayjs(account.lastPaymentDate).format('MM/DD/YYYY') : '-';
       },
       width: 110,
+    },
+    {
+      title: 'Last Amount',
+      dataIndex: 'lastPaymentAmount',
+      key: 'lastPaymentAmount',
+      sorter: false,
+      sortOrder: sorterState?.field === 'lastPaymentAmount' ? sorterState.order : undefined,
+      render: (_, record) => {
+        if ('isGroupHeader' in record) return null;
+        const account = record as Account;
+        return account.lastPaymentAmount != null ? `$${account.lastPaymentAmount.toFixed(2)}` : '-';
+      },
+      width: 100,
+      align: 'right' as const,
     },
     {
       title: 'Notes',
