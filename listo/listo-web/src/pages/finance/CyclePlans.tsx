@@ -182,14 +182,14 @@ const CyclePlans: React.FC = () => {
     {
       title: 'Start Date',
       dataIndex: 'startDate',
-      render: (_, record) => record.startDate ? dayjs(record.startDate).format('M/D/YYYY') : '-',
+      render: (_, record) => record.startDate ? dayjs(record.startDate).format('MM/DD/YYYY') : '-',
       sorter: (a, b) => dayjs(a.startDate).unix() - dayjs(b.startDate).unix(),
       defaultSortOrder: 'descend',
     },
     {
       title: 'End Date',
       dataIndex: 'endDate',
-      render: (_, record) => record.endDate ? dayjs(record.endDate).format('M/D/YYYY') : '-',
+      render: (_, record) => record.endDate ? dayjs(record.endDate).format('MM/DD/YYYY') : '-',
       sorter: (a, b) => dayjs(a.endDate).unix() - dayjs(b.endDate).unix(),
     },
     {
@@ -251,13 +251,13 @@ const CyclePlans: React.FC = () => {
       title: 'Start Date',
       dataIndex: 'startDate',
       key: 'startDate',
-      render: (date: string) => date ? dayjs(date).format('M/D/YYYY') : '-',
+      render: (date: string) => date ? dayjs(date).format('MM/DD/YYYY') : '-',
     },
     {
       title: 'End Date',
       dataIndex: 'endDate',
       key: 'endDate',
-      render: (date: string) => date ? dayjs(date).format('M/D/YYYY') : '-',
+      render: (date: string) => date ? dayjs(date).format('MM/DD/YYYY') : '-',
     },
     { title: 'Cycle Goal', dataIndex: 'cycleGoalName', key: 'cycleGoalName' },
     {
@@ -270,7 +270,7 @@ const CyclePlans: React.FC = () => {
       title: 'Discontinued',
       dataIndex: 'discontinuedDate',
       key: 'discontinuedDate',
-      render: (date: string) => date ? dayjs(date).format('M/D/YYYY') : '-',
+      render: (date: string) => date ? dayjs(date).format('MM/DD/YYYY') : '-',
     },
     {
       title: 'Actions',

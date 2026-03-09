@@ -300,7 +300,7 @@ const CyclePlanWork: React.FC = () => {
             </div>
             <div>
               <div style={{ fontSize: 12, color: '#8c8c8c' }}>Period</div>
-              <div>{dayjs(cyclePlan.startDate).format('M/D/YYYY')} - {dayjs(cyclePlan.endDate).format('M/D/YYYY')}</div>
+              <div>{dayjs(cyclePlan.startDate).format('MM/DD/YYYY')} - {dayjs(cyclePlan.endDate).format('MM/DD/YYYY')}</div>
             </div>
             <div>
               <div style={{ fontSize: 12, color: '#8c8c8c' }}>Status</div>
