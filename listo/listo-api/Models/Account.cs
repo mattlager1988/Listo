@@ -34,4 +34,5 @@ public class Account : BaseEntity
     public PaymentMethod? DefaultPaymentMethod { get; set; }
     public BankAccount? DefaultBankAccount { get; set; }
     public ICollection<Payment> Payments { get; set; } = new List<Payment>();
+    public ICollection<AccountCard> Cards { get; set; } = new List<AccountCard>();
 }

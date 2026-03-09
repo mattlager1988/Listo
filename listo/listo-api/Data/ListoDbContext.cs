@@ -34,6 +34,7 @@ public class ListoDbContext : DbContext
     public DbSet<CycleGoal> CycleGoals => Set<CycleGoal>();
     public DbSet<CyclePlan> CyclePlans => Set<CyclePlan>();
     public DbSet<CycleTransaction> CycleTransactions => Set<CycleTransaction>();
+    public DbSet<AccountCard> AccountCards => Set<AccountCard>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -476,6 +477,29 @@ public class ListoDbContext : DbContext
                 .HasForeignKey(e => e.CyclePlanSysId);
 
             entity.HasIndex(e => e.CyclePlanSysId);
+        });
+
+        modelBuilder.Entity<AccountCard>(entity =>
+        {
+            entity.ToTable("account_cards");
+            entity.HasKey(e => e.SysId);
+            entity.Property(e => e.SysId).HasColumnName("sys_id");
+            entity.Property(e => e.AccountSysId).HasColumnName("account_sys_id");
+            entity.Property(e => e.Name).HasColumnName("name").IsRequired();
+            entity.Property(e => e.EncryptedCardNumber).HasColumnName("encrypted_card_number");
+            entity.Property(e => e.ExpirationDate).HasColumnName("expiration_date");
+            entity.Property(e => e.EncryptedCvv).HasColumnName("encrypted_cvv");
+            entity.Property(e => e.PhoneNumber).HasColumnName("phone_number");
+            entity.Property(e => e.CreateTimestamp).HasColumnName("create_timestamp");
+            entity.Property(e => e.ModifyTimestamp).HasColumnName("modify_timestamp");
+            entity.Property(e => e.CreateUser).HasColumnName("create_user");
+            entity.Property(e => e.ModifyUser).HasColumnName("modify_user");
+
+            entity.HasOne(e => e.Account)
+                .WithMany(a => a.Cards)
+                .HasForeignKey(e => e.AccountSysId);
+
+            entity.HasIndex(e => e.AccountSysId);
         });
     }
 

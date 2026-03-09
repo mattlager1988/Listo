@@ -48,11 +48,13 @@ import {
   ControlOutlined,
   EyeOutlined,
   EyeInvisibleOutlined,
+  IdcardOutlined,
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import api from '../../services/api';
 import PhoneInput from '../../components/PhoneInput';
 import PageHeader from '../../components/PageHeader';
+import CardViewModal from '../../components/CardViewModal';
 
 interface Account {
   sysId: number;
@@ -346,6 +348,17 @@ const Accounts: React.FC = () => {
 
   // Inline editing state
   const [editingCell, setEditingCell] = useState<{ sysId: number; field: 'dueDate' | 'amountDue' } | null>(null);
+
+  // Cards modal state
+  const [cardsModalVisible, setCardsModalVisible] = useState(false);
+  const [cardsAccount, setCardsAccount] = useState<Account | null>(null);
+
+  const handleOpenCards = () => {
+    const account = accounts.find(a => a.sysId.toString() === selectedRowKeys[0]?.toString());
+    if (!account) return;
+    setCardsAccount(account);
+    setCardsModalVisible(true);
+  };
 
   const handleInlineUpdate = async (sysId: number, field: 'dueDate' | 'amountDue', value: unknown) => {
     const account = accounts.find(a => a.sysId === sysId);
@@ -1568,6 +1581,15 @@ const Accounts: React.FC = () => {
             }}
           />
         </Tooltip>
+        <Tooltip title="View Cards">
+          <Button
+            type="text"
+            size="small"
+            icon={<IdcardOutlined />}
+            disabled={selectedRowKeys.length !== 1}
+            onClick={handleOpenCards}
+          />
+        </Tooltip>
         <div style={{ borderLeft: '1px solid #d9d9d9', height: 16, margin: '0 8px' }} />
         <Tooltip title={expandedGroups.length > 0 ? 'Collapse All' : 'Expand All'}>
           <Button
@@ -2555,6 +2577,17 @@ const Accounts: React.FC = () => {
           </>
         )}
       </Modal>
+
+      {/* Cards Modal */}
+      <CardViewModal
+        visible={cardsModalVisible}
+        onClose={() => {
+          setCardsModalVisible(false);
+          setCardsAccount(null);
+        }}
+        accountSysId={cardsAccount?.sysId ?? 0}
+        accountName={cardsAccount?.name ?? ''}
+      />
     </div>
   );
 };
