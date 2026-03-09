@@ -960,9 +960,13 @@ const Accounts: React.FC = () => {
               size="small"
               autoFocus
               open
+              allowClear
               defaultValue={account.dueDate ? dayjs(account.dueDate) : undefined}
               format="MM/DD/YYYY"
-              onChange={(date) => handleInlineUpdate(account.sysId, 'dueDate', date)}
+              onChange={(date) => {
+                handleInlineUpdate(account.sysId, 'dueDate', date);
+                setEditingCell(null);
+              }}
               onOpenChange={(open) => {
                 if (!open) setEditingCell(null);
               }}
@@ -1783,7 +1787,7 @@ const Accounts: React.FC = () => {
                 label="Due Date"
                 style={{ width: 150, marginBottom: 0 }}
               >
-                <DatePicker style={{ width: '100%' }} />
+                <DatePicker style={{ width: '100%' }} allowClear />
               </Form.Item>
 
               <Form.Item
