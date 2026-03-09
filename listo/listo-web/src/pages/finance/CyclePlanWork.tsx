@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Button,
   Space,
@@ -22,6 +22,7 @@ import {
   DeleteOutlined,
   ReloadOutlined,
   ArrowLeftOutlined,
+  ExportOutlined,
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import api from '../../services/api';
@@ -83,6 +84,8 @@ const transactionStatusColors: Record<string, string> = {
 const CyclePlanWork: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const isPopout = searchParams.get('popout') === 'true';
   const [cyclePlan, setCyclePlan] = useState<CyclePlan | null>(null);
   const [transactions, setTransactions] = useState<CycleTransaction[]>([]);
   const [loading, setLoading] = useState(false);
@@ -383,14 +386,16 @@ const CyclePlanWork: React.FC = () => {
     >
       {/* Header */}
       <div style={{ marginBottom: 16 }}>
-        <Button
-          type="text"
-          icon={<ArrowLeftOutlined />}
-          onClick={() => navigate('/finance/cycleplans')}
-          style={{ marginBottom: 8 }}
-        >
-          Back to Cycle Plans
-        </Button>
+        {!isPopout && (
+          <Button
+            type="text"
+            icon={<ArrowLeftOutlined />}
+            onClick={() => navigate('/finance/cycleplans')}
+            style={{ marginBottom: 8 }}
+          >
+            Back to Cycle Plans
+          </Button>
+        )}
         <Card size="small">
           <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
             <div>
@@ -547,6 +552,19 @@ const CyclePlanWork: React.FC = () => {
             onClick={fetchTransactions}
           />
         </Tooltip>
+        {!isPopout && (
+          <>
+            <div style={{ borderLeft: '1px solid #d9d9d9', height: 16, margin: '0 8px' }} />
+            <Tooltip title="Open in New Window">
+              <Button
+                type="text"
+                size="small"
+                icon={<ExportOutlined />}
+                onClick={() => window.open(`${window.location.pathname}?popout=true`, '_blank')}
+              />
+            </Tooltip>
+          </>
+        )}
         <div style={{ flex: 1 }} />
         {selectedRowKeys.length > 0 && (
           <span style={{ color: '#8c8c8c', fontSize: 12 }}>

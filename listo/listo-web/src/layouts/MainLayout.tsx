@@ -11,7 +11,7 @@ import {
   ToolOutlined,
   RocketOutlined,
 } from '@ant-design/icons';
-import { Outlet, useNavigate, useLocation } from 'react-router-dom';
+import { Outlet, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import type { MenuProps } from 'antd';
 
@@ -25,6 +25,8 @@ const MainLayout: React.FC = () => {
   const [collapsed, setCollapsed] = useState(user?.sidebarCollapsed ?? true);
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
+  const isPopout = searchParams.get('popout') === 'true';
   const [apiVersion, setApiVersion] = useState<string>('');
   const [openKeys, setOpenKeys] = useState<string[]>(() => {
     if (location.pathname.startsWith('/finance')) return ['/finance'];
@@ -156,6 +158,17 @@ const MainLayout: React.FC = () => {
       },
     },
   ];
+
+  // Popout mode: render content without sidebar/header
+  if (isPopout) {
+    return (
+      <Layout style={{ minHeight: '100vh', background: '#fff' }}>
+        <Content style={{ margin: 24, padding: 24, background: '#fff' }}>
+          <Outlet />
+        </Content>
+      </Layout>
+    );
+  }
 
   return (
     <Layout style={{ minHeight: '100vh' }}>
