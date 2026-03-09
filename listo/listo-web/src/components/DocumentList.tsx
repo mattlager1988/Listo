@@ -426,7 +426,7 @@ const DocumentList: React.FC<DocumentListProps> = ({
               },
               onDoubleClick: () => {
                 if (clickTimer) clearTimeout(clickTimer);
-                openEditModal(record);
+                handleView(record);
               },
               style: { cursor: 'pointer' },
             };
