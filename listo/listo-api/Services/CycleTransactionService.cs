@@ -27,8 +27,7 @@ public class CycleTransactionService : ICycleTransactionService
     {
         var transactions = await _context.CycleTransactions
             .Where(t => t.CyclePlanSysId == cyclePlanSysId)
-            .OrderByDescending(t => t.TransactionDate)
-            .ThenByDescending(t => t.CreateTimestamp)
+            .OrderByDescending(t => t.CreateTimestamp)
             .ToListAsync();
 
         return transactions.Select(MapToResponse);
@@ -42,13 +41,21 @@ public class CycleTransactionService : ICycleTransactionService
 
     public async Task<CycleTransactionResponse> CreateAsync(CreateCycleTransactionRequest request)
     {
+        if (!Enum.TryParse<CycleTransactionType>(request.TransactionType, out var transactionType))
+            transactionType = CycleTransactionType.Credit;
+
+        var status = CycleTransactionStatus.Estimated;
+        if (request.Status != null && Enum.TryParse<CycleTransactionStatus>(request.Status, out var parsedStatus))
+            status = parsedStatus;
+
         var transaction = new CycleTransaction
         {
             CyclePlanSysId = request.CyclePlanSysId,
-            AmountIn = request.AmountIn,
-            AmountOut = request.AmountOut,
-            Description = request.Description,
-            TransactionDate = request.TransactionDate
+            Name = request.Name,
+            Amount = request.Amount,
+            TransactionType = transactionType,
+            Status = status,
+            Notes = request.Notes
         };
 
         _context.CycleTransactions.Add(transaction);
@@ -62,10 +69,17 @@ public class CycleTransactionService : ICycleTransactionService
         var transaction = await _context.CycleTransactions.FindAsync(id);
         if (transaction == null) return null;
 
-        if (request.AmountIn.HasValue) transaction.AmountIn = request.AmountIn.Value;
-        if (request.AmountOut.HasValue) transaction.AmountOut = request.AmountOut.Value;
-        if (request.Description != null) transaction.Description = request.Description;
-        if (request.TransactionDate.HasValue) transaction.TransactionDate = request.TransactionDate.Value;
+        if (request.Name != null) transaction.Name = request.Name;
+        if (request.Amount.HasValue) transaction.Amount = request.Amount.Value;
+        if (request.TransactionType != null && Enum.TryParse<CycleTransactionType>(request.TransactionType, out var transactionType))
+        {
+            transaction.TransactionType = transactionType;
+        }
+        if (request.Status != null && Enum.TryParse<CycleTransactionStatus>(request.Status, out var status))
+        {
+            transaction.Status = status;
+        }
+        if (request.Notes != null) transaction.Notes = request.Notes;
 
         await _context.SaveChangesAsync();
 
@@ -85,10 +99,11 @@ public class CycleTransactionService : ICycleTransactionService
     private static CycleTransactionResponse MapToResponse(CycleTransaction transaction) => new(
         transaction.SysId,
         transaction.CyclePlanSysId,
-        transaction.AmountIn,
-        transaction.AmountOut,
-        transaction.Description,
-        transaction.TransactionDate,
+        transaction.Name,
+        transaction.Amount,
+        transaction.TransactionType.ToString(),
+        transaction.Status.ToString(),
+        transaction.Notes,
         transaction.CreateTimestamp
     );
 }

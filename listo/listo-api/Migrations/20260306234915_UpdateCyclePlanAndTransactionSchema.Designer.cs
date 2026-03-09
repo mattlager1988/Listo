@@ -4,6 +4,7 @@ using Listo.Api.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Listo.Api.Migrations
 {
     [DbContext(typeof(ListoDbContext))]
-    partial class ListoDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260306234915_UpdateCyclePlanAndTransactionSchema")]
+    partial class UpdateCyclePlanAndTransactionSchema
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -531,16 +534,6 @@ namespace Listo.Api.Migrations
                     b.Property<string>("Notes")
                         .HasColumnType("longtext")
                         .HasColumnName("notes");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasColumnType("longtext")
-                        .HasColumnName("status");
-
-                    b.Property<string>("TransactionType")
-                        .IsRequired()
-                        .HasColumnType("longtext")
-                        .HasColumnName("transaction_type");
 
                     b.HasKey("SysId");
 
@@ -1302,7 +1295,7 @@ namespace Listo.Api.Migrations
             modelBuilder.Entity("Listo.Api.Models.CycleTransaction", b =>
                 {
                     b.HasOne("Listo.Api.Models.CyclePlan", "CyclePlan")
-                        .WithMany("CycleTransactions")
+                        .WithMany()
                         .HasForeignKey("CyclePlanSysId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -1455,11 +1448,6 @@ namespace Listo.Api.Migrations
             modelBuilder.Entity("Listo.Api.Models.CycleGoal", b =>
                 {
                     b.Navigation("CyclePlans");
-                });
-
-            modelBuilder.Entity("Listo.Api.Models.CyclePlan", b =>
-                {
-                    b.Navigation("CycleTransactions");
                 });
 
             modelBuilder.Entity("Listo.Api.Models.DocumentType", b =>

@@ -8,6 +8,7 @@ import {
   Modal,
   Form,
   Input,
+  InputNumber,
   Select,
   DatePicker,
   message,
@@ -36,6 +37,9 @@ interface CyclePlan {
   cycleGoalSysId: number;
   cycleGoalName: string;
   status: string;
+  amountIn: number;
+  amountOut: number;
+  balance: number;
   notes: string | null;
   isDiscontinued: boolean;
   discontinuedDate: string | null;
@@ -96,7 +100,7 @@ const CyclePlans: React.FC = () => {
   const handleCreate = () => {
     setEditingPlan(null);
     form.resetFields();
-    form.setFieldsValue({ status: 'Pending' });
+    form.setFieldsValue({ status: 'Pending', amountIn: 0, amountOut: 0 });
     setModalVisible(true);
   };
 
@@ -178,14 +182,14 @@ const CyclePlans: React.FC = () => {
     {
       title: 'Start Date',
       dataIndex: 'startDate',
-      render: (_, record) => record.startDate ? dayjs(record.startDate).format('MMM D, YYYY') : '-',
+      render: (_, record) => record.startDate ? dayjs(record.startDate).format('M/D/YYYY') : '-',
       sorter: (a, b) => dayjs(a.startDate).unix() - dayjs(b.startDate).unix(),
       defaultSortOrder: 'descend',
     },
     {
       title: 'End Date',
       dataIndex: 'endDate',
-      render: (_, record) => record.endDate ? dayjs(record.endDate).format('MMM D, YYYY') : '-',
+      render: (_, record) => record.endDate ? dayjs(record.endDate).format('M/D/YYYY') : '-',
       sorter: (a, b) => dayjs(a.endDate).unix() - dayjs(b.endDate).unix(),
     },
     {
@@ -194,6 +198,34 @@ const CyclePlans: React.FC = () => {
       sorter: (a, b) => a.cycleGoalName.localeCompare(b.cycleGoalName),
       filters: cycleGoals.map(g => ({ text: g.name, value: g.name })),
       onFilter: (value, record) => record.cycleGoalName === value,
+    },
+    {
+      title: 'Amount In',
+      dataIndex: 'amountIn',
+      width: 100,
+      align: 'right',
+      render: (_, record) => <Tag>${(record.amountIn ?? 0).toFixed(2)}</Tag>,
+      sorter: (a, b) => (a.amountIn ?? 0) - (b.amountIn ?? 0),
+    },
+    {
+      title: 'Amount Out',
+      dataIndex: 'amountOut',
+      width: 100,
+      align: 'right',
+      render: (_, record) => <Tag>${(record.amountOut ?? 0).toFixed(2)}</Tag>,
+      sorter: (a, b) => (a.amountOut ?? 0) - (b.amountOut ?? 0),
+    },
+    {
+      title: 'Balance',
+      dataIndex: 'balance',
+      width: 100,
+      align: 'right',
+      render: (_, record) => (
+        <Tag color={(record.balance ?? 0) >= 0 ? 'green' : 'red'}>
+          ${(record.balance ?? 0).toFixed(2)}
+        </Tag>
+      ),
+      sorter: (a, b) => (a.balance ?? 0) - (b.balance ?? 0),
     },
     {
       title: 'Status',
@@ -219,13 +251,13 @@ const CyclePlans: React.FC = () => {
       title: 'Start Date',
       dataIndex: 'startDate',
       key: 'startDate',
-      render: (date: string) => date ? dayjs(date).format('MMM D, YYYY') : '-',
+      render: (date: string) => date ? dayjs(date).format('M/D/YYYY') : '-',
     },
     {
       title: 'End Date',
       dataIndex: 'endDate',
       key: 'endDate',
-      render: (date: string) => date ? dayjs(date).format('MMM D, YYYY') : '-',
+      render: (date: string) => date ? dayjs(date).format('M/D/YYYY') : '-',
     },
     { title: 'Cycle Goal', dataIndex: 'cycleGoalName', key: 'cycleGoalName' },
     {
@@ -238,7 +270,7 @@ const CyclePlans: React.FC = () => {
       title: 'Discontinued',
       dataIndex: 'discontinuedDate',
       key: 'discontinuedDate',
-      render: (date: string) => date ? dayjs(date).format('MMM D, YYYY') : '-',
+      render: (date: string) => date ? dayjs(date).format('M/D/YYYY') : '-',
     },
     {
       title: 'Actions',
@@ -382,7 +414,7 @@ const CyclePlans: React.FC = () => {
             },
             onDoubleClick: () => {
               if (clickTimer) clearTimeout(clickTimer);
-              handleEdit(record);
+              navigate(`/finance/cycleplans/${record.sysId}`);
             },
             style: { cursor: 'pointer' },
           };
@@ -455,6 +487,36 @@ const CyclePlans: React.FC = () => {
                 style={{ width: 200, marginBottom: 0 }}
               >
                 <DatePicker style={{ width: '100%' }} />
+              </Form.Item>
+            </Space>
+
+            <Space style={{ width: '100%' }} size="middle">
+              <Form.Item
+                name="amountIn"
+                label="Amount In"
+                rules={[{ required: true, message: 'Amount In is required' }]}
+                style={{ width: 200, marginBottom: 0 }}
+              >
+                <InputNumber
+                  prefix="$"
+                  precision={2}
+                  min={0}
+                  style={{ width: '100%' }}
+                />
+              </Form.Item>
+
+              <Form.Item
+                name="amountOut"
+                label="Amount Out"
+                rules={[{ required: true, message: 'Amount Out is required' }]}
+                style={{ width: 200, marginBottom: 0 }}
+              >
+                <InputNumber
+                  prefix="$"
+                  precision={2}
+                  min={0}
+                  style={{ width: '100%' }}
+                />
               </Form.Item>
             </Space>
 

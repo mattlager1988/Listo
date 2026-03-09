@@ -7,9 +7,10 @@ import {
   Form,
   Input,
   InputNumber,
-  DatePicker,
+  Select,
   message,
   Popconfirm,
+  Popover,
   Table,
   Tooltip,
   Tag,
@@ -32,23 +33,33 @@ interface CyclePlan {
   cycleGoalSysId: number;
   cycleGoalName: string;
   status: string;
+  amountIn: number;
+  amountOut: number;
+  balance: number;
   notes: string | null;
 }
 
 interface CycleTransaction {
   sysId: number;
   cyclePlanSysId: number;
-  amountIn: number;
-  amountOut: number;
-  description: string | null;
-  transactionDate: string;
+  name: string;
+  amount: number;
+  transactionType: string;
+  status: string;
+  notes: string | null;
   createTimestamp: string;
 }
 
-const statusColors: Record<string, string> = {
+const cyclePlanStatusColors: Record<string, string> = {
   Pending: 'orange',
   Active: 'success',
   Completed: 'error',
+};
+
+const transactionStatusColors: Record<string, string> = {
+  Confirmed: 'green',
+  Planned: 'red',
+  Estimated: 'orange',
 };
 
 const CyclePlanWork: React.FC = () => {
@@ -61,6 +72,9 @@ const CyclePlanWork: React.FC = () => {
   const [modalVisible, setModalVisible] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<CycleTransaction | null>(null);
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
+  const [editingAmountField, setEditingAmountField] = useState<'amountIn' | 'amountOut' | null>(null);
+  const [editingAmountValue, setEditingAmountValue] = useState<number>(0);
+  const [editingStatusId, setEditingStatusId] = useState<number | null>(null);
   const [form] = Form.useForm();
 
   const fetchCyclePlan = useCallback(async () => {
@@ -95,13 +109,43 @@ const CyclePlanWork: React.FC = () => {
     fetchTransactions();
   }, [fetchCyclePlan, fetchTransactions]);
 
+  const handleAmountEdit = (field: 'amountIn' | 'amountOut') => {
+    if (!cyclePlan) return;
+    setEditingAmountField(field);
+    setEditingAmountValue(cyclePlan[field]);
+  };
+
+  const handleAmountSave = async () => {
+    if (!editingAmountField || !cyclePlan) return;
+    try {
+      await api.put(`/finance/cycleplans/${cyclePlan.sysId}`, {
+        [editingAmountField]: editingAmountValue,
+      });
+      setEditingAmountField(null);
+      fetchCyclePlan();
+    } catch {
+      message.error('Failed to update amount');
+    }
+  };
+
+  const handleStatusChange = async (transactionId: number, newStatus: string) => {
+    try {
+      await api.put(`/finance/cycletransactions/${transactionId}`, { status: newStatus });
+      setEditingStatusId(null);
+      fetchTransactions();
+      fetchCyclePlan();
+    } catch {
+      message.error('Failed to update status');
+    }
+  };
+
   const handleCreate = () => {
     setEditingTransaction(null);
     form.resetFields();
     form.setFieldsValue({
-      transactionDate: dayjs(),
-      amountIn: 0,
-      amountOut: 0,
+      amount: 0,
+      transactionType: 'Credit',
+      status: 'Estimated',
     });
     setModalVisible(true);
   };
@@ -109,8 +153,11 @@ const CyclePlanWork: React.FC = () => {
   const handleEdit = (transaction: CycleTransaction) => {
     setEditingTransaction(transaction);
     form.setFieldsValue({
-      ...transaction,
-      transactionDate: transaction.transactionDate ? dayjs(transaction.transactionDate) : null,
+      name: transaction.name,
+      amount: transaction.amount,
+      transactionType: transaction.transactionType,
+      status: transaction.status,
+      notes: transaction.notes,
     });
     setModalVisible(true);
     setSelectedRowKeys([]);
@@ -121,7 +168,6 @@ const CyclePlanWork: React.FC = () => {
       const payload = {
         ...values,
         cyclePlanSysId: Number(id),
-        transactionDate: values.transactionDate ? (values.transactionDate as dayjs.Dayjs).format('YYYY-MM-DD') : null,
       };
 
       if (editingTransaction) {
@@ -134,6 +180,7 @@ const CyclePlanWork: React.FC = () => {
       setModalVisible(false);
       setSelectedRowKeys([]);
       fetchTransactions();
+      fetchCyclePlan();
     } catch (err: unknown) {
       const error = err as { response?: { data?: { message?: string } } };
       message.error(error.response?.data?.message || 'Operation failed');
@@ -143,53 +190,78 @@ const CyclePlanWork: React.FC = () => {
   const handleBulkDelete = async () => {
     try {
       await Promise.all(selectedRowKeys.map(sysId => api.delete(`/finance/cycletransactions/${sysId}`)));
-      message.success(`${selectedRowKeys.length} transaction${selectedRowKeys.length > 1 ? 's' : ''} deleted`);
+      message.success(`${selectedRowKeys.length} item${selectedRowKeys.length > 1 ? 's' : ''} deleted`);
       setSelectedRowKeys([]);
       fetchTransactions();
+      fetchCyclePlan();
     } catch {
-      message.error('Failed to delete transactions');
+      message.error('Failed to delete items');
     }
   };
 
-  const totalIn = transactions.reduce((sum, t) => sum + t.amountIn, 0);
-  const totalOut = transactions.reduce((sum, t) => sum + t.amountOut, 0);
-  const balance = totalIn - totalOut;
+  const amountIn = cyclePlan?.amountIn ?? 0;
+  const amountOut = cyclePlan?.amountOut ?? 0;
+  const balance = cyclePlan?.balance ?? 0;
 
   const columns = [
     {
-      title: 'Date',
-      dataIndex: 'transactionDate',
-      key: 'transactionDate',
-      width: 120,
-      render: (date: string) => date ? dayjs(date).format('MMM D, YYYY') : '-',
-      sorter: (a: CycleTransaction, b: CycleTransaction) =>
-        dayjs(a.transactionDate).unix() - dayjs(b.transactionDate).unix(),
-      defaultSortOrder: 'descend' as const,
+      title: 'Name',
+      dataIndex: 'name',
+      key: 'name',
+      width: 180,
+      sorter: (a: CycleTransaction, b: CycleTransaction) => a.name.localeCompare(b.name),
     },
     {
-      title: 'Amount In',
-      dataIndex: 'amountIn',
-      key: 'amountIn',
+      title: 'Status',
+      dataIndex: 'status',
+      key: 'status',
+      width: 110,
+      render: (status: string, record: CycleTransaction) => (
+        <Popover
+          trigger="click"
+          open={editingStatusId === record.sysId}
+          onOpenChange={(open) => setEditingStatusId(open ? record.sysId : null)}
+          content={
+            <Select
+              size="small"
+              value={status}
+              style={{ width: 110 }}
+              onChange={(value) => handleStatusChange(record.sysId, value)}
+              autoFocus
+            >
+              <Select.Option value="Confirmed">Confirmed</Select.Option>
+              <Select.Option value="Planned">Planned</Select.Option>
+              <Select.Option value="Estimated">Estimated</Select.Option>
+            </Select>
+          }
+        >
+          <Tag color={transactionStatusColors[status]} style={{ cursor: 'pointer' }}>{status}</Tag>
+        </Popover>
+      ),
+      filters: [
+        { text: 'Confirmed', value: 'Confirmed' },
+        { text: 'Planned', value: 'Planned' },
+        { text: 'Estimated', value: 'Estimated' },
+      ],
+      onFilter: (value: React.Key | boolean, record: CycleTransaction) => record.status === value,
+    },
+    {
+      title: 'Amount',
+      dataIndex: 'amount',
+      key: 'amount',
       width: 120,
       align: 'right' as const,
-      render: (amount: number) => amount > 0 ? (
-        <span style={{ color: '#52c41a' }}>${amount.toFixed(2)}</span>
-      ) : '-',
+      render: (_: number, record: CycleTransaction) => (
+        <Tag color={record.transactionType === 'Credit' ? 'green' : 'red'}>
+          {record.transactionType === 'Debit' ? '-' : ''}${record.amount.toFixed(2)}
+        </Tag>
+      ),
+      sorter: (a: CycleTransaction, b: CycleTransaction) => a.amount - b.amount,
     },
     {
-      title: 'Amount Out',
-      dataIndex: 'amountOut',
-      key: 'amountOut',
-      width: 120,
-      align: 'right' as const,
-      render: (amount: number) => amount > 0 ? (
-        <span style={{ color: '#ff4d4f' }}>${amount.toFixed(2)}</span>
-      ) : '-',
-    },
-    {
-      title: 'Description',
-      dataIndex: 'description',
-      key: 'description',
+      title: 'Notes',
+      dataIndex: 'notes',
+      key: 'notes',
       ellipsis: true,
     },
   ];
@@ -228,22 +300,76 @@ const CyclePlanWork: React.FC = () => {
             </div>
             <div>
               <div style={{ fontSize: 12, color: '#8c8c8c' }}>Period</div>
-              <div>{dayjs(cyclePlan.startDate).format('MMM D, YYYY')} - {dayjs(cyclePlan.endDate).format('MMM D, YYYY')}</div>
+              <div>{dayjs(cyclePlan.startDate).format('M/D/YYYY')} - {dayjs(cyclePlan.endDate).format('M/D/YYYY')}</div>
             </div>
             <div>
               <div style={{ fontSize: 12, color: '#8c8c8c' }}>Status</div>
-              <Tag color={statusColors[cyclePlan.status]}>{cyclePlan.status}</Tag>
+              <Tag color={cyclePlanStatusColors[cyclePlan.status]}>{cyclePlan.status}</Tag>
             </div>
             <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
               <div style={{ display: 'flex', gap: 24 }}>
-                <div>
-                  <div style={{ fontSize: 12, color: '#8c8c8c' }}>Total In</div>
-                  <div style={{ fontSize: 18, fontWeight: 600, color: '#52c41a' }}>${totalIn.toFixed(2)}</div>
-                </div>
-                <div>
-                  <div style={{ fontSize: 12, color: '#8c8c8c' }}>Total Out</div>
-                  <div style={{ fontSize: 18, fontWeight: 600, color: '#ff4d4f' }}>${totalOut.toFixed(2)}</div>
-                </div>
+                <Popover
+                  trigger="click"
+                  open={editingAmountField === 'amountIn'}
+                  onOpenChange={(open) => {
+                    if (open) handleAmountEdit('amountIn');
+                    else setEditingAmountField(null);
+                  }}
+                  content={
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <InputNumber
+                        size="small"
+                        prefix="$"
+                        precision={2}
+                        min={0}
+                        value={editingAmountValue}
+                        onChange={(v) => setEditingAmountValue(v ?? 0)}
+                        style={{ width: 120 }}
+                        autoFocus
+                        onPressEnter={handleAmountSave}
+                      />
+                      <Button size="small" type="primary" onClick={handleAmountSave}>Save</Button>
+                    </div>
+                  }
+                >
+                  <div style={{ cursor: 'pointer' }}>
+                    <div style={{ fontSize: 12, color: '#8c8c8c' }}>Amount In</div>
+                    <Tooltip title="Click to edit">
+                      <div style={{ fontSize: 18, fontWeight: 600, color: '#52c41a' }}>${amountIn.toFixed(2)}</div>
+                    </Tooltip>
+                  </div>
+                </Popover>
+                <Popover
+                  trigger="click"
+                  open={editingAmountField === 'amountOut'}
+                  onOpenChange={(open) => {
+                    if (open) handleAmountEdit('amountOut');
+                    else setEditingAmountField(null);
+                  }}
+                  content={
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <InputNumber
+                        size="small"
+                        prefix="$"
+                        precision={2}
+                        min={0}
+                        value={editingAmountValue}
+                        onChange={(v) => setEditingAmountValue(v ?? 0)}
+                        style={{ width: 120 }}
+                        autoFocus
+                        onPressEnter={handleAmountSave}
+                      />
+                      <Button size="small" type="primary" onClick={handleAmountSave}>Save</Button>
+                    </div>
+                  }
+                >
+                  <div style={{ cursor: 'pointer' }}>
+                    <div style={{ fontSize: 12, color: '#8c8c8c' }}>Amount Out</div>
+                    <Tooltip title="Click to edit">
+                      <div style={{ fontSize: 18, fontWeight: 600, color: '#ff4d4f' }}>${amountOut.toFixed(2)}</div>
+                    </Tooltip>
+                  </div>
+                </Popover>
                 <div>
                   <div style={{ fontSize: 12, color: '#8c8c8c' }}>Balance</div>
                   <div style={{ fontSize: 18, fontWeight: 600, color: balance >= 0 ? '#52c41a' : '#ff4d4f' }}>
@@ -253,6 +379,12 @@ const CyclePlanWork: React.FC = () => {
               </div>
             </div>
           </div>
+          {cyclePlan.notes && (
+            <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid #f0f0f0' }}>
+              <div style={{ fontSize: 12, color: '#8c8c8c', marginBottom: 4 }}>Notes</div>
+              <div style={{ color: '#595959' }}>{cyclePlan.notes}</div>
+            </div>
+          )}
         </Card>
       </div>
 
@@ -270,7 +402,7 @@ const CyclePlanWork: React.FC = () => {
           flexShrink: 0,
         }}
       >
-        <Tooltip title="Add Transaction">
+        <Tooltip title="Add Item">
           <Button
             type="text"
             size="small"
@@ -293,7 +425,7 @@ const CyclePlanWork: React.FC = () => {
         <div style={{ borderLeft: '1px solid #d9d9d9', height: 16, margin: '0 8px' }} />
         <Tooltip title="Delete">
           <Popconfirm
-            title={`Delete ${selectedRowKeys.length} transaction${selectedRowKeys.length > 1 ? 's' : ''}?`}
+            title={`Delete ${selectedRowKeys.length} item${selectedRowKeys.length > 1 ? 's' : ''}?`}
             description="This action cannot be undone."
             onConfirm={handleBulkDelete}
             disabled={selectedRowKeys.length === 0}
@@ -357,11 +489,11 @@ const CyclePlanWork: React.FC = () => {
 
       {/* Create/Edit Modal */}
       <Modal
-        title={editingTransaction ? 'Edit Transaction' : 'Add Transaction'}
+        title={editingTransaction ? 'Edit Item' : 'Add Item'}
         open={modalVisible}
         onCancel={() => setModalVisible(false)}
         footer={null}
-        width={450}
+        width={520}
       >
         <Form
           form={form}
@@ -373,20 +505,20 @@ const CyclePlanWork: React.FC = () => {
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             <Form.Item
-              name="transactionDate"
-              label="Date"
-              rules={[{ required: true, message: 'Date is required' }]}
+              name="name"
+              label="Name"
+              rules={[{ required: true, message: 'Name is required' }]}
               style={{ marginBottom: 0 }}
             >
-              <DatePicker style={{ width: '100%' }} />
+              <Input />
             </Form.Item>
 
             <Space style={{ width: '100%' }} size="middle">
               <Form.Item
-                name="amountIn"
-                label="Amount In"
-                rules={[{ required: true, message: 'Amount In is required' }]}
-                style={{ width: 180, marginBottom: 0 }}
+                name="amount"
+                label="Amount"
+                rules={[{ required: true, message: 'Amount is required' }]}
+                style={{ width: 200, marginBottom: 0 }}
               >
                 <InputNumber
                   prefix="$"
@@ -397,22 +529,33 @@ const CyclePlanWork: React.FC = () => {
               </Form.Item>
 
               <Form.Item
-                name="amountOut"
-                label="Amount Out"
-                rules={[{ required: true, message: 'Amount Out is required' }]}
-                style={{ width: 180, marginBottom: 0 }}
+                name="transactionType"
+                label="Type"
+                rules={[{ required: true, message: 'Type is required' }]}
+                style={{ width: 100, marginBottom: 0 }}
               >
-                <InputNumber
-                  prefix="$"
-                  precision={2}
-                  min={0}
-                  style={{ width: '100%' }}
-                />
+                <Select>
+                  <Select.Option value="Credit">Credit</Select.Option>
+                  <Select.Option value="Debit">Debit</Select.Option>
+                </Select>
+              </Form.Item>
+
+              <Form.Item
+                name="status"
+                label="Status"
+                rules={[{ required: true, message: 'Status is required' }]}
+                style={{ width: 110, marginBottom: 0 }}
+              >
+                <Select>
+                  <Select.Option value="Confirmed">Confirmed</Select.Option>
+                  <Select.Option value="Planned">Planned</Select.Option>
+                  <Select.Option value="Estimated">Estimated</Select.Option>
+                </Select>
               </Form.Item>
             </Space>
 
-            <Form.Item name="description" label="Description" style={{ marginBottom: 0 }}>
-              <Input />
+            <Form.Item name="notes" label="Notes" style={{ marginBottom: 0 }}>
+              <Input.TextArea rows={2} />
             </Form.Item>
 
             <Form.Item style={{ marginBottom: 0, marginTop: 12 }}>

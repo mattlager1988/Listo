@@ -29,6 +29,7 @@ public class CyclePlanService : ICyclePlanService
     {
         var plans = await _context.CyclePlans
             .Include(p => p.CycleGoal)
+            .Include(p => p.CycleTransactions)
             .Where(p => !p.IsDiscontinued)
             .OrderByDescending(p => p.StartDate)
             .ToListAsync();
@@ -40,6 +41,7 @@ public class CyclePlanService : ICyclePlanService
     {
         var plans = await _context.CyclePlans
             .Include(p => p.CycleGoal)
+            .Include(p => p.CycleTransactions)
             .Where(p => p.IsDiscontinued)
             .OrderByDescending(p => p.DiscontinuedDate)
             .ToListAsync();
@@ -51,6 +53,7 @@ public class CyclePlanService : ICyclePlanService
     {
         var plan = await _context.CyclePlans
             .Include(p => p.CycleGoal)
+            .Include(p => p.CycleTransactions)
             .FirstOrDefaultAsync(p => p.SysId == id);
 
         return plan == null ? null : MapToResponse(plan);
@@ -67,6 +70,8 @@ public class CyclePlanService : ICyclePlanService
             EndDate = request.EndDate,
             CycleGoalSysId = request.CycleGoalSysId,
             Status = status,
+            AmountIn = request.AmountIn,
+            AmountOut = request.AmountOut,
             Notes = request.Notes
         };
 
@@ -74,6 +79,7 @@ public class CyclePlanService : ICyclePlanService
         await _context.SaveChangesAsync();
 
         await _context.Entry(plan).Reference(p => p.CycleGoal).LoadAsync();
+        await _context.Entry(plan).Collection(p => p.CycleTransactions).LoadAsync();
 
         return MapToResponse(plan);
     }
@@ -82,6 +88,7 @@ public class CyclePlanService : ICyclePlanService
     {
         var plan = await _context.CyclePlans
             .Include(p => p.CycleGoal)
+            .Include(p => p.CycleTransactions)
             .FirstOrDefaultAsync(p => p.SysId == id);
 
         if (plan == null) return null;
@@ -93,11 +100,14 @@ public class CyclePlanService : ICyclePlanService
         {
             plan.Status = status;
         }
+        if (request.AmountIn.HasValue) plan.AmountIn = request.AmountIn.Value;
+        if (request.AmountOut.HasValue) plan.AmountOut = request.AmountOut.Value;
         if (request.Notes != null) plan.Notes = request.Notes;
 
         await _context.SaveChangesAsync();
 
         await _context.Entry(plan).Reference(p => p.CycleGoal).LoadAsync();
+        await _context.Entry(plan).Collection(p => p.CycleTransactions).LoadAsync();
 
         return MapToResponse(plan);
     }
@@ -117,6 +127,7 @@ public class CyclePlanService : ICyclePlanService
     {
         var plan = await _context.CyclePlans
             .Include(p => p.CycleGoal)
+            .Include(p => p.CycleTransactions)
             .FirstOrDefaultAsync(p => p.SysId == id);
 
         if (plan == null) return null;
@@ -128,15 +139,25 @@ public class CyclePlanService : ICyclePlanService
         return MapToResponse(plan);
     }
 
-    private static CyclePlanResponse MapToResponse(CyclePlan plan) => new(
-        plan.SysId,
-        plan.StartDate,
-        plan.EndDate,
-        plan.CycleGoalSysId,
-        plan.CycleGoal.Name,
-        plan.Status.ToString(),
-        plan.Notes,
-        plan.IsDiscontinued,
-        plan.DiscontinuedDate
-    );
+    private static CyclePlanResponse MapToResponse(CyclePlan plan)
+    {
+        var transactionsTotal = plan.CycleTransactions?.Sum(t =>
+            t.TransactionType == CycleTransactionType.Credit ? t.Amount : -t.Amount) ?? 0;
+        var balance = plan.AmountIn + transactionsTotal - plan.AmountOut;
+
+        return new CyclePlanResponse(
+            plan.SysId,
+            plan.StartDate,
+            plan.EndDate,
+            plan.CycleGoalSysId,
+            plan.CycleGoal.Name,
+            plan.Status.ToString(),
+            plan.AmountIn,
+            plan.AmountOut,
+            balance,
+            plan.Notes,
+            plan.IsDiscontinued,
+            plan.DiscontinuedDate
+        );
+    }
 }

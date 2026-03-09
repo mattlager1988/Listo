@@ -13,9 +13,12 @@ public class CyclePlan : BaseEntity
     public DateTime EndDate { get; set; }
     public long CycleGoalSysId { get; set; }
     public CyclePlanStatus Status { get; set; } = CyclePlanStatus.Pending;
+    public decimal AmountIn { get; set; }
+    public decimal AmountOut { get; set; }
     public string? Notes { get; set; }
     public bool IsDiscontinued { get; set; } = false;
     public DateTime? DiscontinuedDate { get; set; }
 
     public CycleGoal CycleGoal { get; set; } = null!;
+    public ICollection<CycleTransaction> CycleTransactions { get; set; } = new List<CycleTransaction>();
 }

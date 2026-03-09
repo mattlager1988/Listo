@@ -228,6 +228,9 @@ public record CyclePlanResponse(
     long CycleGoalSysId,
     string CycleGoalName,
     string Status,
+    decimal AmountIn,
+    decimal AmountOut,
+    decimal Balance,
     string? Notes,
     bool IsDiscontinued,
     DateTime? DiscontinuedDate
@@ -238,6 +241,8 @@ public record CreateCyclePlanRequest(
     DateTime EndDate,
     long CycleGoalSysId,
     string Status,
+    decimal AmountIn,
+    decimal AmountOut,
     string? Notes
 );
 
@@ -246,6 +251,8 @@ public record UpdateCyclePlanRequest(
     DateTime? EndDate,
     long? CycleGoalSysId,
     string? Status,
+    decimal? AmountIn,
+    decimal? AmountOut,
     string? Notes
 );
 
@@ -253,24 +260,27 @@ public record UpdateCyclePlanRequest(
 public record CycleTransactionResponse(
     long SysId,
     long CyclePlanSysId,
-    decimal AmountIn,
-    decimal AmountOut,
-    string? Description,
-    DateTime TransactionDate,
+    string Name,
+    decimal Amount,
+    string TransactionType,
+    string Status,
+    string? Notes,
     DateTime CreateTimestamp
 );
 
 public record CreateCycleTransactionRequest(
     long CyclePlanSysId,
-    decimal AmountIn,
-    decimal AmountOut,
-    string? Description,
-    DateTime TransactionDate
+    string Name,
+    decimal Amount,
+    string TransactionType,
+    string? Status,
+    string? Notes
 );
 
 public record UpdateCycleTransactionRequest(
-    decimal? AmountIn,
-    decimal? AmountOut,
-    string? Description,
-    DateTime? TransactionDate
+    string? Name,
+    decimal? Amount,
+    string? TransactionType,
+    string? Status,
+    string? Notes
 );

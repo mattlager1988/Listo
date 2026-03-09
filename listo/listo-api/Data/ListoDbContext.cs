@@ -437,6 +437,8 @@ public class ListoDbContext : DbContext
             entity.Property(e => e.EndDate).HasColumnName("end_date");
             entity.Property(e => e.CycleGoalSysId).HasColumnName("cycle_goal_sys_id");
             entity.Property(e => e.Status).HasColumnName("status").HasConversion<string>();
+            entity.Property(e => e.AmountIn).HasColumnName("amount_in").HasPrecision(18, 2);
+            entity.Property(e => e.AmountOut).HasColumnName("amount_out").HasPrecision(18, 2);
             entity.Property(e => e.Notes).HasColumnName("notes").HasColumnType("text");
             entity.Property(e => e.IsDiscontinued).HasColumnName("is_discontinued");
             entity.Property(e => e.DiscontinuedDate).HasColumnName("discontinued_date");
@@ -459,21 +461,21 @@ public class ListoDbContext : DbContext
             entity.HasKey(e => e.SysId);
             entity.Property(e => e.SysId).HasColumnName("sys_id");
             entity.Property(e => e.CyclePlanSysId).HasColumnName("cycle_plan_sys_id");
-            entity.Property(e => e.AmountIn).HasColumnName("amount_in").HasPrecision(18, 2);
-            entity.Property(e => e.AmountOut).HasColumnName("amount_out").HasPrecision(18, 2);
-            entity.Property(e => e.Description).HasColumnName("description");
-            entity.Property(e => e.TransactionDate).HasColumnName("transaction_date");
+            entity.Property(e => e.Name).HasColumnName("name").HasMaxLength(255);
+            entity.Property(e => e.Amount).HasColumnName("amount").HasPrecision(18, 2);
+            entity.Property(e => e.TransactionType).HasColumnName("transaction_type").HasConversion<string>();
+            entity.Property(e => e.Status).HasColumnName("status").HasConversion<string>();
+            entity.Property(e => e.Notes).HasColumnName("notes");
             entity.Property(e => e.CreateTimestamp).HasColumnName("create_timestamp");
             entity.Property(e => e.ModifyTimestamp).HasColumnName("modify_timestamp");
             entity.Property(e => e.CreateUser).HasColumnName("create_user");
             entity.Property(e => e.ModifyUser).HasColumnName("modify_user");
 
             entity.HasOne(e => e.CyclePlan)
-                .WithMany()
+                .WithMany(p => p.CycleTransactions)
                 .HasForeignKey(e => e.CyclePlanSysId);
 
             entity.HasIndex(e => e.CyclePlanSysId);
-            entity.HasIndex(e => e.TransactionDate);
         });
     }
 
