@@ -86,7 +86,7 @@ const CardViewModal: React.FC<CardViewModalProps> = ({
       const response = await api.get(`/finance/accounts/${accountSysId}/cards/${cardSysId}/image/${side}`, {
         responseType: 'blob',
       });
-      const url = URL.createObjectURL(new Blob([response.data]));
+      const url = URL.createObjectURL(response.data);
       if (side === 'front') {
         setCardFrontImages(prev => ({ ...prev, [cardSysId]: url }));
       } else {
