@@ -9,7 +9,8 @@ public record UserResponse(
     string Role,
     bool MfaEnabled,
     bool IsActive,
-    DateTime? LastLoginAt
+    DateTime? LastLoginAt,
+    bool SidebarCollapsed
 );
 
 public record CreateUserRequest(
@@ -33,7 +34,8 @@ public record UpdateUserRequest(
 public record UpdateProfileRequest(
     string? FirstName,
     string? LastName,
-    string? PhoneNumber
+    string? PhoneNumber,
+    bool? SidebarCollapsed
 );
 
 public record ChangePasswordRequest(

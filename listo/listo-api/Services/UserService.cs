@@ -124,6 +124,7 @@ public class UserService : IUserService
         if (request.FirstName != null) user.FirstName = request.FirstName;
         if (request.LastName != null) user.LastName = request.LastName;
         if (request.PhoneNumber != null) user.PhoneNumber = request.PhoneNumber;
+        if (request.SidebarCollapsed.HasValue) user.SidebarCollapsed = request.SidebarCollapsed.Value;
 
         await _context.SaveChangesAsync();
         return MapToResponse(user);
@@ -170,6 +171,7 @@ public class UserService : IUserService
         user.Role,
         user.MfaEnabled,
         user.IsActive,
-        user.LastLoginAt
+        user.LastLoginAt,
+        user.SidebarCollapsed
     );
 }

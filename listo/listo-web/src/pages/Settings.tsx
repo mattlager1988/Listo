@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Typography, Card, Button, Modal, Form, Input, message, Alert, Space, Tag } from 'antd';
-import { SafetyOutlined, CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons';
+import { Typography, Card, Button, Modal, Form, Input, message, Alert, Space, Tag, Switch } from 'antd';
+import { SafetyOutlined, CheckCircleOutlined, CloseCircleOutlined, LayoutOutlined } from '@ant-design/icons';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../services/api';
 import PageHeader from '../components/PageHeader';
@@ -13,6 +13,20 @@ const Settings: React.FC = () => {
   const [qrCode, setQrCode] = useState<string | null>(null);
   const [manualKey, setManualKey] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [savingPreference, setSavingPreference] = useState(false);
+
+  const handleSidebarPreferenceChange = async (collapsed: boolean) => {
+    setSavingPreference(true);
+    try {
+      await api.put('/users/me', { sidebarCollapsed: collapsed });
+      await refreshUser();
+      message.success('Preference saved');
+    } catch {
+      message.error('Failed to save preference');
+    } finally {
+      setSavingPreference(false);
+    }
+  };
 
   const handleSetupMfa = async () => {
     setLoading(true);
@@ -48,6 +62,28 @@ const Settings: React.FC = () => {
   return (
     <div>
       <PageHeader title="Settings" />
+
+      <Card title="Preferences" style={{ marginBottom: 24 }}>
+        <Space direction="vertical" size="large" style={{ width: '100%' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Space>
+              <LayoutOutlined style={{ fontSize: 24, color: '#1890ff' }} />
+              <div>
+                <Text strong>Sidebar Collapsed by Default</Text>
+                <br />
+                <Text type="secondary">
+                  Start with the sidebar collapsed when you log in
+                </Text>
+              </div>
+            </Space>
+            <Switch
+              checked={user?.sidebarCollapsed ?? true}
+              onChange={handleSidebarPreferenceChange}
+              loading={savingPreference}
+            />
+          </div>
+        </Space>
+      </Card>
 
       <Card title="Security" style={{ marginBottom: 24 }}>
         <Space direction="vertical" size="large" style={{ width: '100%' }}>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Layout, Menu, Dropdown, Avatar, Space, Typography } from 'antd';
 import {
   MenuFoldOutlined,
@@ -19,8 +19,8 @@ const { Header, Sider, Content } = Layout;
 const { Text } = Typography;
 
 const MainLayout: React.FC = () => {
-  const [collapsed, setCollapsed] = useState(true);
   const { user, logout } = useAuth();
+  const [collapsed, setCollapsed] = useState(user?.sidebarCollapsed ?? true);
   const navigate = useNavigate();
   const location = useLocation();
   const [version, setVersion] = useState<string>('');
@@ -49,6 +49,15 @@ const MainLayout: React.FC = () => {
       .then(data => setVersion(data.version))
       .catch(() => {});
   }, []);
+
+  // Sync collapsed state when user preference loads/changes
+  const initialLoadRef = useRef(true);
+  useEffect(() => {
+    if (user && initialLoadRef.current) {
+      setCollapsed(user.sidebarCollapsed);
+      initialLoadRef.current = false;
+    }
+  }, [user]);
 
   const menuItems = [
     {

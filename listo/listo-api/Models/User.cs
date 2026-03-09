@@ -12,6 +12,7 @@ public class User : BaseEntity
     public string? MfaSecret { get; set; }
     public bool IsActive { get; set; } = true;
     public DateTime? LastLoginAt { get; set; }
+    public bool SidebarCollapsed { get; set; } = true;
 
     public ICollection<RefreshToken> RefreshTokens { get; set; } = new List<RefreshToken>();
 }

@@ -9,6 +9,7 @@ interface User {
   phoneNumber?: string;
   role: string;
   mfaEnabled: boolean;
+  sidebarCollapsed: boolean;
 }
 
 interface AuthContextType {
