@@ -111,7 +111,7 @@ public class AccountService : IAccountService
         if (request.AccountTypeSysId.HasValue) account.AccountTypeSysId = request.AccountTypeSysId.Value;
         if (request.AccountOwnerSysId.HasValue) account.AccountOwnerSysId = request.AccountOwnerSysId.Value;
         if (request.AmountDue.HasValue) account.AmountDue = request.AmountDue.Value;
-        if (request.DueDate.HasValue) account.DueDate = request.DueDate.Value;
+        account.DueDate = request.DueDate;
         if (request.AccountNumber != null) account.AccountNumber = request.AccountNumber;
         if (request.PhoneNumber != null) account.PhoneNumber = request.PhoneNumber;
         if (request.WebAddress != null) account.WebAddress = request.WebAddress;
