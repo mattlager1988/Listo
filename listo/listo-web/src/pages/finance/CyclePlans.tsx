@@ -243,6 +243,7 @@ const CyclePlans: React.FC = () => {
       title: 'Notes',
       dataIndex: 'notes',
       ellipsis: true,
+      render: (_, record) => record.notes || '-',
     },
   ];
 
