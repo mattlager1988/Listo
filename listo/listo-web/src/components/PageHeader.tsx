@@ -15,16 +15,16 @@ const PageHeader: React.FC<PageHeaderProps> = ({ title, actions }) => {
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        padding: '16px 24px',
-        marginBottom: 24,
+        padding: '8px 12px',
+        marginBottom: 12,
         background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
-        borderRadius: 8,
+        borderRadius: 4,
         border: '1px solid #e2e8f0',
         boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)',
       }}
     >
       <Title
-        level={2}
+        level={4}
         style={{
           margin: 0,
           color: '#1e293b',

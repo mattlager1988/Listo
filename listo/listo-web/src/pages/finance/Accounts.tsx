@@ -344,6 +344,41 @@ const Accounts: React.FC = () => {
   const [bankTransactionsLoading, setBankTransactionsLoading] = useState(false);
   const [transactionForm] = Form.useForm();
 
+  // Inline editing state
+  const [editingCell, setEditingCell] = useState<{ sysId: number; field: 'dueDate' | 'amountDue' } | null>(null);
+
+  const handleInlineUpdate = async (sysId: number, field: 'dueDate' | 'amountDue', value: unknown) => {
+    const account = accounts.find(a => a.sysId === sysId);
+    if (!account) return;
+
+    try {
+      const payload = {
+        name: account.name,
+        accountTypeSysId: account.accountTypeSysId,
+        accountOwnerSysId: account.accountOwnerSysId,
+        amountDue: field === 'amountDue' ? value : account.amountDue,
+        dueDate: field === 'dueDate'
+          ? (value ? (value as dayjs.Dayjs).format('YYYY-MM-DD') : null)
+          : account.dueDate,
+        accountNumber: account.accountNumber,
+        phoneNumber: account.phoneNumber,
+        webAddress: account.webAddress,
+        username: account.username,
+        password: account.password,
+        notes: account.notes,
+        accountFlag: account.accountFlag,
+        autoPay: account.autoPay,
+        resetAmountDue: account.resetAmountDue,
+      };
+
+      await api.put(`/finance/accounts/${sysId}`, payload);
+      setEditingCell(null);
+      fetchAccounts();
+    } catch {
+      message.error('Failed to update');
+    }
+  };
+
   const fetchAccounts = useCallback(async () => {
     setLoading(true);
     try {
@@ -904,9 +939,39 @@ const Accounts: React.FC = () => {
       render: (_, record) => {
         if ('isGroupHeader' in record) return null;
         const account = record as Account;
-        return account.dueDate ? dayjs(account.dueDate).format('MM/DD/YYYY') : '-';
+        const isEditing = editingCell?.sysId === account.sysId && editingCell?.field === 'dueDate';
+
+        if (isEditing) {
+          return (
+            <DatePicker
+              size="small"
+              autoFocus
+              open
+              defaultValue={account.dueDate ? dayjs(account.dueDate) : undefined}
+              format="MM/DD/YYYY"
+              onChange={(date) => handleInlineUpdate(account.sysId, 'dueDate', date)}
+              onOpenChange={(open) => {
+                if (!open) setEditingCell(null);
+              }}
+              onClick={(e) => e.stopPropagation()}
+              style={{ width: 110 }}
+            />
+          );
+        }
+
+        return (
+          <span
+            onClick={(e) => {
+              e.stopPropagation();
+              setEditingCell({ sysId: account.sysId, field: 'dueDate' });
+            }}
+            style={{ cursor: 'pointer', borderBottom: '1px dashed #d9d9d9', padding: '2px 0' }}
+          >
+            {account.dueDate ? dayjs(account.dueDate).format('MM/DD/YYYY') : '-'}
+          </span>
+        );
       },
-      width: 100,
+      width: 115,
     },
     {
       title: 'Amount Due',
@@ -919,9 +984,42 @@ const Accounts: React.FC = () => {
           return <Tag style={{ fontWeight: 600 }}>${record.totalAmountDue.toFixed(2)}</Tag>;
         }
         const account = record as Account;
+        const isEditing = editingCell?.sysId === account.sysId && editingCell?.field === 'amountDue';
         const isZeroStandard = account.accountFlag === 'Standard' && account.amountDue === 0;
+
+        if (isEditing) {
+          return (
+            <InputNumber
+              size="small"
+              autoFocus
+              defaultValue={account.amountDue}
+              min={0}
+              precision={2}
+              prefix="$"
+              onPressEnter={(e) => handleInlineUpdate(account.sysId, 'amountDue', (e.target as HTMLInputElement).value)}
+              onBlur={(e) => {
+                const value = parseFloat(e.target.value.replace('$', ''));
+                if (!isNaN(value)) {
+                  handleInlineUpdate(account.sysId, 'amountDue', value);
+                } else {
+                  setEditingCell(null);
+                }
+              }}
+              onClick={(e) => e.stopPropagation()}
+              style={{ width: 90 }}
+            />
+          );
+        }
+
         return (
-          <Tag color={isZeroStandard ? 'error' : 'default'}>
+          <Tag
+            color={isZeroStandard ? 'error' : 'default'}
+            onClick={(e) => {
+              e.stopPropagation();
+              setEditingCell({ sysId: account.sysId, field: 'amountDue' });
+            }}
+            style={{ cursor: 'pointer' }}
+          >
             ${account.amountDue.toFixed(2)}
           </Tag>
         );

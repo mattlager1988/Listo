@@ -160,24 +160,24 @@ body {
 /* Condensed table styling */
 .condensed-table .ant-table,
 .condensed-table .ant-pro-table {
-  font-size: 12px !important;
+  font-size: 11px !important;
 }
 
 .condensed-table .ant-table-thead > tr > th,
 .condensed-table .ant-table-tbody > tr > td,
 .condensed-table .ant-table-thead > tr > th.ant-table-cell,
 .condensed-table .ant-table-tbody > tr > td.ant-table-cell {
-  font-size: 12px !important;
-  padding: 4px 8px !important;
+  font-size: 11px !important;
+  padding: 2px 6px !important;
 }
 
 .condensed-table .ant-table-row .ant-tag,
 .condensed-table .ant-tag {
-  font-size: 12px;
-  line-height: 18px;
+  font-size: 11px;
+  line-height: 16px;
   padding: 0 4px;
 }
 
 .condensed-table .ant-pro-table-list-toolbar {
-  font-size: 12px;
+  font-size: 11px;
 }
