@@ -104,6 +104,7 @@ public class CycleTransactionService : ICycleTransactionService
         transaction.TransactionType.ToString(),
         transaction.Status.ToString(),
         transaction.Notes,
-        transaction.CreateTimestamp
+        transaction.CreateTimestamp,
+        transaction.ModifyTimestamp
     );
 }

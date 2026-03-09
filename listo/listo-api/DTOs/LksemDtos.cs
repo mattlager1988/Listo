@@ -265,7 +265,8 @@ public record CycleTransactionResponse(
     string TransactionType,
     string Status,
     string? Notes,
-    DateTime CreateTimestamp
+    DateTime CreateTimestamp,
+    DateTime ModifyTimestamp
 );
 
 public record CreateCycleTransactionRequest(
