@@ -153,30 +153,31 @@ const Dashboard: React.FC = () => {
                   </div>
                 </div>
               </Grid.Item>
-            </Grid>
-            <div style={{ textAlign: 'center', marginTop: 8 }}>
-              <Tag color="processing" style={{ fontSize: 12 }}>
-                {cyclePlan.daysRemaining} days remaining
-              </Tag>
-            </div>
-            {(cyclePlan.totalCredits > 0 || cyclePlan.totalDebits > 0) && (
-              <div style={{ marginTop: 12 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-around' }}>
-                  <div style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: 11, color: '#8c8c8c' }}>Credits</div>
-                    <div style={{ fontSize: 14, fontWeight: 600, color: '#52c41a' }}>
-                      ${cyclePlan.totalCredits.toFixed(0)}
-                    </div>
-                  </div>
-                  <div style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: 11, color: '#8c8c8c' }}>Debits</div>
-                    <div style={{ fontSize: 14, fontWeight: 600, color: '#ff4d4f' }}>
-                      ${cyclePlan.totalDebits.toFixed(0)}
-                    </div>
+              <Grid.Item>
+                <div style={{ textAlign: 'center', background: '#fafafa', borderRadius: 8, padding: '8px 4px' }}>
+                  <div style={{ fontSize: 11, color: '#8c8c8c' }}>Credits</div>
+                  <div style={{ fontSize: 18, fontWeight: 600, color: '#52c41a' }}>
+                    ${cyclePlan.totalCredits.toFixed(0)}
                   </div>
                 </div>
-              </div>
-            )}
+              </Grid.Item>
+              <Grid.Item>
+                <div style={{ textAlign: 'center', background: '#fafafa', borderRadius: 8, padding: '8px 4px' }}>
+                  <div style={{ fontSize: 11, color: '#8c8c8c' }}>Debits</div>
+                  <div style={{ fontSize: 18, fontWeight: 600, color: '#ff4d4f' }}>
+                    ${cyclePlan.totalDebits.toFixed(0)}
+                  </div>
+                </div>
+              </Grid.Item>
+              <Grid.Item>
+                <div style={{ textAlign: 'center', background: '#fafafa', borderRadius: 8, padding: '8px 4px' }}>
+                  <div style={{ fontSize: 11, color: '#8c8c8c' }}>Days Left</div>
+                  <div style={{ fontSize: 18, fontWeight: 600, color: '#1890ff' }}>
+                    {cyclePlan.daysRemaining}
+                  </div>
+                </div>
+              </Grid.Item>
+            </Grid>
           </Card>
         ) : (
           <Card title="Cycle Plan" style={{ borderRadius: 8 }}>
