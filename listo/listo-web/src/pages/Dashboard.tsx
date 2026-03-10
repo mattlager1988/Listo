@@ -1,11 +1,31 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Row, Col, Card, Statistic, Table, Tag, Button, Spin, message, Space } from 'antd';
+import { Row, Col, Card, Statistic, Table, Tag, Button, Spin, message, Space, Tooltip } from 'antd';
 import {
   BankOutlined,
   ReloadOutlined,
+  LockOutlined,
+  UnlockOutlined,
+  HolderOutlined,
 } from '@ant-design/icons';
 import { Column } from '@ant-design/charts';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
+import type { DragEndEvent } from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import dayjs from 'dayjs';
 import api from '../services/api';
 import PageHeader from '../components/PageHeader';
@@ -68,11 +88,80 @@ interface PendingPayment {
   accountName: string;
 }
 
+type WidgetId = 'bank-accounts' | 'upcoming-bills' | 'cycle-plan' | 'pending-payments' | 'flight-training';
+
+const defaultWidgetOrder: WidgetId[] = [
+  'bank-accounts',
+  'upcoming-bills',
+  'cycle-plan',
+  'pending-payments',
+  'flight-training',
+];
+
+interface SortableWidgetProps {
+  id: WidgetId;
+  children: React.ReactNode;
+  isLocked: boolean;
+}
+
+const SortableWidget: React.FC<SortableWidgetProps> = ({ id, children, isLocked }) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id, disabled: isLocked });
+
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    marginBottom: 16,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style}>
+      <div style={{ position: 'relative' }}>
+        {!isLocked && (
+          <div
+            {...attributes}
+            {...listeners}
+            style={{
+              position: 'absolute',
+              top: 8,
+              left: -24,
+              cursor: 'grab',
+              padding: '4px 8px',
+              zIndex: 10,
+              color: '#8c8c8c',
+            }}
+          >
+            <HolderOutlined />
+          </div>
+        )}
+        {children}
+      </div>
+    </div>
+  );
+};
+
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const [data, setData] = useState<DashboardSummary | null>(null);
   const [pendingPayments, setPendingPayments] = useState<PendingPayment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [widgetOrder, setWidgetOrder] = useState<WidgetId[]>(defaultWidgetOrder);
+  const [isLocked, setIsLocked] = useState(true);
+  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   const fetchDashboard = useCallback(async () => {
     setLoading(true);
@@ -90,9 +179,57 @@ const Dashboard: React.FC = () => {
     }
   }, []);
 
+  const fetchLayout = useCallback(async () => {
+    try {
+      const response = await api.get('/dashboard/layout');
+      const savedOrder = JSON.parse(response.data.layoutJson) as WidgetId[];
+      if (Array.isArray(savedOrder) && savedOrder.length > 0) {
+        setWidgetOrder(savedOrder);
+      }
+    } catch {
+      // No saved layout, use defaults
+    }
+  }, []);
+
+  const saveLayout = useCallback(async (order: WidgetId[]) => {
+    try {
+      await api.put('/dashboard/layout', {
+        layoutJson: JSON.stringify(order),
+      });
+    } catch {
+      message.error('Failed to save layout');
+    }
+  }, []);
+
   useEffect(() => {
     fetchDashboard();
-  }, [fetchDashboard]);
+    fetchLayout();
+  }, [fetchDashboard, fetchLayout]);
+
+  const handleDragEnd = useCallback(
+    (event: DragEndEvent) => {
+      const { active, over } = event;
+
+      if (over && active.id !== over.id) {
+        setWidgetOrder((items) => {
+          const oldIndex = items.indexOf(active.id as WidgetId);
+          const newIndex = items.indexOf(over.id as WidgetId);
+          const newOrder = arrayMove(items, oldIndex, newIndex);
+
+          // Debounce save
+          if (saveTimeoutRef.current) {
+            clearTimeout(saveTimeoutRef.current);
+          }
+          saveTimeoutRef.current = setTimeout(() => {
+            saveLayout(newOrder);
+          }, 500);
+
+          return newOrder;
+        });
+      }
+    },
+    [saveLayout]
+  );
 
   const upcomingBillsColumns = [
     {
@@ -216,41 +353,34 @@ const Dashboard: React.FC = () => {
     height: 180,
   };
 
-  return (
-    <div>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-        <PageHeader title="Dashboard" />
-        <Button
-          type="text"
-          icon={<ReloadOutlined />}
-          onClick={fetchDashboard}
-          style={{ marginRight: 8 }}
-        />
-      </div>
+  const renderWidget = (widgetId: WidgetId) => {
+    switch (widgetId) {
+      case 'bank-accounts':
+        return (
+          <Card title="Bank Accounts" size="small">
+            <Row gutter={[16, 16]}>
+              {data.bankAccounts.map((account) => (
+                <Col xs={24} sm={12} lg={6} key={account.sysId}>
+                  <Card size="small">
+                    <Statistic
+                      title={account.name}
+                      value={account.balance}
+                      precision={2}
+                      prefix={<BankOutlined style={{ color: getBankBalanceColor(account.balance) }} />}
+                      valueStyle={{ color: getBankBalanceColor(account.balance) }}
+                    />
+                    <div style={{ marginTop: 4, color: '#8c8c8c', fontSize: 12 }}>
+                      {account.accountType}
+                    </div>
+                  </Card>
+                </Col>
+              ))}
+            </Row>
+          </Card>
+        );
 
-      {/* Bank Accounts Row */}
-      <Row gutter={[16, 16]}>
-        {data.bankAccounts.map((account) => (
-          <Col xs={24} sm={12} lg={6} key={account.sysId}>
-            <Card size="small">
-              <Statistic
-                title={account.name}
-                value={account.balance}
-                precision={2}
-                prefix={<BankOutlined style={{ color: getBankBalanceColor(account.balance) }} />}
-                valueStyle={{ color: getBankBalanceColor(account.balance) }}
-              />
-              <div style={{ marginTop: 4, color: '#8c8c8c', fontSize: 12 }}>
-                {account.accountType}
-              </div>
-            </Card>
-          </Col>
-        ))}
-      </Row>
-
-      {/* Upcoming Bills and Cycle Plan + Pending Payments Row */}
-      <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
-        <Col xs={24} lg={12}>
+      case 'upcoming-bills':
+        return (
           <Card
             title="Upcoming Bills"
             size="small"
@@ -278,106 +408,107 @@ const Dashboard: React.FC = () => {
               </p>
             )}
           </Card>
-        </Col>
-        <Col xs={24} lg={12}>
-          {data.activeCyclePlan ? (
-            <Card
-              title={`Active Cycle Plan - ${dayjs(data.activeCyclePlan.startDate).format('MMM D')} - ${dayjs(data.activeCyclePlan.endDate).format('MMM D, YYYY')}`}
-              size="small"
-              extra={
-                <Button
-                  type="link"
-                  size="small"
-                  onClick={() => navigate(`/finance/cycleplans/${data.activeCyclePlan!.sysId}`)}
-                >
-                  View Details
-                </Button>
-              }
-            >
-              <Row gutter={12}>
-                <Col span={8}>
-                  <Card size="small" style={{ background: '#fafafa' }}>
-                    <Statistic
-                      title="Balance"
-                      value={data.activeCyclePlan.balance}
-                      precision={2}
-                      prefix="$"
-                      valueStyle={{
-                        fontSize: 18,
-                        color: data.activeCyclePlan.balance >= 0 ? '#3f8600' : '#cf1322',
-                      }}
-                    />
-                  </Card>
-                </Col>
-                <Col span={8}>
-                  <Card size="small" style={{ background: '#fafafa' }}>
-                    <Statistic
-                      title="Days Left"
-                      value={data.activeCyclePlan.daysRemaining}
-                      valueStyle={{ fontSize: 18 }}
-                    />
-                  </Card>
-                </Col>
-                <Col span={8}>
-                  <Card size="small" style={{ background: '#fafafa' }}>
-                    <Statistic
-                      title="Goal"
-                      value={data.activeCyclePlan.cycleGoalName}
-                      valueStyle={{ fontSize: 14 }}
-                    />
-                  </Card>
-                </Col>
-              </Row>
-              <div style={{ marginTop: 16 }}>
-                <div style={{ color: '#8c8c8c', fontSize: 12, marginBottom: 8 }}>Transactions</div>
-                {(data.activeCyclePlan.totalCredits > 0 || data.activeCyclePlan.totalDebits > 0) ? (
-                  <Column
-                    data={[
-                      { type: 'Credits', amount: data.activeCyclePlan.totalCredits },
-                      { type: 'Debits', amount: data.activeCyclePlan.totalDebits },
-                    ]}
-                    xField="type"
-                    yField="amount"
-                    colorField="type"
-                    scale={{ color: { range: ['#52c41a', '#ff4d4f'] } }}
-                    style={{ radiusTopLeft: 4, radiusTopRight: 4 }}
-                    label={{
-                      text: (d: { amount: number }) => d.amount > 0 ? `$${d.amount.toFixed(0)}` : '',
-                      position: 'inside' as const,
-                      style: { fill: '#ffffff', fontSize: 12 },
-                    }}
-                    axis={{
-                      x: { labelFontSize: 11 },
-                      y: { labelFontSize: 11, labelFormatter: (v: number) => `$${v}` },
-                    }}
-                    legend={false as const}
-                    height={180}
-                  />
-                ) : (
-                  <p style={{ color: '#8c8c8c', textAlign: 'center', margin: '16px 0' }}>
-                    No transactions yet
-                  </p>
-                )}
-              </div>
-            </Card>
-          ) : (
-            <Card title="Cycle Plan" size="small">
-              <p style={{ color: '#8c8c8c', textAlign: 'center', margin: '16px 0' }}>
-                No active cycle plan
-              </p>
-              <div style={{ textAlign: 'center' }}>
-                <Button type="link" onClick={() => navigate('/finance/cycleplans')}>
-                  View Cycle Plans
-                </Button>
-              </div>
-            </Card>
-          )}
+        );
 
-          {/* Pending Payments under Cycle Plan */}
+      case 'cycle-plan':
+        return data.activeCyclePlan ? (
+          <Card
+            title={`Active Cycle Plan - ${dayjs(data.activeCyclePlan.startDate).format('MMM D')} - ${dayjs(data.activeCyclePlan.endDate).format('MMM D, YYYY')}`}
+            size="small"
+            extra={
+              <Button
+                type="link"
+                size="small"
+                onClick={() => navigate(`/finance/cycleplans/${data.activeCyclePlan!.sysId}`)}
+              >
+                View Details
+              </Button>
+            }
+          >
+            <Row gutter={12}>
+              <Col span={8}>
+                <Card size="small" style={{ background: '#fafafa' }}>
+                  <Statistic
+                    title="Balance"
+                    value={data.activeCyclePlan.balance}
+                    precision={2}
+                    prefix="$"
+                    valueStyle={{
+                      fontSize: 18,
+                      color: data.activeCyclePlan.balance >= 0 ? '#3f8600' : '#cf1322',
+                    }}
+                  />
+                </Card>
+              </Col>
+              <Col span={8}>
+                <Card size="small" style={{ background: '#fafafa' }}>
+                  <Statistic
+                    title="Days Left"
+                    value={data.activeCyclePlan.daysRemaining}
+                    valueStyle={{ fontSize: 18 }}
+                  />
+                </Card>
+              </Col>
+              <Col span={8}>
+                <Card size="small" style={{ background: '#fafafa' }}>
+                  <Statistic
+                    title="Goal"
+                    value={data.activeCyclePlan.cycleGoalName}
+                    valueStyle={{ fontSize: 14 }}
+                  />
+                </Card>
+              </Col>
+            </Row>
+            <div style={{ marginTop: 16 }}>
+              <div style={{ color: '#8c8c8c', fontSize: 12, marginBottom: 8 }}>Transactions</div>
+              {(data.activeCyclePlan.totalCredits > 0 || data.activeCyclePlan.totalDebits > 0) ? (
+                <Column
+                  data={[
+                    { type: 'Credits', amount: data.activeCyclePlan.totalCredits },
+                    { type: 'Debits', amount: data.activeCyclePlan.totalDebits },
+                  ]}
+                  xField="type"
+                  yField="amount"
+                  colorField="type"
+                  scale={{ color: { range: ['#52c41a', '#ff4d4f'] } }}
+                  style={{ radiusTopLeft: 4, radiusTopRight: 4 }}
+                  label={{
+                    text: (d: { amount: number }) => d.amount > 0 ? `$${d.amount.toFixed(0)}` : '',
+                    position: 'inside' as const,
+                    style: { fill: '#ffffff', fontSize: 12 },
+                  }}
+                  axis={{
+                    x: { labelFontSize: 11 },
+                    y: { labelFontSize: 11, labelFormatter: (v: number) => `$${v}` },
+                  }}
+                  legend={false as const}
+                  height={180}
+                />
+              ) : (
+                <p style={{ color: '#8c8c8c', textAlign: 'center', margin: '16px 0' }}>
+                  No transactions yet
+                </p>
+              )}
+            </div>
+          </Card>
+        ) : (
+          <Card title="Cycle Plan" size="small">
+            <p style={{ color: '#8c8c8c', textAlign: 'center', margin: '16px 0' }}>
+              No active cycle plan
+            </p>
+            <div style={{ textAlign: 'center' }}>
+              <Button type="link" onClick={() => navigate('/finance/cycleplans')}>
+                View Cycle Plans
+              </Button>
+            </div>
+          </Card>
+        );
+
+      case 'pending-payments':
+        return (
           <Card
             title="Pending Payments"
             size="small"
-            style={{ marginTop: 16 }}
             extra={
               <Button type="link" size="small" onClick={() => navigate('/finance/accounts')}>
                 View All
@@ -398,84 +529,120 @@ const Dashboard: React.FC = () => {
               </p>
             )}
           </Card>
-        </Col>
-      </Row>
+        );
 
-      {/* Aviation Stats Row */}
-      <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
-        <Col xs={24} lg={12}>
-          {data.aviationStats ? (
-            <Card
-              title="Flight Training"
-              size="small"
-              extra={
-                <Button type="link" size="small" onClick={() => navigate('/aviation/training')}>
-                  View Log
-                </Button>
-              }
-            >
-              <Row gutter={12}>
-                <Col span={8}>
-                  <Card size="small" style={{ background: '#fafafa' }}>
-                    <Statistic
-                      title="Total Dual"
-                      value={data.aviationStats.totalDualHours}
-                      precision={1}
-                      suffix="hrs"
-                      valueStyle={{ fontSize: 18 }}
-                    />
-                  </Card>
-                </Col>
-                <Col span={8}>
-                  <Card size="small" style={{ background: '#fafafa' }}>
-                    <Statistic
-                      title="Total Solo"
-                      value={data.aviationStats.totalSoloHours}
-                      precision={1}
-                      suffix="hrs"
-                      valueStyle={{ fontSize: 18 }}
-                    />
-                  </Card>
-                </Col>
-                <Col span={8}>
-                  <Card size="small" style={{ background: '#fafafa' }}>
-                    <Statistic
-                      title="Last Flight"
-                      value={
-                        data.aviationStats.lastTrainingDate
-                          ? dayjs(data.aviationStats.lastTrainingDate).format('MMM D')
-                          : 'N/A'
-                      }
-                      valueStyle={{ fontSize: 14 }}
-                    />
-                  </Card>
-                </Col>
-              </Row>
-              <div style={{ marginTop: 16 }}>
-                <div style={{ color: '#8c8c8c', fontSize: 12, marginBottom: 8 }}>Last 30 Days</div>
-                {chartData.length > 0 ? (
-                  <Column {...flightHoursChartConfig} />
-                ) : (
-                  <p style={{ color: '#8c8c8c', textAlign: 'center', margin: '16px 0' }}>
-                    No training in the last 30 days
-                  </p>
-                )}
-              </div>
-            </Card>
-          ) : (
-            <Card title="Flight Training" size="small">
-              <p style={{ color: '#8c8c8c', textAlign: 'center', margin: '16px 0' }}>
-                No flight training logs recorded
-              </p>
-              <div style={{ textAlign: 'center' }}>
-                <Button type="link" onClick={() => navigate('/aviation/training')}>
-                  Start Logging
-                </Button>
-              </div>
-            </Card>
-          )}
-        </Col>
-      </Row>
+      case 'flight-training':
+        return data.aviationStats ? (
+          <Card
+            title="Flight Training"
+            size="small"
+            extra={
+              <Button type="link" size="small" onClick={() => navigate('/aviation/training')}>
+                View Log
+              </Button>
+            }
+          >
+            <Row gutter={12}>
+              <Col span={8}>
+                <Card size="small" style={{ background: '#fafafa' }}>
+                  <Statistic
+                    title="Total Dual"
+                    value={data.aviationStats.totalDualHours}
+                    precision={1}
+                    suffix="hrs"
+                    valueStyle={{ fontSize: 18 }}
+                  />
+                </Card>
+              </Col>
+              <Col span={8}>
+                <Card size="small" style={{ background: '#fafafa' }}>
+                  <Statistic
+                    title="Total Solo"
+                    value={data.aviationStats.totalSoloHours}
+                    precision={1}
+                    suffix="hrs"
+                    valueStyle={{ fontSize: 18 }}
+                  />
+                </Card>
+              </Col>
+              <Col span={8}>
+                <Card size="small" style={{ background: '#fafafa' }}>
+                  <Statistic
+                    title="Last Flight"
+                    value={
+                      data.aviationStats.lastTrainingDate
+                        ? dayjs(data.aviationStats.lastTrainingDate).format('MMM D')
+                        : 'N/A'
+                    }
+                    valueStyle={{ fontSize: 14 }}
+                  />
+                </Card>
+              </Col>
+            </Row>
+            <div style={{ marginTop: 16 }}>
+              <div style={{ color: '#8c8c8c', fontSize: 12, marginBottom: 8 }}>Last 30 Days</div>
+              {chartData.length > 0 ? (
+                <Column {...flightHoursChartConfig} />
+              ) : (
+                <p style={{ color: '#8c8c8c', textAlign: 'center', margin: '16px 0' }}>
+                  No training in the last 30 days
+                </p>
+              )}
+            </div>
+          </Card>
+        ) : (
+          <Card title="Flight Training" size="small">
+            <p style={{ color: '#8c8c8c', textAlign: 'center', margin: '16px 0' }}>
+              No flight training logs recorded
+            </p>
+            <div style={{ textAlign: 'center' }}>
+              <Button type="link" onClick={() => navigate('/aviation/training')}>
+                Start Logging
+              </Button>
+            </div>
+          </Card>
+        );
+
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+        <PageHeader title="Dashboard" />
+        <Space>
+          <Tooltip title={isLocked ? 'Unlock to rearrange widgets' : 'Lock layout'}>
+            <Button
+              type="text"
+              icon={isLocked ? <LockOutlined /> : <UnlockOutlined />}
+              onClick={() => setIsLocked(!isLocked)}
+            />
+          </Tooltip>
+          <Button
+            type="text"
+            icon={<ReloadOutlined />}
+            onClick={fetchDashboard}
+          />
+        </Space>
+      </div>
+
+      <div style={{ paddingLeft: isLocked ? 0 : 24 }}>
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
+        >
+          <SortableContext items={widgetOrder} strategy={verticalListSortingStrategy}>
+            {widgetOrder.map((widgetId) => (
+              <SortableWidget key={widgetId} id={widgetId} isLocked={isLocked}>
+                {renderWidget(widgetId)}
+              </SortableWidget>
+            ))}
+          </SortableContext>
+        </DndContext>
+      </div>
     </div>
   );
 };

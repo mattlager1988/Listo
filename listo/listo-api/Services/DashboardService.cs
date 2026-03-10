@@ -8,6 +8,8 @@ namespace Listo.Api.Services;
 public interface IDashboardService
 {
     Task<DashboardSummaryResponse> GetSummaryAsync();
+    Task<DashboardLayoutDto?> GetLayoutAsync(long userSysId);
+    Task<DashboardLayoutDto> SaveLayoutAsync(long userSysId, string layoutJson);
 }
 
 public class DashboardService : IDashboardService
@@ -145,5 +147,40 @@ public class DashboardService : IDashboardService
             upcomingBills,
             aviationStats
         );
+    }
+
+    public async Task<DashboardLayoutDto?> GetLayoutAsync(long userSysId)
+    {
+        var layout = await _context.DashboardLayouts
+            .FirstOrDefaultAsync(l => l.UserSysId == userSysId);
+
+        if (layout == null)
+            return null;
+
+        return new DashboardLayoutDto(layout.SysId, layout.LayoutJson);
+    }
+
+    public async Task<DashboardLayoutDto> SaveLayoutAsync(long userSysId, string layoutJson)
+    {
+        var layout = await _context.DashboardLayouts
+            .FirstOrDefaultAsync(l => l.UserSysId == userSysId);
+
+        if (layout == null)
+        {
+            layout = new DashboardLayout
+            {
+                UserSysId = userSysId,
+                LayoutJson = layoutJson
+            };
+            _context.DashboardLayouts.Add(layout);
+        }
+        else
+        {
+            layout.LayoutJson = layoutJson;
+        }
+
+        await _context.SaveChangesAsync();
+
+        return new DashboardLayoutDto(layout.SysId, layout.LayoutJson);
     }
 }

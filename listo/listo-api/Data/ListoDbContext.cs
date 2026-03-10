@@ -35,6 +35,7 @@ public class ListoDbContext : DbContext
     public DbSet<CyclePlan> CyclePlans => Set<CyclePlan>();
     public DbSet<CycleTransaction> CycleTransactions => Set<CycleTransaction>();
     public DbSet<AccountCard> AccountCards => Set<AccountCard>();
+    public DbSet<DashboardLayout> DashboardLayouts => Set<DashboardLayout>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -504,6 +505,23 @@ public class ListoDbContext : DbContext
                 .HasForeignKey(e => e.AccountSysId);
 
             entity.HasIndex(e => e.AccountSysId);
+        });
+
+        modelBuilder.Entity<DashboardLayout>(entity =>
+        {
+            entity.ToTable("dashboard_layouts");
+            entity.HasKey(e => e.SysId);
+            entity.Property(e => e.SysId).HasColumnName("sys_id");
+            entity.Property(e => e.UserSysId).HasColumnName("user_sys_id");
+            entity.Property(e => e.LayoutJson).HasColumnName("layout_json").HasColumnType("text").IsRequired();
+            entity.Property(e => e.CreateTimestamp).HasColumnName("create_timestamp");
+            entity.Property(e => e.ModifyTimestamp).HasColumnName("modify_timestamp");
+            entity.Property(e => e.CreateUser).HasColumnName("create_user");
+            entity.Property(e => e.ModifyUser).HasColumnName("modify_user");
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserSysId);
+            entity.HasIndex(e => e.UserSysId).IsUnique();
         });
     }
 

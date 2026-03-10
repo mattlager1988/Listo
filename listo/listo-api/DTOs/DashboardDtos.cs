@@ -55,3 +55,12 @@ public record TrainingTypeHoursDto(
     string TrainingType,
     decimal Hours
 );
+
+public record DashboardLayoutDto(
+    long SysId,
+    string LayoutJson
+);
+
+public record SaveDashboardLayoutRequest(
+    string LayoutJson
+);
