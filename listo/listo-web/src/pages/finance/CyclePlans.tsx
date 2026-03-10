@@ -57,6 +57,11 @@ const statusColors: Record<string, string> = {
   Completed: 'error',
 };
 
+interface EditingCell {
+  sysId: number;
+  field: 'amountIn' | 'amountOut' | 'status';
+}
+
 const CyclePlans: React.FC = () => {
   const navigate = useNavigate();
   const [cyclePlans, setCyclePlans] = useState<CyclePlan[]>([]);
@@ -68,6 +73,7 @@ const CyclePlans: React.FC = () => {
   const [discontinuedModalVisible, setDiscontinuedModalVisible] = useState(false);
   const [discontinuedPlans, setDiscontinuedPlans] = useState<CyclePlan[]>([]);
   const [discontinuedLoading, setDiscontinuedLoading] = useState(false);
+  const [editingCell, setEditingCell] = useState<EditingCell | null>(null);
   const [form] = Form.useForm();
   const actionRef = useRef<ActionType>(null);
 
@@ -199,6 +205,33 @@ const CyclePlans: React.FC = () => {
     fetchDiscontinuedPlans();
   };
 
+  const handleInlineUpdate = async (plan: CyclePlan, field: 'amountIn' | 'amountOut' | 'status', value: number | string) => {
+    try {
+      const payload = {
+        cycleGoalSysId: plan.cycleGoalSysId,
+        startDate: plan.startDate,
+        endDate: plan.endDate,
+        status: field === 'status' ? value : plan.status,
+        amountIn: field === 'amountIn' ? value : plan.amountIn,
+        amountOut: field === 'amountOut' ? value : plan.amountOut,
+        notes: plan.notes,
+      };
+      await api.put(`/finance/cycleplans/${plan.sysId}`, payload);
+      // Update local state
+      setCyclePlans(prev => prev.map(p =>
+        p.sysId === plan.sysId
+          ? { ...p, [field]: value, balance: field === 'amountIn' || field === 'amountOut'
+              ? (field === 'amountIn' ? (value as number) : p.amountIn) - (field === 'amountOut' ? (value as number) : p.amountOut)
+              : p.balance }
+          : p
+      ));
+    } catch {
+      message.error('Failed to update');
+      fetchCyclePlans(); // Refresh to get actual data
+    }
+    setEditingCell(null);
+  };
+
   const columns: ProColumns<CyclePlan>[] = [
     {
       title: 'Start Date',
@@ -223,17 +256,87 @@ const CyclePlans: React.FC = () => {
     {
       title: 'Amount In',
       dataIndex: 'amountIn',
-      width: 100,
+      width: 110,
       align: 'right',
-      render: (_, record) => <Tag>${(record.amountIn ?? 0).toFixed(2)}</Tag>,
+      render: (_, record) => {
+        const isEditing = editingCell?.sysId === record.sysId && editingCell?.field === 'amountIn';
+        if (isEditing) {
+          return (
+            <InputNumber
+              autoFocus
+              size="small"
+              defaultValue={record.amountIn ?? 0}
+              prefix="$"
+              precision={2}
+              min={0}
+              style={{ width: 90 }}
+              onBlur={(e) => {
+                const val = parseFloat(e.target.value.replace('$', '')) || 0;
+                handleInlineUpdate(record, 'amountIn', val);
+              }}
+              onPressEnter={(e) => {
+                const val = parseFloat((e.target as HTMLInputElement).value.replace('$', '')) || 0;
+                handleInlineUpdate(record, 'amountIn', val);
+              }}
+              onKeyDown={(e) => e.key === 'Escape' && setEditingCell(null)}
+            />
+          );
+        }
+        return (
+          <Tag
+            style={{ cursor: 'pointer' }}
+            onClick={(e) => {
+              e.stopPropagation();
+              setEditingCell({ sysId: record.sysId, field: 'amountIn' });
+            }}
+          >
+            ${(record.amountIn ?? 0).toFixed(2)}
+          </Tag>
+        );
+      },
       sorter: (a, b) => (a.amountIn ?? 0) - (b.amountIn ?? 0),
     },
     {
       title: 'Amount Out',
       dataIndex: 'amountOut',
-      width: 100,
+      width: 110,
       align: 'right',
-      render: (_, record) => <Tag>${(record.amountOut ?? 0).toFixed(2)}</Tag>,
+      render: (_, record) => {
+        const isEditing = editingCell?.sysId === record.sysId && editingCell?.field === 'amountOut';
+        if (isEditing) {
+          return (
+            <InputNumber
+              autoFocus
+              size="small"
+              defaultValue={record.amountOut ?? 0}
+              prefix="$"
+              precision={2}
+              min={0}
+              style={{ width: 90 }}
+              onBlur={(e) => {
+                const val = parseFloat(e.target.value.replace('$', '')) || 0;
+                handleInlineUpdate(record, 'amountOut', val);
+              }}
+              onPressEnter={(e) => {
+                const val = parseFloat((e.target as HTMLInputElement).value.replace('$', '')) || 0;
+                handleInlineUpdate(record, 'amountOut', val);
+              }}
+              onKeyDown={(e) => e.key === 'Escape' && setEditingCell(null)}
+            />
+          );
+        }
+        return (
+          <Tag
+            style={{ cursor: 'pointer' }}
+            onClick={(e) => {
+              e.stopPropagation();
+              setEditingCell({ sysId: record.sysId, field: 'amountOut' });
+            }}
+          >
+            ${(record.amountOut ?? 0).toFixed(2)}
+          </Tag>
+        );
+      },
       sorter: (a, b) => (a.amountOut ?? 0) - (b.amountOut ?? 0),
     },
     {
@@ -251,8 +354,40 @@ const CyclePlans: React.FC = () => {
     {
       title: 'Status',
       dataIndex: 'status',
-      width: 100,
-      render: (_, record) => <Tag color={statusColors[record.status]}>{record.status}</Tag>,
+      width: 120,
+      render: (_, record) => {
+        const isEditing = editingCell?.sysId === record.sysId && editingCell?.field === 'status';
+        if (isEditing) {
+          return (
+            <Select
+              autoFocus
+              defaultOpen
+              size="small"
+              defaultValue={record.status}
+              style={{ width: 100 }}
+              options={[
+                { label: 'Pending', value: 'Pending' },
+                { label: 'Active', value: 'Active' },
+                { label: 'Completed', value: 'Completed' },
+              ]}
+              onChange={(val) => handleInlineUpdate(record, 'status', val)}
+              onBlur={() => setEditingCell(null)}
+            />
+          );
+        }
+        return (
+          <Tag
+            color={statusColors[record.status]}
+            style={{ cursor: 'pointer' }}
+            onClick={(e) => {
+              e.stopPropagation();
+              setEditingCell({ sysId: record.sysId, field: 'status' });
+            }}
+          >
+            {record.status}
+          </Tag>
+        );
+      },
       filters: [
         { text: 'Pending', value: 'Pending' },
         { text: 'Active', value: 'Active' },

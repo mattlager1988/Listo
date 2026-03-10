@@ -10,11 +10,11 @@ import {
   Select,
   message,
   Popconfirm,
-  Popover,
   Table,
   Tooltip,
   Tag,
   Card,
+  Popover,
 } from 'antd';
 import {
   PlusOutlined,
@@ -81,6 +81,11 @@ const transactionStatusColors: Record<string, string> = {
   Estimated: 'orange',
 };
 
+interface EditingCell {
+  sysId: number;
+  field: 'name' | 'status' | 'amount' | 'notes';
+}
+
 const CyclePlanWork: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -95,7 +100,7 @@ const CyclePlanWork: React.FC = () => {
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [editingAmountField, setEditingAmountField] = useState<'amountIn' | 'amountOut' | null>(null);
   const [editingAmountValue, setEditingAmountValue] = useState<number>(0);
-  const [editingStatusId, setEditingStatusId] = useState<number | null>(null);
+  const [editingCell, setEditingCell] = useState<EditingCell | null>(null);
   const [expandedGroups, setExpandedGroups] = useState<React.Key[]>(['group-Credit', 'group-Debit']);
   const [form] = Form.useForm();
 
@@ -170,15 +175,31 @@ const CyclePlanWork: React.FC = () => {
     }
   };
 
-  const handleStatusChange = async (transactionId: number, newStatus: string) => {
+  const handleInlineTransactionUpdate = async (
+    txn: CycleTransaction,
+    field: 'name' | 'status' | 'amount' | 'notes',
+    value: string | number | null
+  ) => {
     try {
-      await api.put(`/finance/cycletransactions/${transactionId}`, { status: newStatus });
-      setEditingStatusId(null);
-      fetchTransactions();
-      fetchCyclePlan();
+      const payload = {
+        cyclePlanSysId: txn.cyclePlanSysId,
+        name: field === 'name' ? value : txn.name,
+        amount: field === 'amount' ? value : txn.amount,
+        transactionType: txn.transactionType,
+        status: field === 'status' ? value : txn.status,
+        notes: field === 'notes' ? value : txn.notes,
+      };
+      await api.put(`/finance/cycletransactions/${txn.sysId}`, payload);
+      // Update local state
+      setTransactions(prev => prev.map(t =>
+        t.sysId === txn.sysId ? { ...t, [field]: value } : t
+      ));
+      fetchCyclePlan(); // Refresh to update totals
     } catch {
-      message.error('Failed to update status');
+      message.error('Failed to update');
+      fetchTransactions();
     }
+    setEditingCell(null);
   };
 
   const handleCreate = () => {
@@ -262,7 +283,32 @@ const CyclePlanWork: React.FC = () => {
             </span>
           );
         }
-        return (record as CycleTransaction).name;
+        const txn = record as CycleTransaction;
+        const isEditing = editingCell?.sysId === txn.sysId && editingCell?.field === 'name';
+        if (isEditing) {
+          return (
+            <Input
+              autoFocus
+              size="small"
+              defaultValue={txn.name}
+              style={{ width: '100%' }}
+              onBlur={(e) => handleInlineTransactionUpdate(txn, 'name', e.target.value)}
+              onPressEnter={(e) => handleInlineTransactionUpdate(txn, 'name', (e.target as HTMLInputElement).value)}
+              onKeyDown={(e) => e.key === 'Escape' && setEditingCell(null)}
+            />
+          );
+        }
+        return (
+          <span
+            style={{ cursor: 'pointer' }}
+            onClick={(e) => {
+              e.stopPropagation();
+              setEditingCell({ sysId: txn.sysId, field: 'name' });
+            }}
+          >
+            {txn.name}
+          </span>
+        );
       },
       sorter: (a: TableRecord, b: TableRecord) => {
         if ('isGroupHeader' in a || 'isGroupHeader' in b) return 0;
@@ -273,31 +319,40 @@ const CyclePlanWork: React.FC = () => {
       title: 'Status',
       dataIndex: 'status',
       key: 'status',
-      width: 110,
+      width: 120,
       render: (status: string, record: TableRecord) => {
         if ('isGroupHeader' in record) return null;
         const txn = record as CycleTransaction;
+        const isEditing = editingCell?.sysId === txn.sysId && editingCell?.field === 'status';
+        if (isEditing) {
+          return (
+            <Select
+              autoFocus
+              defaultOpen
+              size="small"
+              defaultValue={status}
+              style={{ width: 100 }}
+              options={[
+                { label: 'Confirmed', value: 'Confirmed' },
+                { label: 'Planned', value: 'Planned' },
+                { label: 'Estimated', value: 'Estimated' },
+              ]}
+              onChange={(val) => handleInlineTransactionUpdate(txn, 'status', val)}
+              onBlur={() => setEditingCell(null)}
+            />
+          );
+        }
         return (
-          <Popover
-            trigger="click"
-            open={editingStatusId === txn.sysId}
-            onOpenChange={(open) => setEditingStatusId(open ? txn.sysId : null)}
-            content={
-              <Select
-                size="small"
-                value={status}
-                style={{ width: 110 }}
-                onChange={(value) => handleStatusChange(txn.sysId, value)}
-                autoFocus
-              >
-                <Select.Option value="Confirmed">Confirmed</Select.Option>
-                <Select.Option value="Planned">Planned</Select.Option>
-                <Select.Option value="Estimated">Estimated</Select.Option>
-              </Select>
-            }
+          <Tag
+            color={transactionStatusColors[status]}
+            style={{ cursor: 'pointer' }}
+            onClick={(e) => {
+              e.stopPropagation();
+              setEditingCell({ sysId: txn.sysId, field: 'status' });
+            }}
           >
-            <Tag color={transactionStatusColors[status]} style={{ cursor: 'pointer' }}>{status}</Tag>
-          </Popover>
+            {status}
+          </Tag>
         );
       },
       filters: [
@@ -317,8 +372,38 @@ const CyclePlanWork: React.FC = () => {
       render: (_: unknown, record: TableRecord) => {
         if ('isGroupHeader' in record) return null;
         const txn = record as CycleTransaction;
+        const isEditing = editingCell?.sysId === txn.sysId && editingCell?.field === 'amount';
+        if (isEditing) {
+          return (
+            <InputNumber
+              autoFocus
+              size="small"
+              defaultValue={txn.amount}
+              prefix="$"
+              precision={2}
+              min={0}
+              style={{ width: 100 }}
+              onBlur={(e) => {
+                const val = parseFloat(e.target.value.replace('$', '')) || 0;
+                handleInlineTransactionUpdate(txn, 'amount', val);
+              }}
+              onPressEnter={(e) => {
+                const val = parseFloat((e.target as HTMLInputElement).value.replace('$', '')) || 0;
+                handleInlineTransactionUpdate(txn, 'amount', val);
+              }}
+              onKeyDown={(e) => e.key === 'Escape' && setEditingCell(null)}
+            />
+          );
+        }
         return (
-          <Tag color={txn.transactionType === 'Credit' ? 'green' : 'red'}>
+          <Tag
+            color={txn.transactionType === 'Credit' ? 'green' : 'red'}
+            style={{ cursor: 'pointer' }}
+            onClick={(e) => {
+              e.stopPropagation();
+              setEditingCell({ sysId: txn.sysId, field: 'amount' });
+            }}
+          >
             {txn.transactionType === 'Debit' ? '-' : ''}${txn.amount.toFixed(2)}
           </Tag>
         );
@@ -363,7 +448,32 @@ const CyclePlanWork: React.FC = () => {
       ellipsis: true,
       render: (value: string, record: TableRecord) => {
         if ('isGroupHeader' in record) return null;
-        return value;
+        const txn = record as CycleTransaction;
+        const isEditing = editingCell?.sysId === txn.sysId && editingCell?.field === 'notes';
+        if (isEditing) {
+          return (
+            <Input
+              autoFocus
+              size="small"
+              defaultValue={txn.notes || ''}
+              style={{ width: '100%' }}
+              onBlur={(e) => handleInlineTransactionUpdate(txn, 'notes', e.target.value || null)}
+              onPressEnter={(e) => handleInlineTransactionUpdate(txn, 'notes', (e.target as HTMLInputElement).value || null)}
+              onKeyDown={(e) => e.key === 'Escape' && setEditingCell(null)}
+            />
+          );
+        }
+        return (
+          <span
+            style={{ cursor: 'pointer', color: value ? undefined : '#bfbfbf' }}
+            onClick={(e) => {
+              e.stopPropagation();
+              setEditingCell({ sysId: txn.sysId, field: 'notes' });
+            }}
+          >
+            {value || '—'}
+          </span>
+        );
       },
     },
   ];

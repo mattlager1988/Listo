@@ -7,6 +7,7 @@ import {
   LockOutlined,
   UnlockOutlined,
   HolderOutlined,
+  ColumnWidthOutlined,
 } from '@ant-design/icons';
 import { Column } from '@ant-design/charts';
 import {
@@ -90,21 +91,30 @@ interface PendingPayment {
 
 type WidgetId = 'bank-accounts' | 'upcoming-bills' | 'cycle-plan' | 'pending-payments' | 'flight-training';
 
-const defaultWidgetOrder: WidgetId[] = [
-  'bank-accounts',
-  'upcoming-bills',
-  'cycle-plan',
-  'pending-payments',
-  'flight-training',
+type WidgetWidth = 'full' | 'half';
+
+interface WidgetConfig {
+  id: WidgetId;
+  width: WidgetWidth;
+}
+
+const defaultWidgetLayout: WidgetConfig[] = [
+  { id: 'bank-accounts', width: 'full' },
+  { id: 'upcoming-bills', width: 'half' },
+  { id: 'pending-payments', width: 'half' },
+  { id: 'cycle-plan', width: 'half' },
+  { id: 'flight-training', width: 'half' },
 ];
 
 interface SortableWidgetProps {
   id: WidgetId;
   children: React.ReactNode;
   isLocked: boolean;
+  width: WidgetWidth;
+  onToggleWidth: () => void;
 }
 
-const SortableWidget: React.FC<SortableWidgetProps> = ({ id, children, isLocked }) => {
+const SortableWidget: React.FC<SortableWidgetProps> = ({ id, children, isLocked, width, onToggleWidth }) => {
   const {
     attributes,
     listeners,
@@ -118,28 +128,46 @@ const SortableWidget: React.FC<SortableWidgetProps> = ({ id, children, isLocked 
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.5 : 1,
-    marginBottom: 16,
+    width: width === 'full' ? '100%' : 'calc(50% - 8px)',
+    flexShrink: 0,
   };
 
   return (
     <div ref={setNodeRef} style={style}>
       <div style={{ position: 'relative' }}>
         {!isLocked && (
-          <div
-            {...attributes}
-            {...listeners}
-            style={{
-              position: 'absolute',
-              top: 8,
-              left: -24,
-              cursor: 'grab',
-              padding: '4px 8px',
-              zIndex: 10,
-              color: '#8c8c8c',
-            }}
-          >
-            <HolderOutlined />
-          </div>
+          <>
+            <div
+              {...attributes}
+              {...listeners}
+              style={{
+                position: 'absolute',
+                top: 8,
+                left: -24,
+                cursor: 'grab',
+                padding: '4px 8px',
+                zIndex: 10,
+                color: '#8c8c8c',
+              }}
+            >
+              <HolderOutlined />
+            </div>
+            <Tooltip title={width === 'full' ? 'Make half width' : 'Make full width'}>
+              <Button
+                type="text"
+                size="small"
+                icon={<ColumnWidthOutlined />}
+                onClick={onToggleWidth}
+                style={{
+                  position: 'absolute',
+                  top: 4,
+                  right: 4,
+                  zIndex: 10,
+                  color: '#8c8c8c',
+                }}
+              />
+            </Tooltip>
+          </>
         )}
         {children}
       </div>
@@ -152,7 +180,7 @@ const Dashboard: React.FC = () => {
   const [data, setData] = useState<DashboardSummary | null>(null);
   const [pendingPayments, setPendingPayments] = useState<PendingPayment[]>([]);
   const [loading, setLoading] = useState(true);
-  const [widgetOrder, setWidgetOrder] = useState<WidgetId[]>(defaultWidgetOrder);
+  const [widgetLayout, setWidgetLayout] = useState<WidgetConfig[]>(defaultWidgetLayout);
   const [isLocked, setIsLocked] = useState(true);
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -182,24 +210,43 @@ const Dashboard: React.FC = () => {
   const fetchLayout = useCallback(async () => {
     try {
       const response = await api.get('/dashboard/layout');
-      const savedOrder = JSON.parse(response.data.layoutJson) as WidgetId[];
-      if (Array.isArray(savedOrder) && savedOrder.length > 0) {
-        setWidgetOrder(savedOrder);
+      const saved = JSON.parse(response.data.layoutJson);
+      // Handle both old format (array of IDs) and new format (array of WidgetConfig)
+      if (Array.isArray(saved) && saved.length > 0) {
+        if (typeof saved[0] === 'string') {
+          // Old format - convert to new
+          const converted: WidgetConfig[] = (saved as WidgetId[]).map(id => ({
+            id,
+            width: 'full' as WidgetWidth,
+          }));
+          setWidgetLayout(converted);
+        } else {
+          setWidgetLayout(saved as WidgetConfig[]);
+        }
       }
     } catch {
       // No saved layout, use defaults
     }
   }, []);
 
-  const saveLayout = useCallback(async (order: WidgetId[]) => {
+  const saveLayout = useCallback(async (layout: WidgetConfig[]) => {
     try {
       await api.put('/dashboard/layout', {
-        layoutJson: JSON.stringify(order),
+        layoutJson: JSON.stringify(layout),
       });
     } catch {
       message.error('Failed to save layout');
     }
   }, []);
+
+  const debouncedSave = useCallback((layout: WidgetConfig[]) => {
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+    saveTimeoutRef.current = setTimeout(() => {
+      saveLayout(layout);
+    }, 500);
+  }, [saveLayout]);
 
   useEffect(() => {
     fetchDashboard();
@@ -211,25 +258,29 @@ const Dashboard: React.FC = () => {
       const { active, over } = event;
 
       if (over && active.id !== over.id) {
-        setWidgetOrder((items) => {
-          const oldIndex = items.indexOf(active.id as WidgetId);
-          const newIndex = items.indexOf(over.id as WidgetId);
-          const newOrder = arrayMove(items, oldIndex, newIndex);
-
-          // Debounce save
-          if (saveTimeoutRef.current) {
-            clearTimeout(saveTimeoutRef.current);
-          }
-          saveTimeoutRef.current = setTimeout(() => {
-            saveLayout(newOrder);
-          }, 500);
-
-          return newOrder;
+        setWidgetLayout((items) => {
+          const oldIndex = items.findIndex(w => w.id === active.id);
+          const newIndex = items.findIndex(w => w.id === over.id);
+          const newLayout = arrayMove(items, oldIndex, newIndex);
+          debouncedSave(newLayout);
+          return newLayout;
         });
       }
     },
-    [saveLayout]
+    [debouncedSave]
   );
+
+  const handleToggleWidth = useCallback((widgetId: WidgetId) => {
+    setWidgetLayout((items) => {
+      const newLayout = items.map(w =>
+        w.id === widgetId
+          ? { ...w, width: (w.width === 'full' ? 'half' : 'full') as WidgetWidth }
+          : w
+      );
+      debouncedSave(newLayout);
+      return newLayout;
+    });
+  }, [debouncedSave]);
 
   const upcomingBillsColumns = [
     {
@@ -634,12 +685,20 @@ const Dashboard: React.FC = () => {
           collisionDetection={closestCenter}
           onDragEnd={handleDragEnd}
         >
-          <SortableContext items={widgetOrder} strategy={verticalListSortingStrategy}>
-            {widgetOrder.map((widgetId) => (
-              <SortableWidget key={widgetId} id={widgetId} isLocked={isLocked}>
-                {renderWidget(widgetId)}
-              </SortableWidget>
-            ))}
+          <SortableContext items={widgetLayout.map(w => w.id)} strategy={verticalListSortingStrategy}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16 }}>
+              {widgetLayout.map((widget) => (
+                <SortableWidget
+                  key={widget.id}
+                  id={widget.id}
+                  isLocked={isLocked}
+                  width={widget.width}
+                  onToggleWidth={() => handleToggleWidth(widget.id)}
+                >
+                  {renderWidget(widget.id)}
+                </SortableWidget>
+              ))}
+            </div>
           </SortableContext>
         </DndContext>
       </div>
