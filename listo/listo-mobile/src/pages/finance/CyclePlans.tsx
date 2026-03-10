@@ -13,10 +13,11 @@ import {
   Dialog,
   SwipeAction,
 } from 'antd-mobile';
-import { AddOutline } from 'antd-mobile-icons';
+import { AddOutline, UnorderedListOutline } from 'antd-mobile-icons';
 import dayjs from 'dayjs';
 import api from '@shared/services/api';
 import type { CyclePlan } from '@shared/types';
+import { useMenu } from '../../contexts/MenuContext';
 
 const statusColors: Record<string, 'success' | 'warning' | 'danger' | 'default'> = {
   Pending: 'warning',
@@ -26,6 +27,7 @@ const statusColors: Record<string, 'success' | 'warning' | 'danger' | 'default'>
 
 const CyclePlans: React.FC = () => {
   const navigate = useNavigate();
+  const { openMenu } = useMenu();
   const [cyclePlans, setCyclePlans] = useState<CyclePlan[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -63,7 +65,7 @@ const CyclePlans: React.FC = () => {
   if (loading) {
     return (
       <>
-        <NavBar back={null} style={{ '--height': '48px' }}>Cycle Plans</NavBar>
+        <NavBar back={null} left={<UnorderedListOutline fontSize={20} onClick={openMenu} style={{ cursor: 'pointer' }} />} style={{ '--height': '48px' }}>Cycle Plans</NavBar>
         <div style={{ padding: 16 }}>
           <Skeleton.Title animated />
           <Skeleton.Paragraph lineCount={5} animated />
@@ -75,7 +77,7 @@ const CyclePlans: React.FC = () => {
   if (error) {
     return (
       <>
-        <NavBar back={null} style={{ '--height': '48px' }}>Cycle Plans</NavBar>
+        <NavBar back={null} left={<UnorderedListOutline fontSize={20} onClick={openMenu} style={{ cursor: 'pointer' }} />} style={{ '--height': '48px' }}>Cycle Plans</NavBar>
         <ErrorBlock status="default" title="Unable to load cycle plans" description="Pull down to retry" />
       </>
     );
@@ -87,7 +89,7 @@ const CyclePlans: React.FC = () => {
 
   return (
     <PullToRefresh onRefresh={fetchData}>
-      <NavBar back={null} style={{ '--height': '48px' }}>Cycle Plans</NavBar>
+      <NavBar back={null} left={<UnorderedListOutline fontSize={20} onClick={openMenu} style={{ cursor: 'pointer' }} />} style={{ '--height': '48px' }}>Cycle Plans</NavBar>
 
       <div style={{ padding: 12, display: 'flex', flexDirection: 'column', gap: 12 }}>
         {/* Active / Pending Plans */}

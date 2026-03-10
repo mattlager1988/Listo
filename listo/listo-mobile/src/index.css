@@ -36,6 +36,11 @@ body {
   min-height: 100vh;
 }
 
+/* Content area without bottom tabs */
+.app-content.app-content-no-tabs {
+  padding-bottom: 0;
+}
+
 /* Smooth scrolling on iOS */
 body {
   -webkit-overflow-scrolling: touch;

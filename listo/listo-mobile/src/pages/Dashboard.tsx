@@ -2,8 +2,10 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { NavBar, Card, Grid, List, PullToRefresh, Tag, Skeleton, ErrorBlock } from 'antd-mobile';
 import dayjs from 'dayjs';
+import { UnorderedListOutline } from 'antd-mobile-icons';
 import api from '@shared/services/api';
 import type { DashboardSummary, PendingPayment } from '@shared/types';
+import { useMenu } from '../contexts/MenuContext';
 
 const getBankBalanceColor = (balance: number) => {
   return balance >= 100 ? '#3f8600' : '#cf1322';
@@ -11,6 +13,7 @@ const getBankBalanceColor = (balance: number) => {
 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
+  const { openMenu } = useMenu();
   const [data, setData] = useState<DashboardSummary | null>(null);
   const [pendingPayments, setPendingPayments] = useState<PendingPayment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -39,7 +42,7 @@ const Dashboard: React.FC = () => {
   if (loading) {
     return (
       <>
-        <NavBar back={null} style={{ '--height': '48px' }}>Dashboard</NavBar>
+        <NavBar back={null} left={<UnorderedListOutline fontSize={20} onClick={openMenu} style={{ cursor: 'pointer' }} />} style={{ '--height': '48px' }}>Dashboard</NavBar>
         <div style={{ padding: 16 }}>
           <Skeleton.Title animated />
           <Skeleton.Paragraph lineCount={3} animated />
@@ -54,7 +57,7 @@ const Dashboard: React.FC = () => {
   if (error || !data) {
     return (
       <>
-        <NavBar back={null} style={{ '--height': '48px' }}>Dashboard</NavBar>
+        <NavBar back={null} left={<UnorderedListOutline fontSize={20} onClick={openMenu} style={{ cursor: 'pointer' }} />} style={{ '--height': '48px' }}>Dashboard</NavBar>
         <ErrorBlock
           status="default"
           title="Unable to load dashboard"
@@ -69,7 +72,7 @@ const Dashboard: React.FC = () => {
 
   return (
     <PullToRefresh onRefresh={fetchData}>
-      <NavBar back={null} style={{ '--height': '48px' }}>Dashboard</NavBar>
+      <NavBar back={null} left={<UnorderedListOutline fontSize={20} onClick={openMenu} style={{ cursor: 'pointer' }} />} style={{ '--height': '48px' }}>Dashboard</NavBar>
 
       <div style={{ padding: 12, display: 'flex', flexDirection: 'column', gap: 12 }}>
         {/* Bank Accounts */}

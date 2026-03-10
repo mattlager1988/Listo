@@ -13,10 +13,11 @@ import {
   Toast,
   Collapse,
 } from 'antd-mobile';
-import { AddOutline } from 'antd-mobile-icons';
+import { AddOutline, UnorderedListOutline } from 'antd-mobile-icons';
 import dayjs from 'dayjs';
 import api from '@shared/services/api';
 import type { Account, Payment } from '@shared/types';
+import { useMenu } from '../../contexts/MenuContext';
 
 const FLAG_ORDER = ['Standard', 'Static', 'Alert', 'OnHold'];
 const FLAG_DISPLAY_NAMES: Record<string, string> = {
@@ -35,6 +36,7 @@ const flagColors: Record<string, string> = {
 
 const Accounts: React.FC = () => {
   const navigate = useNavigate();
+  const { openMenu } = useMenu();
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [pendingPayments, setPendingPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -103,7 +105,7 @@ const Accounts: React.FC = () => {
   if (loading) {
     return (
       <>
-        <NavBar back={null} style={{ '--height': '48px' }}>Bills</NavBar>
+        <NavBar back={null} left={<UnorderedListOutline fontSize={20} onClick={openMenu} style={{ cursor: 'pointer' }} />} style={{ '--height': '48px' }}>Bills</NavBar>
         <div style={{ padding: 16 }}>
           <Skeleton.Title animated />
           <Skeleton.Paragraph lineCount={5} animated />
@@ -117,7 +119,7 @@ const Accounts: React.FC = () => {
   if (error) {
     return (
       <>
-        <NavBar back={null} style={{ '--height': '48px' }}>Bills</NavBar>
+        <NavBar back={null} left={<UnorderedListOutline fontSize={20} onClick={openMenu} style={{ cursor: 'pointer' }} />} style={{ '--height': '48px' }}>Bills</NavBar>
         <ErrorBlock status="default" title="Unable to load accounts" description="Pull down to retry" />
       </>
     );
@@ -156,6 +158,7 @@ const Accounts: React.FC = () => {
     <PullToRefresh onRefresh={fetchData}>
       <NavBar
         back={null}
+        left={<UnorderedListOutline fontSize={20} onClick={openMenu} style={{ cursor: 'pointer' }} />}
         style={{ '--height': '48px' }}
         right={
           <span

@@ -12,11 +12,14 @@ import {
   Popup,
   PasscodeInput,
 } from 'antd-mobile';
+import { UnorderedListOutline } from 'antd-mobile-icons';
 import { useAuth } from '@shared/contexts/AuthContext';
+import { useMenu } from '../contexts/MenuContext';
 import api from '@shared/services/api';
 
 const Profile: React.FC = () => {
   const { user, logout, refreshUser } = useAuth();
+  const { openMenu } = useMenu();
 
   const [editProfileVisible, setEditProfileVisible] = useState(false);
   const [changePasswordVisible, setChangePasswordVisible] = useState(false);
@@ -127,7 +130,7 @@ const Profile: React.FC = () => {
 
   return (
     <>
-      <NavBar back={null} style={{ '--height': '48px' }}>Profile</NavBar>
+      <NavBar back={null} left={<UnorderedListOutline fontSize={20} onClick={openMenu} style={{ cursor: 'pointer' }} />} style={{ '--height': '48px' }}>Profile</NavBar>
 
       <div style={{ padding: 12, display: 'flex', flexDirection: 'column', gap: 12 }}>
         {/* User Info Card */}
