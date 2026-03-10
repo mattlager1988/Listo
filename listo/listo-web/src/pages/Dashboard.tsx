@@ -3,9 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { Row, Col, Card, Statistic, Table, Tag, Button, Spin, message, Space } from 'antd';
 import {
   BankOutlined,
-  RocketOutlined,
   ReloadOutlined,
 } from '@ant-design/icons';
+import { Column } from '@ant-design/charts';
 import dayjs from 'dayjs';
 import api from '../services/api';
 import PageHeader from '../components/PageHeader';
@@ -38,11 +38,16 @@ interface UpcomingBill {
   accountFlag: string;
 }
 
+interface TrainingTypeHours {
+  trainingType: string;
+  hours: number;
+}
+
 interface AviationSummary {
-  totalHoursAllTime: number;
-  hoursLast30Days: number;
-  entriesLast30Days: number;
+  totalDualHours: number;
+  totalSoloHours: number;
   lastTrainingDate: string | null;
+  hoursByTypeLast30Days: TrainingTypeHours[];
 }
 
 interface DashboardSummary {
@@ -169,6 +174,45 @@ const Dashboard: React.FC = () => {
       </div>
     );
   }
+
+  const chartData = data.aviationStats?.hoursByTypeLast30Days || [];
+
+  const trainingTypeColors: Record<string, string> = {
+    'Dual Flight Training': '#1890ff',
+    'Solo Flight Training': '#52c41a',
+    'Ground School': '#faad14',
+    'Simulator': '#722ed1',
+  };
+
+  const flightHoursChartConfig = {
+    data: chartData,
+    xField: 'trainingType',
+    yField: 'hours',
+    color: (d: { trainingType: string }) => trainingTypeColors[d.trainingType] || '#8c8c8c',
+    style: {
+      radiusTopLeft: 4,
+      radiusTopRight: 4,
+    },
+    label: {
+      text: (d: { hours: number }) => d.hours > 0 ? d.hours.toFixed(1) : '',
+      position: 'inside' as const,
+      style: {
+        fill: '#ffffff',
+        fontSize: 12,
+      },
+    },
+    axis: {
+      x: {
+        labelFontSize: 11,
+      },
+      y: {
+        labelFontSize: 11,
+        labelFormatter: (v: number) => `${v}h`,
+      },
+    },
+    legend: false as const,
+    height: 180,
+  };
 
   return (
     <div>
@@ -335,37 +379,53 @@ const Dashboard: React.FC = () => {
                 </Button>
               }
             >
-              <Row gutter={16}>
+              <Row gutter={12}>
                 <Col span={8}>
-                  <Statistic
-                    title="Total Hours"
-                    value={data.aviationStats.totalHoursAllTime}
-                    precision={1}
-                    prefix={<RocketOutlined />}
-                    valueStyle={{ fontSize: 20 }}
-                  />
+                  <Card size="small" style={{ background: '#fafafa' }}>
+                    <Statistic
+                      title="Total Dual"
+                      value={data.aviationStats.totalDualHours}
+                      precision={1}
+                      suffix="hrs"
+                      valueStyle={{ fontSize: 18 }}
+                    />
+                  </Card>
                 </Col>
                 <Col span={8}>
-                  <Statistic
-                    title="Last 30 Days"
-                    value={data.aviationStats.hoursLast30Days}
-                    precision={1}
-                    suffix="hrs"
-                    valueStyle={{ fontSize: 20 }}
-                  />
+                  <Card size="small" style={{ background: '#fafafa' }}>
+                    <Statistic
+                      title="Total Solo"
+                      value={data.aviationStats.totalSoloHours}
+                      precision={1}
+                      suffix="hrs"
+                      valueStyle={{ fontSize: 18 }}
+                    />
+                  </Card>
                 </Col>
                 <Col span={8}>
-                  <Statistic
-                    title="Last Flight"
-                    value={
-                      data.aviationStats.lastTrainingDate
-                        ? dayjs(data.aviationStats.lastTrainingDate).format('MMM D')
-                        : 'N/A'
-                    }
-                    valueStyle={{ fontSize: 14 }}
-                  />
+                  <Card size="small" style={{ background: '#fafafa' }}>
+                    <Statistic
+                      title="Last Flight"
+                      value={
+                        data.aviationStats.lastTrainingDate
+                          ? dayjs(data.aviationStats.lastTrainingDate).format('MMM D')
+                          : 'N/A'
+                      }
+                      valueStyle={{ fontSize: 14 }}
+                    />
+                  </Card>
                 </Col>
               </Row>
+              <div style={{ marginTop: 16 }}>
+                <div style={{ color: '#8c8c8c', fontSize: 12, marginBottom: 8 }}>Last 30 Days</div>
+                {chartData.length > 0 ? (
+                  <Column {...flightHoursChartConfig} />
+                ) : (
+                  <p style={{ color: '#8c8c8c', textAlign: 'center', margin: '16px 0' }}>
+                    No training in the last 30 days
+                  </p>
+                )}
+              </div>
             </Card>
           ) : (
             <Card title="Flight Training" size="small">

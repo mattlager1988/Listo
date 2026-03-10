@@ -43,8 +43,13 @@ public record UpcomingBillDto(
 );
 
 public record AviationSummaryDto(
-    decimal TotalHoursAllTime,
-    decimal HoursLast30Days,
-    int EntriesLast30Days,
-    DateTime? LastTrainingDate
+    decimal TotalDualHours,
+    decimal TotalSoloHours,
+    DateTime? LastTrainingDate,
+    IEnumerable<TrainingTypeHoursDto> HoursByTypeLast30Days
+);
+
+public record TrainingTypeHoursDto(
+    string TrainingType,
+    decimal Hours
 );

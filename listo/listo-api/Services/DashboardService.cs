@@ -86,33 +86,47 @@ public class DashboardService : IDashboardService
             );
         }
 
-        // Aviation: Training summary (only Dual Flight Training and Solo Flight Training)
+        // Aviation: Training summary
         AviationSummaryDto? aviationStats = null;
-        var flightTrainingTypes = new[] { "Dual Flight Training", "Solo Flight Training" };
 
-        var flightLogs = await _context.TrainingLogs
+        // Get all training logs for the chart
+        var allTrainingLogs = await _context.TrainingLogs
             .Include(t => t.TrainingType)
-            .Where(t => flightTrainingTypes.Contains(t.TrainingType.Name))
             .ToListAsync();
 
-        if (flightLogs.Count > 0)
+        if (allTrainingLogs.Count > 0)
         {
-            var totalHoursAllTime = flightLogs.Sum(t => t.HoursFlown);
+            // Stats are only for Dual Flight Training and Solo Flight Training
+            var flightLogs = allTrainingLogs
+                .Where(t => t.TrainingType.Name == "Dual Flight Training" || t.TrainingType.Name == "Solo Flight Training")
+                .ToList();
 
-            var recentLogs = flightLogs.Where(t => t.Date >= last30Days).ToList();
-            var hoursLast30Days = recentLogs.Sum(t => t.HoursFlown);
-            var entriesLast30Days = recentLogs.Count;
+            var totalDualHours = flightLogs
+                .Where(t => t.TrainingType.Name == "Dual Flight Training")
+                .Sum(t => t.HoursFlown);
+
+            var totalSoloHours = flightLogs
+                .Where(t => t.TrainingType.Name == "Solo Flight Training")
+                .Sum(t => t.HoursFlown);
 
             var lastTrainingDate = flightLogs
                 .OrderByDescending(t => t.Date)
                 .Select(t => (DateTime?)t.Date)
                 .FirstOrDefault();
 
+            // Calculate hours by training type for last 30 days
+            var recentLogs = allTrainingLogs.Where(t => t.Date >= last30Days).ToList();
+            var hoursByType = recentLogs
+                .GroupBy(t => t.TrainingType.Name)
+                .Select(g => new TrainingTypeHoursDto(g.Key, g.Sum(t => t.HoursFlown)))
+                .OrderBy(h => h.TrainingType)
+                .ToList();
+
             aviationStats = new AviationSummaryDto(
-                totalHoursAllTime,
-                hoursLast30Days,
-                entriesLast30Days,
-                lastTrainingDate
+                totalDualHours,
+                totalSoloHours,
+                lastTrainingDate,
+                hoursByType
             );
         }
 
