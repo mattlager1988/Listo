@@ -69,8 +69,15 @@ public class DashboardService : IDashboardService
 
         if (activePlan != null)
         {
-            var transactionsTotal = activePlan.CycleTransactions?.Sum(t =>
-                t.TransactionType == CycleTransactionType.Credit ? t.Amount : -t.Amount) ?? 0;
+            var transactions = activePlan.CycleTransactions ?? new List<CycleTransaction>();
+            var totalCredits = transactions
+                .Where(t => t.TransactionType == CycleTransactionType.Credit)
+                .Sum(t => t.Amount);
+            var totalDebits = transactions
+                .Where(t => t.TransactionType == CycleTransactionType.Debit)
+                .Sum(t => t.Amount);
+
+            var transactionsTotal = totalCredits - totalDebits;
             var balance = activePlan.AmountIn + transactionsTotal - activePlan.AmountOut;
             var daysRemaining = (activePlan.EndDate.Date - now.Date).Days;
 
@@ -82,7 +89,9 @@ public class DashboardService : IDashboardService
                 activePlan.AmountIn,
                 activePlan.AmountOut,
                 balance,
-                daysRemaining > 0 ? daysRemaining : 0
+                daysRemaining > 0 ? daysRemaining : 0,
+                totalCredits,
+                totalDebits
             );
         }
 

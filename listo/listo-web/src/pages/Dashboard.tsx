@@ -27,6 +27,8 @@ interface CyclePlanSummary {
   amountOut: number;
   balance: number;
   daysRemaining: number;
+  totalCredits: number;
+  totalDebits: number;
 }
 
 interface UpcomingBill {
@@ -280,7 +282,7 @@ const Dashboard: React.FC = () => {
         <Col xs={24} lg={12}>
           {data.activeCyclePlan ? (
             <Card
-              title="Active Cycle Plan"
+              title={`Active Cycle Plan - ${dayjs(data.activeCyclePlan.startDate).format('MMM D')} - ${dayjs(data.activeCyclePlan.endDate).format('MMM D, YYYY')}`}
               size="small"
               extra={
                 <Button
@@ -292,37 +294,70 @@ const Dashboard: React.FC = () => {
                 </Button>
               }
             >
-              <Row gutter={16}>
+              <Row gutter={12}>
                 <Col span={8}>
-                  <Statistic
-                    title="Balance"
-                    value={data.activeCyclePlan.balance}
-                    precision={2}
-                    prefix="$"
-                    valueStyle={{
-                      fontSize: 20,
-                      color: data.activeCyclePlan.balance >= 0 ? '#3f8600' : '#cf1322',
-                    }}
-                  />
+                  <Card size="small" style={{ background: '#fafafa' }}>
+                    <Statistic
+                      title="Balance"
+                      value={data.activeCyclePlan.balance}
+                      precision={2}
+                      prefix="$"
+                      valueStyle={{
+                        fontSize: 18,
+                        color: data.activeCyclePlan.balance >= 0 ? '#3f8600' : '#cf1322',
+                      }}
+                    />
+                  </Card>
                 </Col>
                 <Col span={8}>
-                  <Statistic
-                    title="Days Left"
-                    value={data.activeCyclePlan.daysRemaining}
-                    valueStyle={{ fontSize: 20 }}
-                  />
+                  <Card size="small" style={{ background: '#fafafa' }}>
+                    <Statistic
+                      title="Days Left"
+                      value={data.activeCyclePlan.daysRemaining}
+                      valueStyle={{ fontSize: 18 }}
+                    />
+                  </Card>
                 </Col>
                 <Col span={8}>
-                  <Statistic
-                    title="Goal"
-                    value={data.activeCyclePlan.cycleGoalName}
-                    valueStyle={{ fontSize: 14 }}
-                  />
+                  <Card size="small" style={{ background: '#fafafa' }}>
+                    <Statistic
+                      title="Goal"
+                      value={data.activeCyclePlan.cycleGoalName}
+                      valueStyle={{ fontSize: 14 }}
+                    />
+                  </Card>
                 </Col>
               </Row>
-              <div style={{ marginTop: 12, color: '#8c8c8c', fontSize: 12 }}>
-                {dayjs(data.activeCyclePlan.startDate).format('MMM D')} -{' '}
-                {dayjs(data.activeCyclePlan.endDate).format('MMM D, YYYY')}
+              <div style={{ marginTop: 16 }}>
+                <div style={{ color: '#8c8c8c', fontSize: 12, marginBottom: 8 }}>Transactions</div>
+                {(data.activeCyclePlan.totalCredits > 0 || data.activeCyclePlan.totalDebits > 0) ? (
+                  <Column
+                    data={[
+                      { type: 'Credits', amount: data.activeCyclePlan.totalCredits },
+                      { type: 'Debits', amount: data.activeCyclePlan.totalDebits },
+                    ]}
+                    xField="type"
+                    yField="amount"
+                    colorField="type"
+                    scale={{ color: { range: ['#52c41a', '#ff4d4f'] } }}
+                    style={{ radiusTopLeft: 4, radiusTopRight: 4 }}
+                    label={{
+                      text: (d: { amount: number }) => d.amount > 0 ? `$${d.amount.toFixed(0)}` : '',
+                      position: 'inside' as const,
+                      style: { fill: '#ffffff', fontSize: 12 },
+                    }}
+                    axis={{
+                      x: { labelFontSize: 11 },
+                      y: { labelFontSize: 11, labelFormatter: (v: number) => `$${v}` },
+                    }}
+                    legend={false as const}
+                    height={180}
+                  />
+                ) : (
+                  <p style={{ color: '#8c8c8c', textAlign: 'center', margin: '16px 0' }}>
+                    No transactions yet
+                  </p>
+                )}
               </div>
             </Card>
           ) : (

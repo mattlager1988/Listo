@@ -30,7 +30,9 @@ public record CyclePlanSummaryDto(
     decimal AmountIn,
     decimal AmountOut,
     decimal Balance,
-    int DaysRemaining
+    int DaysRemaining,
+    decimal TotalCredits,
+    decimal TotalDebits
 );
 
 public record UpcomingBillDto(
