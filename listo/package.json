@@ -1,0 +1,9 @@
+{
+  "name": "listo",
+  "private": true,
+  "workspaces": [
+    "shared",
+    "listo-web",
+    "listo-mobile"
+  ]
+}
