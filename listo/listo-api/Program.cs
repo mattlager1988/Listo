@@ -80,6 +80,7 @@ builder.Services.AddScoped<IPaymentService, PaymentService>();
 builder.Services.AddScoped<ICycleGoalService, CycleGoalService>();
 builder.Services.AddScoped<ICyclePlanService, CyclePlanService>();
 builder.Services.AddScoped<ICycleTransactionService, CycleTransactionService>();
+builder.Services.AddScoped<IDashboardService, DashboardService>();
 
 // CORS
 builder.Services.AddCors(options =>

@@ -1,48 +1,384 @@
-import React from 'react';
-import { Typography, Card, Row, Col, Empty } from 'antd';
-import { AppstoreOutlined } from '@ant-design/icons';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Row, Col, Card, Statistic, Table, Tag, Button, Spin, message, Space } from 'antd';
+import {
+  BankOutlined,
+  RocketOutlined,
+  ReloadOutlined,
+} from '@ant-design/icons';
+import dayjs from 'dayjs';
+import api from '../services/api';
 import PageHeader from '../components/PageHeader';
 
-const { Text, Paragraph } = Typography;
+interface BankAccountSummary {
+  sysId: number;
+  name: string;
+  accountType: string;
+  balance: number;
+  color: string | null;
+}
+
+interface CyclePlanSummary {
+  sysId: number;
+  startDate: string;
+  endDate: string;
+  cycleGoalName: string;
+  amountIn: number;
+  amountOut: number;
+  balance: number;
+  daysRemaining: number;
+}
+
+interface UpcomingBill {
+  sysId: number;
+  accountName: string;
+  amountDue: number;
+  dueDate: string;
+  autoPay: boolean;
+  accountFlag: string;
+}
+
+interface AviationSummary {
+  totalHoursAllTime: number;
+  hoursLast30Days: number;
+  entriesLast30Days: number;
+  lastTrainingDate: string | null;
+}
+
+interface DashboardSummary {
+  bankAccounts: BankAccountSummary[];
+  activeCyclePlan: CyclePlanSummary | null;
+  upcomingBills: UpcomingBill[];
+  aviationStats: AviationSummary | null;
+}
+
+interface PendingPayment {
+  sysId: number;
+  accountSysId: number;
+  amount: number;
+  description: string | null;
+  dueDate: string | null;
+  accountName: string;
+}
 
 const Dashboard: React.FC = () => {
+  const navigate = useNavigate();
+  const [data, setData] = useState<DashboardSummary | null>(null);
+  const [pendingPayments, setPendingPayments] = useState<PendingPayment[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchDashboard = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [summaryRes, paymentsRes] = await Promise.all([
+        api.get('/dashboard/summary'),
+        api.get('/finance/payments/pending'),
+      ]);
+      setData(summaryRes.data);
+      setPendingPayments(paymentsRes.data);
+    } catch {
+      message.error('Failed to load dashboard');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchDashboard();
+  }, [fetchDashboard]);
+
+  const upcomingBillsColumns = [
+    {
+      title: 'Account',
+      dataIndex: 'accountName',
+      key: 'accountName',
+      ellipsis: true,
+    },
+    {
+      title: 'Due',
+      dataIndex: 'dueDate',
+      key: 'dueDate',
+      width: 80,
+      render: (date: string) => dayjs(date).format('MMM D'),
+    },
+    {
+      title: 'Amount',
+      dataIndex: 'amountDue',
+      key: 'amountDue',
+      width: 90,
+      align: 'right' as const,
+      render: (amount: number) => `$${amount.toFixed(2)}`,
+    },
+    {
+      title: '',
+      key: 'flags',
+      width: 100,
+      render: (_: unknown, record: UpcomingBill) => (
+        <Space size={4}>
+          {record.autoPay && <Tag color="green">Auto</Tag>}
+          {record.accountFlag === 'Alert' && <Tag color="red">Alert</Tag>}
+        </Space>
+      ),
+    },
+  ];
+
+  const pendingPaymentsColumns = [
+    {
+      title: 'Account',
+      dataIndex: 'accountName',
+      key: 'accountName',
+      ellipsis: true,
+    },
+    {
+      title: 'Due',
+      dataIndex: 'dueDate',
+      key: 'dueDate',
+      width: 80,
+      render: (date: string | null) => date ? dayjs(date).format('MMM D') : '-',
+    },
+    {
+      title: 'Amount',
+      dataIndex: 'amount',
+      key: 'amount',
+      width: 90,
+      align: 'right' as const,
+      render: (amount: number) => `$${amount.toFixed(2)}`,
+    },
+  ];
+
+  const getBankBalanceColor = (balance: number) => {
+    return balance >= 100 ? '#3f8600' : '#cf1322';
+  };
+
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
+        <Spin size="large" />
+      </div>
+    );
+  }
+
+  if (!data) {
+    return (
+      <div>
+        <PageHeader title="Dashboard" />
+        <Card>
+          <p>Unable to load dashboard data.</p>
+          <Button onClick={fetchDashboard}>Retry</Button>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div>
-      <PageHeader title="Dashboard" />
-      <Paragraph type="secondary" style={{ marginTop: -16, marginBottom: 24 }}>
-        Welcome to Listo! Your personal life management platform.
-      </Paragraph>
-
-      <Card style={{ marginTop: 24 }}>
-        <Empty
-          image={<AppstoreOutlined style={{ fontSize: 64, color: '#d9d9d9' }} />}
-          description={
-            <div>
-              <Text strong>No modules installed yet</Text>
-              <br />
-              <Text type="secondary">
-                Modules will appear here as they are added to Listo.
-              </Text>
-            </div>
-          }
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+        <PageHeader title="Dashboard" />
+        <Button
+          type="text"
+          icon={<ReloadOutlined />}
+          onClick={fetchDashboard}
+          style={{ marginRight: 8 }}
         />
-      </Card>
+      </div>
 
-      <Row gutter={[16, 16]} style={{ marginTop: 24 }}>
-        <Col xs={24} sm={12} lg={8}>
-          <Card title="Coming Soon" size="small">
-            <Text type="secondary">Financial Management</Text>
+      {/* Bank Accounts Row */}
+      <Row gutter={[16, 16]}>
+        {data.bankAccounts.map((account) => (
+          <Col xs={24} sm={12} lg={6} key={account.sysId}>
+            <Card size="small">
+              <Statistic
+                title={account.name}
+                value={account.balance}
+                precision={2}
+                prefix={<BankOutlined style={{ color: getBankBalanceColor(account.balance) }} />}
+                valueStyle={{ color: getBankBalanceColor(account.balance) }}
+              />
+              <div style={{ marginTop: 4, color: '#8c8c8c', fontSize: 12 }}>
+                {account.accountType}
+              </div>
+            </Card>
+          </Col>
+        ))}
+      </Row>
+
+      {/* Upcoming Bills and Cycle Plan + Pending Payments Row */}
+      <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
+        <Col xs={24} lg={12}>
+          <Card
+            title="Upcoming Bills"
+            size="small"
+            extra={
+              <Button type="link" size="small" onClick={() => navigate('/finance/accounts')}>
+                View All
+              </Button>
+            }
+          >
+            {data.upcomingBills.length > 0 ? (
+              <Table
+                dataSource={data.upcomingBills.slice(0, 5)}
+                columns={upcomingBillsColumns}
+                pagination={false}
+                size="small"
+                rowKey="sysId"
+                onRow={() => ({
+                  onClick: () => navigate('/finance/accounts'),
+                  style: { cursor: 'pointer' },
+                })}
+              />
+            ) : (
+              <p style={{ color: '#8c8c8c', textAlign: 'center', margin: '16px 0' }}>
+                No bills due in the next 14 days
+              </p>
+            )}
           </Card>
         </Col>
-        <Col xs={24} sm={12} lg={8}>
-          <Card title="Coming Soon" size="small">
-            <Text type="secondary">Task Management</Text>
+        <Col xs={24} lg={12}>
+          {data.activeCyclePlan ? (
+            <Card
+              title="Active Cycle Plan"
+              size="small"
+              extra={
+                <Button
+                  type="link"
+                  size="small"
+                  onClick={() => navigate(`/finance/cycleplans/${data.activeCyclePlan!.sysId}`)}
+                >
+                  View Details
+                </Button>
+              }
+            >
+              <Row gutter={16}>
+                <Col span={8}>
+                  <Statistic
+                    title="Balance"
+                    value={data.activeCyclePlan.balance}
+                    precision={2}
+                    prefix="$"
+                    valueStyle={{
+                      fontSize: 20,
+                      color: data.activeCyclePlan.balance >= 0 ? '#3f8600' : '#cf1322',
+                    }}
+                  />
+                </Col>
+                <Col span={8}>
+                  <Statistic
+                    title="Days Left"
+                    value={data.activeCyclePlan.daysRemaining}
+                    valueStyle={{ fontSize: 20 }}
+                  />
+                </Col>
+                <Col span={8}>
+                  <Statistic
+                    title="Goal"
+                    value={data.activeCyclePlan.cycleGoalName}
+                    valueStyle={{ fontSize: 14 }}
+                  />
+                </Col>
+              </Row>
+              <div style={{ marginTop: 12, color: '#8c8c8c', fontSize: 12 }}>
+                {dayjs(data.activeCyclePlan.startDate).format('MMM D')} -{' '}
+                {dayjs(data.activeCyclePlan.endDate).format('MMM D, YYYY')}
+              </div>
+            </Card>
+          ) : (
+            <Card title="Cycle Plan" size="small">
+              <p style={{ color: '#8c8c8c', textAlign: 'center', margin: '16px 0' }}>
+                No active cycle plan
+              </p>
+              <div style={{ textAlign: 'center' }}>
+                <Button type="link" onClick={() => navigate('/finance/cycleplans')}>
+                  View Cycle Plans
+                </Button>
+              </div>
+            </Card>
+          )}
+
+          {/* Pending Payments under Cycle Plan */}
+          <Card
+            title="Pending Payments"
+            size="small"
+            style={{ marginTop: 16 }}
+            extra={
+              <Button type="link" size="small" onClick={() => navigate('/finance/accounts')}>
+                View All
+              </Button>
+            }
+          >
+            {pendingPayments.length > 0 ? (
+              <Table
+                dataSource={pendingPayments.slice(0, 5)}
+                columns={pendingPaymentsColumns}
+                pagination={false}
+                size="small"
+                rowKey="sysId"
+              />
+            ) : (
+              <p style={{ color: '#8c8c8c', textAlign: 'center', margin: '16px 0' }}>
+                No pending payments
+              </p>
+            )}
           </Card>
         </Col>
-        <Col xs={24} sm={12} lg={8}>
-          <Card title="Coming Soon" size="small">
-            <Text type="secondary">Calendar</Text>
-          </Card>
+      </Row>
+
+      {/* Aviation Stats Row */}
+      <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
+        <Col xs={24} lg={12}>
+          {data.aviationStats ? (
+            <Card
+              title="Flight Training"
+              size="small"
+              extra={
+                <Button type="link" size="small" onClick={() => navigate('/aviation/training')}>
+                  View Log
+                </Button>
+              }
+            >
+              <Row gutter={16}>
+                <Col span={8}>
+                  <Statistic
+                    title="Total Hours"
+                    value={data.aviationStats.totalHoursAllTime}
+                    precision={1}
+                    prefix={<RocketOutlined />}
+                    valueStyle={{ fontSize: 20 }}
+                  />
+                </Col>
+                <Col span={8}>
+                  <Statistic
+                    title="Last 30 Days"
+                    value={data.aviationStats.hoursLast30Days}
+                    precision={1}
+                    suffix="hrs"
+                    valueStyle={{ fontSize: 20 }}
+                  />
+                </Col>
+                <Col span={8}>
+                  <Statistic
+                    title="Last Flight"
+                    value={
+                      data.aviationStats.lastTrainingDate
+                        ? dayjs(data.aviationStats.lastTrainingDate).format('MMM D')
+                        : 'N/A'
+                    }
+                    valueStyle={{ fontSize: 14 }}
+                  />
+                </Col>
+              </Row>
+            </Card>
+          ) : (
+            <Card title="Flight Training" size="small">
+              <p style={{ color: '#8c8c8c', textAlign: 'center', margin: '16px 0' }}>
+                No flight training logs recorded
+              </p>
+              <div style={{ textAlign: 'center' }}>
+                <Button type="link" onClick={() => navigate('/aviation/training')}>
+                  Start Logging
+                </Button>
+              </div>
+            </Card>
+          )}
         </Col>
       </Row>
     </div>
