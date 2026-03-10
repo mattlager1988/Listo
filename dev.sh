@@ -11,6 +11,7 @@ LOG_DIR="$SCRIPT_DIR/.dev-logs"
 
 API_DIR="$SCRIPT_DIR/listo/listo-api"
 WEB_DIR="$SCRIPT_DIR/listo/listo-web"
+MOB_DIR="$SCRIPT_DIR/listo/listo-mobile"
 
 # Kill a process and all its descendants recursively
 kill_tree() {
@@ -43,13 +44,21 @@ start() {
     WEB_PID=$!
     echo "Web started with PID $WEB_PID"
 
+    echo "Starting mobile frontend..."
+    cd "$MOB_DIR"
+    npm run dev > "$LOG_DIR/mob.log" 2>&1 &
+    MOB_PID=$!
+    echo "Mobile started with PID $MOB_PID"
+
     echo "API_PID=$API_PID" > "$PID_FILE"
     echo "WEB_PID=$WEB_PID" >> "$PID_FILE"
+    echo "MOB_PID=$MOB_PID" >> "$PID_FILE"
 
     echo ""
     echo "Both servers started!"
     echo "  API: http://localhost:5286"
     echo "  Web: http://localhost:5173"
+    echo "  Mobile: http://localhost:5174"
     echo ""
     echo "View logs: ./dev.sh logs"
     echo "Stop servers: ./dev.sh stop"
@@ -79,6 +88,13 @@ stop() {
         echo "Web process not found"
     fi
 
+    if [ -n "$MOB_PID" ] && kill -0 "$MOB_PID" 2>/dev/null; then
+        kill_tree "$MOB_PID"
+        echo "Stopped Mobile (PID $MOB_PID and children)"
+    else
+        echo "Mobile process not found"
+    fi
+
     rm -f "$PID_FILE"
     echo "Done"
 }
@@ -103,6 +119,12 @@ status() {
     else
         echo "  Web: not running"
     fi
+
+    if [ -n "$MOB_PID" ] && kill -0 "$MOB_PID" 2>/dev/null; then
+        echo "  Mobile: running (PID $WEB_PID)"
+    else
+        echo "  Mobile: not running"
+    fi
 }
 
 logs() {
@@ -116,6 +138,9 @@ logs() {
     echo ""
     echo "=== Web Log (last 20 lines) ==="
     tail -n 20 "$LOG_DIR/web.log" 2>/dev/null || echo "(no log)"
+    echo ""
+    echo "=== Mobile Log (last 20 lines) ==="
+    tail -n 20 "$LOG_DIR/mob.log" 2>/dev/null || echo "(no log)"
     echo ""
     echo "Full logs at: $LOG_DIR/"
 }
