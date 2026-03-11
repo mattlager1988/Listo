@@ -214,7 +214,7 @@ const CyclePlanDetail: React.FC = () => {
             textAlign: 'center',
           }}>
             <div style={{ fontSize: 11, color: '#8c8c8c', marginBottom: 4 }}>Income</div>
-            <div style={{ fontSize: 22, fontWeight: 700, color: '#52c41a' }}>${plan.amountIn.toFixed(0)}</div>
+            <div style={{ fontSize: 22, fontWeight: 700, color: '#52c41a' }}>${plan.amountIn.toFixed(2)}</div>
           </div>
           <div style={{
             background: '#fff2f0',
@@ -224,7 +224,7 @@ const CyclePlanDetail: React.FC = () => {
             textAlign: 'center',
           }}>
             <div style={{ fontSize: 11, color: '#8c8c8c', marginBottom: 4 }}>Expenses</div>
-            <div style={{ fontSize: 22, fontWeight: 700, color: '#ff4d4f' }}>${plan.amountOut.toFixed(0)}</div>
+            <div style={{ fontSize: 22, fontWeight: 700, color: '#ff4d4f' }}>${plan.amountOut.toFixed(2)}</div>
           </div>
           <div style={{
             background: plan.balance >= 0 ? '#f6ffed' : '#fff2f0',
@@ -235,7 +235,7 @@ const CyclePlanDetail: React.FC = () => {
           }}>
             <div style={{ fontSize: 11, color: '#8c8c8c', marginBottom: 4 }}>Balance</div>
             <div style={{ fontSize: 22, fontWeight: 700, color: plan.balance >= 0 ? '#52c41a' : '#ff4d4f' }}>
-              ${plan.balance.toFixed(0)}
+              ${plan.balance.toFixed(2)}
             </div>
           </div>
           <div style={{

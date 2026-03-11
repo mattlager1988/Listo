@@ -106,7 +106,7 @@ const CyclePlans: React.FC = () => {
                         fontSize: 14,
                         color: plan.balance >= 0 ? '#52c41a' : '#ff4d4f',
                       }}>
-                        ${plan.balance.toFixed(0)}
+                        ${plan.balance.toFixed(2)}
                       </div>
                       <div style={{ fontSize: 11, color: '#8c8c8c' }}>balance</div>
                     </div>
@@ -153,7 +153,7 @@ const CyclePlans: React.FC = () => {
                         fontSize: 14,
                         color: plan.balance >= 0 ? '#52c41a' : '#ff4d4f',
                       }}>
-                        ${plan.balance.toFixed(0)}
+                        ${plan.balance.toFixed(2)}
                       </div>
                     </div>
                   }
