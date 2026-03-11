@@ -13,7 +13,7 @@ unstableSetRender((node, container) => {
   const root = (container as any)._reactRoot || ReactDOM.createRoot(container);
   (container as any)._reactRoot = root;
   root.render(node);
-  return () => {
+  return async () => {
     setTimeout(() => {
       root.unmount();
       delete (container as any)._reactRoot;
