@@ -91,7 +91,7 @@ const Accounts: React.FC = () => {
   if (loading) {
     return (
       <>
-        <NavBar back={null} left={<UnorderedListOutline fontSize={20} onClick={openMenu} style={{ cursor: 'pointer' }} />} style={{ '--height': '48px' }}>Bills</NavBar>
+        <NavBar back={null} left={<UnorderedListOutline fontSize={20} onClick={openMenu} style={{ cursor: 'pointer' }} />} style={{ '--height': '48px' }}>Accounts</NavBar>
         <div style={{ padding: 16 }}>
           <Skeleton.Title animated />
           <Skeleton.Paragraph lineCount={5} animated />
@@ -105,7 +105,7 @@ const Accounts: React.FC = () => {
   if (error) {
     return (
       <>
-        <NavBar back={null} left={<UnorderedListOutline fontSize={20} onClick={openMenu} style={{ cursor: 'pointer' }} />} style={{ '--height': '48px' }}>Bills</NavBar>
+        <NavBar back={null} left={<UnorderedListOutline fontSize={20} onClick={openMenu} style={{ cursor: 'pointer' }} />} style={{ '--height': '48px' }}>Accounts</NavBar>
         <ErrorBlock status="default" title="Unable to load accounts" description="Pull down to retry" />
       </>
     );
@@ -130,7 +130,7 @@ const Accounts: React.FC = () => {
           </span>
         }
       >
-        Bills
+        Accounts
       </NavBar>
 
       <div style={{ padding: '0 12px' }}>

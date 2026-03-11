@@ -58,7 +58,7 @@ interface TabConfig {
 }
 
 const FINANCE_TABS: TabConfig[] = [
-  { key: '/bills', title: 'Bills', icon: <BillOutline /> },
+  { key: '/bills', title: 'Accounts', icon: <BillOutline /> },
   { key: '/cycle', title: 'Cycle Plans', icon: <HistogramOutline /> },
 ];
 
