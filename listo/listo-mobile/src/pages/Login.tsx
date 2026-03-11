@@ -78,10 +78,10 @@ const Login: React.FC = () => {
         }
       >
         <Form.Item name="email" label="Email" rules={[{ required: true, message: 'Email is required' }]}>
-          <Input type="email" placeholder="you@example.com" autoComplete="email" />
+          <Input name="email" type="email" placeholder="you@example.com" autoComplete="username" />
         </Form.Item>
         <Form.Item name="password" label="Password" rules={[{ required: true, message: 'Password is required' }]}>
-          <Input type="password" placeholder="Password" autoComplete="current-password" />
+          <Input name="password" type="password" placeholder="Password" autoComplete="current-password" />
         </Form.Item>
       </Form>
     </div>
