@@ -72,11 +72,22 @@ const AccountDetail: React.FC = () => {
     }
   };
 
-  const handleCopy = (text: string, label: string) => {
-    navigator.clipboard.writeText(text).then(
-      () => Toast.show({ content: `${label} copied` }),
-      () => Toast.show({ icon: 'fail', content: 'Copy failed' })
-    );
+  const copyToClipboard = (text: string, label: string) => {
+    // Use textarea fallback for mobile browser compatibility
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.style.position = 'fixed';
+    textarea.style.opacity = '0';
+    document.body.appendChild(textarea);
+    textarea.focus();
+    textarea.select();
+    try {
+      document.execCommand('copy');
+      Toast.show({ content: `${label} copied` });
+    } catch {
+      Toast.show({ icon: 'fail', content: 'Copy failed' });
+    }
+    document.body.removeChild(textarea);
   };
 
   const handleCompletePayment = async (paymentId: number) => {
@@ -134,21 +145,27 @@ const AccountDetail: React.FC = () => {
       key: 'launch',
       onClick: () => {
         if (account.password) {
-          navigator.clipboard.writeText(account.password).catch(() => {});
-          Toast.show({ content: 'Password copied' });
+          copyToClipboard(account.password, 'Password');
         }
-        window.open(account.webAddress!, '_blank', 'noopener,noreferrer');
+        const url = account.webAddress!.startsWith('http') ? account.webAddress! : `https://${account.webAddress!}`;
+        const link = document.createElement('a');
+        link.href = url;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
       },
     }] : []),
     ...(account.username ? [{
       text: 'Copy Username',
       key: 'username',
-      onClick: () => handleCopy(account.username!, 'Username'),
+      onClick: () => copyToClipboard(account.username!, 'Username'),
     }] : []),
     ...(account.password ? [{
       text: 'Copy Password',
       key: 'password',
-      onClick: () => handleCopy(account.password!, 'Password'),
+      onClick: () => copyToClipboard(account.password!, 'Password'),
     }] : []),
     {
       text: 'Discontinue',
