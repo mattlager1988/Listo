@@ -33,6 +33,8 @@ const AccountDetail: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [actionSheetVisible, setActionSheetVisible] = useState(false);
+  const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
+  const [paymentActionSheetVisible, setPaymentActionSheetVisible] = useState(false);
 
   const fetchData = useCallback(async () => {
     if (!id) return;
@@ -299,21 +301,12 @@ const AccountDetail: React.FC = () => {
                     </span>
                   }
                   extra={
-                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                      <span style={{ fontWeight: 600 }}>${payment.amount.toFixed(2)}</span>
-                      <Button
-                        size="mini"
-                        color="success"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleCompletePayment(payment.sysId);
-                        }}
-                      >
-                        Done
-                      </Button>
-                    </div>
+                    <span style={{ fontWeight: 600 }}>${payment.amount.toFixed(2)}</span>
                   }
-                  onClick={() => handleDeletePayment(payment)}
+                  onClick={() => {
+                    setSelectedPayment(payment);
+                    setPaymentActionSheetVisible(true);
+                  }}
                 >
                   {payment.description || 'Payment'}
                 </List.Item>
@@ -374,6 +367,32 @@ const AccountDetail: React.FC = () => {
         visible={actionSheetVisible}
         actions={actionSheetActions}
         onClose={() => setActionSheetVisible(false)}
+        cancelText="Cancel"
+      />
+
+      <ActionSheet
+        visible={paymentActionSheetVisible}
+        actions={[
+          {
+            text: 'Complete Payment',
+            key: 'complete',
+            onClick: () => {
+              if (selectedPayment) handleCompletePayment(selectedPayment.sysId);
+            },
+          },
+          {
+            text: 'Delete Payment',
+            key: 'delete',
+            danger: true,
+            onClick: () => {
+              if (selectedPayment) handleDeletePayment(selectedPayment);
+            },
+          },
+        ]}
+        onClose={() => {
+          setPaymentActionSheetVisible(false);
+          setSelectedPayment(null);
+        }}
         cancelText="Cancel"
       />
     </PullToRefresh>
