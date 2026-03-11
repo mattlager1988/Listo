@@ -71,6 +71,7 @@ const PendingPayments: React.FC = () => {
       text: 'Edit Payment',
       key: 'edit',
       onClick: () => {
+        setActionSheetVisible(false);
         if (selectedPayment) navigate(`/pending/${selectedPayment.sysId}/edit`);
       },
     },
@@ -78,6 +79,7 @@ const PendingPayments: React.FC = () => {
       text: 'Complete Payment',
       key: 'complete',
       onClick: () => {
+        setActionSheetVisible(false);
         if (selectedPayment) handleCompletePayment(selectedPayment.sysId);
       },
     },
@@ -86,6 +88,7 @@ const PendingPayments: React.FC = () => {
       key: 'delete',
       danger: true,
       onClick: () => {
+        setActionSheetVisible(false);
         if (selectedPayment) handleDeletePayment(selectedPayment);
       },
     },

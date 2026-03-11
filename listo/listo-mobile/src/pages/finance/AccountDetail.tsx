@@ -108,11 +108,12 @@ const AccountDetail: React.FC = () => {
   const completedPayments = payments.filter(p => p.status === 'Complete');
 
   const actionSheetActions: Action[] = [
-    { text: 'Edit Account', key: 'edit', onClick: () => navigate(`/bills/${account.sysId}/edit`) },
+    { text: 'Edit Account', key: 'edit', onClick: () => { setActionSheetVisible(false); navigate(`/bills/${account.sysId}/edit`); } },
     ...(account.webAddress ? [{
       text: 'Open Website',
       key: 'launch',
       onClick: () => {
+        setActionSheetVisible(false);
         if (account.password) {
           copyToClipboard(account.password, 'Password');
         }
@@ -129,18 +130,18 @@ const AccountDetail: React.FC = () => {
     ...(account.username ? [{
       text: 'Copy Username',
       key: 'username',
-      onClick: () => copyToClipboard(account.username!, 'Username'),
+      onClick: () => { setActionSheetVisible(false); copyToClipboard(account.username!, 'Username'); },
     }] : []),
     ...(account.password ? [{
       text: 'Copy Password',
       key: 'password',
-      onClick: () => copyToClipboard(account.password!, 'Password'),
+      onClick: () => { setActionSheetVisible(false); copyToClipboard(account.password!, 'Password'); },
     }] : []),
     {
       text: 'Discontinue',
       key: 'discontinue',
       danger: true,
-      onClick: handleDiscontinue,
+      onClick: () => { setActionSheetVisible(false); handleDiscontinue(); },
     },
   ];
 

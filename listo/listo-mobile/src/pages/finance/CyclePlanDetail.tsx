@@ -90,15 +90,17 @@ const CyclePlanDetail: React.FC = () => {
     {
       text: 'Edit Plan',
       key: 'edit',
-      onClick: () => navigate(`/cycle/${plan.sysId}/edit`),
+      onClick: () => {
+        setActionSheetVisible(false);
+        navigate(`/cycle/${plan.sysId}/edit`);
+      },
     },
     {
       text: 'Discontinue',
       key: 'discontinue',
       danger: true,
       onClick: async () => {
-        const confirmed = await Dialog.confirm({ content: 'Discontinue this cycle plan?' });
-        if (!confirmed) return;
+        setActionSheetVisible(false);
         try {
           await api.post(`/finance/cycleplans/${plan.sysId}/discontinue`);
           Toast.show({ icon: 'success', content: 'Plan discontinued' });
