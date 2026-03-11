@@ -80,7 +80,7 @@ const CyclePlans: React.FC = () => {
         Cycle Plans
       </NavBar>
 
-      <div style={{ padding: 12, display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div style={{ padding: 12, paddingBottom: 'calc(60px + env(safe-area-inset-bottom))', display: 'flex', flexDirection: 'column', gap: 12 }}>
         {/* Active / Pending Plans */}
         {activePlans.length > 0 ? (
           <Card title="Active & Pending" style={{ borderRadius: 8 }}>

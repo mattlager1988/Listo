@@ -190,7 +190,7 @@ const CyclePlanDetail: React.FC = () => {
         {plan.cycleGoalName}
       </NavBar>
 
-      <div style={{ padding: 12, paddingBottom: 60, display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div style={{ padding: 12, paddingBottom: 'calc(60px + env(safe-area-inset-bottom))', display: 'flex', flexDirection: 'column', gap: 12 }}>
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>

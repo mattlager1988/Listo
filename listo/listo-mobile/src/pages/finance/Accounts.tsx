@@ -195,6 +195,8 @@ const Accounts: React.FC = () => {
         </Collapse>
       )}
 
+      <div style={{ height: 'calc(60px + env(safe-area-inset-bottom))' }} />
+
       <div style={{
         position: 'fixed',
         bottom: 'calc(50px + env(safe-area-inset-bottom))',

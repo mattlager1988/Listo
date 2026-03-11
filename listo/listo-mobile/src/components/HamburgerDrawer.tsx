@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Popup, List, Dialog } from 'antd-mobile';
 import {
@@ -10,6 +10,8 @@ import {
 } from 'antd-mobile-icons';
 import { useAuth } from '@shared/contexts/AuthContext';
 import { useMenu } from '../contexts/MenuContext';
+
+declare const __APP_VERSION__: string;
 
 interface MenuEntry {
   label: string;
@@ -31,6 +33,14 @@ const HamburgerDrawer: React.FC = () => {
   const location = useLocation();
   const { user, logout } = useAuth();
   const { menuOpen, closeMenu } = useMenu();
+  const [apiVersion, setApiVersion] = useState('');
+
+  useEffect(() => {
+    fetch('/api/system/version')
+      .then(res => res.json())
+      .then(data => setApiVersion(data.apiVersion))
+      .catch(() => {});
+  }, []);
 
   const handleNavigate = (path: string) => {
     closeMenu();
@@ -140,6 +150,9 @@ const HamburgerDrawer: React.FC = () => {
               <span style={{ color: '#ff4d4f' }}>Log Out</span>
             </List.Item>
           </List>
+          <div style={{ padding: '8px 16px', fontSize: 11, color: '#bfbfbf', textAlign: 'center' }}>
+            Mobile {__APP_VERSION__}{apiVersion ? ` / API ${apiVersion}` : ''}
+          </div>
         </div>
       </div>
     </Popup>
