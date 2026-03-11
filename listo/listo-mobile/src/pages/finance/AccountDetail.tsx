@@ -104,7 +104,7 @@ const AccountDetail: React.FC = () => {
     );
   }
 
-  const completedPayments = payments.filter(p => p.status === 'Completed');
+  const completedPayments = payments.filter(p => p.status === 'Complete');
 
   const actionSheetActions: Action[] = [
     { text: 'Edit Account', key: 'edit', onClick: () => navigate(`/bills/${account.sysId}/edit`) },
@@ -268,7 +268,7 @@ const AccountDetail: React.FC = () => {
 
         {/* Payment History */}
         <Card
-          title="Payment History"
+          title="Recent Payments"
           style={{ borderRadius: 8 }}
           extra={
             <span style={{ fontSize: 12, color: '#8c8c8c' }}>
@@ -278,7 +278,7 @@ const AccountDetail: React.FC = () => {
         >
           {completedPayments.length > 0 ? (
             <List style={{ '--border-top': 'none', '--border-bottom': 'none' }}>
-              {completedPayments.slice(0, 10).map(payment => (
+              {completedPayments.slice(0, 4).map(payment => (
                 <List.Item
                   key={payment.sysId}
                   description={
@@ -298,13 +298,6 @@ const AccountDetail: React.FC = () => {
                   )}
                 </List.Item>
               ))}
-              {completedPayments.length > 10 && (
-                <List.Item>
-                  <span style={{ color: '#8c8c8c', fontSize: 12 }}>
-                    +{completedPayments.length - 10} more payments
-                  </span>
-                </List.Item>
-              )}
             </List>
           ) : (
             <div style={{ textAlign: 'center', color: '#8c8c8c', padding: '12px 0' }}>
