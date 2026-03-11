@@ -128,7 +128,7 @@ public class AccountService : IAccountService
         {
             account.AccountFlag = flag;
         }
-        if (request.Notes != null) account.Notes = request.Notes;
+        account.Notes = request.Notes;
         if (request.DefaultPaymentMethodSysId.HasValue) account.DefaultPaymentMethodSysId = request.DefaultPaymentMethodSysId.Value == 0 ? null : request.DefaultPaymentMethodSysId.Value;
         if (request.DefaultBankAccountSysId.HasValue) account.DefaultBankAccountSysId = request.DefaultBankAccountSysId.Value == 0 ? null : request.DefaultBankAccountSysId.Value;
 

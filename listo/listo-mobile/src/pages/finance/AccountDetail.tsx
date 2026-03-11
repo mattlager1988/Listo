@@ -104,6 +104,7 @@ const AccountDetail: React.FC = () => {
     );
   }
 
+  const pendingPayments = payments.filter(p => p.status === 'Pending');
   const completedPayments = payments.filter(p => p.status === 'Complete');
 
   const actionSheetActions: Action[] = [
@@ -216,11 +217,6 @@ const AccountDetail: React.FC = () => {
             {account.username && <Tag color="default">Has Login</Tag>}
           </div>
 
-          {account.notes && (
-            <div style={{ marginTop: 12, padding: '8px 0', borderTop: '1px solid #f0f0f0', color: '#595959', fontSize: 13 }}>
-              {account.notes}
-            </div>
-          )}
         </Card>
 
         {/* Post Payment Button */}
@@ -234,50 +230,39 @@ const AccountDetail: React.FC = () => {
           Post Payment
         </Button>
 
-        {/* Account Info */}
-        {(account.phoneNumber || account.webAddress || account.accountNumber) && (
-          <Card title="Account Info" style={{ borderRadius: 8 }}>
-            <List style={{ '--border-top': 'none', '--border-bottom': 'none' }}>
-              {account.accountNumber && (
-                <List.Item
-                  description="Account Number"
-                  onClick={() => copyToClipboard(account.accountNumber!, 'Account number')}
-                >
-                  ···{account.accountNumber.slice(-4)}
-                </List.Item>
-              )}
-              {account.phoneNumber && (
-                <List.Item
-                  description="Phone"
-                  onClick={() => window.open(`tel:${account.phoneNumber}`, '_self')}
-                >
-                  {account.phoneNumber}
-                </List.Item>
-              )}
-              {account.webAddress && (
-                <List.Item
-                  description="Website"
-                  onClick={() => window.open(account.webAddress!, '_blank')}
-                >
-                  {account.webAddress.replace(/^https?:\/\//, '').slice(0, 30)}
-                </List.Item>
-              )}
-            </List>
+        {account.notes && (
+          <Card title="Notes" style={{ borderRadius: 8 }}>
+            <div style={{ fontSize: 13, color: '#595959' }}>{account.notes}</div>
           </Card>
         )}
 
-        {/* Payment History */}
+        {/* Recent Payments */}
         <Card
           title="Recent Payments"
           style={{ borderRadius: 8 }}
-          extra={
-            <span style={{ fontSize: 12, color: '#8c8c8c' }}>
-              {completedPayments.length} payment{completedPayments.length !== 1 ? 's' : ''}
-            </span>
-          }
         >
-          {completedPayments.length > 0 ? (
+          {pendingPayments.length > 0 || completedPayments.length > 0 ? (
             <List style={{ '--border-top': 'none', '--border-bottom': 'none' }}>
+              {pendingPayments.map(payment => (
+                <List.Item
+                  key={payment.sysId}
+                  description={
+                    <span>
+                      {payment.paymentMethodName}
+                      {payment.createTimestamp && ` · ${dayjs(payment.createTimestamp).format('MMM D, YYYY')}`}
+                    </span>
+                  }
+                  extra={
+                    <span style={{ fontWeight: 600 }}>${payment.amount.toFixed(2)}</span>
+                  }
+                >
+                  {payment.description || 'Payment'}
+                  <Tag color="warning" style={{ marginLeft: 4, fontSize: 10 }}>Pending</Tag>
+                  {payment.bankAccountName && (
+                    <Tag style={{ marginLeft: 4, fontSize: 10 }}>{payment.bankAccountName}</Tag>
+                  )}
+                </List.Item>
+              ))}
               {completedPayments.slice(0, 4).map(payment => (
                 <List.Item
                   key={payment.sysId}
@@ -301,7 +286,7 @@ const AccountDetail: React.FC = () => {
             </List>
           ) : (
             <div style={{ textAlign: 'center', color: '#8c8c8c', padding: '12px 0' }}>
-              No payment history
+              No payments
             </div>
           )}
         </Card>
