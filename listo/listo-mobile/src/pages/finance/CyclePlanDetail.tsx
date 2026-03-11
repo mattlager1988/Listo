@@ -11,9 +11,9 @@ import {
   ErrorBlock,
   PullToRefresh,
   ActionSheet,
+  Button,
 } from 'antd-mobile';
 import type { Action } from 'antd-mobile/es/components/action-sheet';
-import { AddOutline } from 'antd-mobile-icons';
 import dayjs from 'dayjs';
 import api from '@shared/services/api';
 import type { CyclePlan, CycleTransaction } from '@shared/types';
@@ -154,21 +154,18 @@ const CyclePlanDetail: React.FC = () => {
       <NavBar
         onBack={() => navigate('/cycle')}
         right={
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <AddOutline fontSize={22} onClick={() => navigate(`/cycle/${id}/transaction/new`)} style={{ cursor: 'pointer' }} />
-            <span
-              onClick={() => setActionSheetVisible(true)}
-              style={{ fontSize: 14, color: '#1890ff', cursor: 'pointer' }}
-            >
-              More
-            </span>
-          </div>
+          <span
+            onClick={() => setActionSheetVisible(true)}
+            style={{ fontSize: 14, color: '#1890ff', cursor: 'pointer' }}
+          >
+            More
+          </span>
         }
       >
         {plan.cycleGoalName}
       </NavBar>
 
-      <div style={{ padding: 12, display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div style={{ padding: 12, paddingBottom: 60, display: 'flex', flexDirection: 'column', gap: 12 }}>
         {/* Plan Summary Card */}
         <Card style={{ borderRadius: 8 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -297,6 +294,22 @@ const CyclePlanDetail: React.FC = () => {
             </div>
           )}
         </Card>
+      </div>
+
+      <div style={{
+        position: 'fixed',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        padding: '8px 12px',
+        paddingBottom: 'calc(8px + env(safe-area-inset-bottom))',
+        background: '#fff',
+        borderTop: '1px solid #e8e8e8',
+        zIndex: 99,
+      }}>
+        <Button block color="primary" onClick={() => navigate(`/cycle/${id}/transaction/new`)}>
+          Add Transaction
+        </Button>
       </div>
 
       <ActionSheet

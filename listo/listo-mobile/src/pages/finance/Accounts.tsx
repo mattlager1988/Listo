@@ -9,8 +9,9 @@ import {
   Skeleton,
   ErrorBlock,
   Collapse,
+  Button,
 } from 'antd-mobile';
-import { AddOutline, UnorderedListOutline } from 'antd-mobile-icons';
+import { UnorderedListOutline } from 'antd-mobile-icons';
 import dayjs from 'dayjs';
 import api from '@shared/services/api';
 import type { Account, Payment } from '@shared/types';
@@ -117,19 +118,16 @@ const Accounts: React.FC = () => {
         left={<UnorderedListOutline fontSize={20} onClick={openMenu} style={{ cursor: 'pointer' }} />}
         style={{ '--height': '48px' }}
         right={
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <span
-              onClick={() => setShowOnHold(!showOnHold)}
-              style={{
-                fontSize: 12,
-                color: showOnHold ? '#1890ff' : '#8c8c8c',
-                cursor: 'pointer',
-              }}
-            >
-              {showOnHold ? 'Hide Held' : 'Show Held'}
-            </span>
-            <AddOutline fontSize={22} onClick={() => navigate('/bills/new')} style={{ cursor: 'pointer' }} />
-          </div>
+          <span
+            onClick={() => setShowOnHold(!showOnHold)}
+            style={{
+              fontSize: 12,
+              color: showOnHold ? '#1890ff' : '#8c8c8c',
+              cursor: 'pointer',
+            }}
+          >
+            {showOnHold ? 'Hide Held' : 'Show Held'}
+          </span>
         }
       >
         Accounts
@@ -232,6 +230,20 @@ const Accounts: React.FC = () => {
         </Collapse>
       )}
 
+      <div style={{
+        position: 'fixed',
+        bottom: 'calc(50px + env(safe-area-inset-bottom))',
+        left: 0,
+        right: 0,
+        padding: '8px 12px',
+        background: '#fff',
+        borderTop: '1px solid #e8e8e8',
+        zIndex: 99,
+      }}>
+        <Button block color="primary" onClick={() => navigate('/bills/new')}>
+          Add Account
+        </Button>
+      </div>
     </PullToRefresh>
   );
 };

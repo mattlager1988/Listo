@@ -8,8 +8,9 @@ import {
   PullToRefresh,
   Skeleton,
   ErrorBlock,
+  Button,
 } from 'antd-mobile';
-import { AddOutline, UnorderedListOutline } from 'antd-mobile-icons';
+import { UnorderedListOutline } from 'antd-mobile-icons';
 import dayjs from 'dayjs';
 import api from '@shared/services/api';
 import type { CyclePlan } from '@shared/types';
@@ -75,7 +76,6 @@ const CyclePlans: React.FC = () => {
         back={null}
         left={<UnorderedListOutline fontSize={20} onClick={openMenu} style={{ cursor: 'pointer' }} />}
         style={{ '--height': '48px' }}
-        right={<AddOutline fontSize={22} onClick={() => navigate('/cycle/new')} style={{ cursor: 'pointer' }} />}
       >
         Cycle Plans
       </NavBar>
@@ -173,6 +173,20 @@ const CyclePlans: React.FC = () => {
         )}
       </div>
 
+      <div style={{
+        position: 'fixed',
+        bottom: 'calc(50px + env(safe-area-inset-bottom))',
+        left: 0,
+        right: 0,
+        padding: '8px 12px',
+        background: '#fff',
+        borderTop: '1px solid #e8e8e8',
+        zIndex: 99,
+      }}>
+        <Button block color="primary" onClick={() => navigate('/cycle/new')}>
+          Add Cycle Plan
+        </Button>
+      </div>
     </PullToRefresh>
   );
 };
