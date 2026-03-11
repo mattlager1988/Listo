@@ -150,7 +150,9 @@ public record CreatePaymentRequest(
 public record UpdatePaymentRequest(
     long? PaymentMethodSysId,
     string? Description,
-    string? ConfirmationNumber
+    string? ConfirmationNumber,
+    decimal? Amount,
+    bool AdjustLedger = false
 );
 
 public record PaymentSummaryResponse(

@@ -103,21 +103,39 @@ const AccountForm: React.FC = () => {
 
   const handleSubmit = async () => {
     const values = form.getFieldsValue();
+    const accountTypeSysId = form.getFieldValue('accountTypeSysId');
+    const accountOwnerSysId = form.getFieldValue('accountOwnerSysId');
+    const accountFlag = form.getFieldValue('accountFlag');
+    const dueDate = form.getFieldValue('dueDate');
+
+    if (!values.name?.trim()) {
+      Toast.show({ content: 'Please enter an account name' });
+      return;
+    }
+    if (!accountTypeSysId) {
+      Toast.show({ content: 'Please select an account type' });
+      return;
+    }
+    if (!accountOwnerSysId) {
+      Toast.show({ content: 'Please select an owner' });
+      return;
+    }
+
     setSubmitting(true);
     try {
       const payload = {
         name: values.name,
-        accountTypeSysId: values.accountTypeSysId,
-        accountOwnerSysId: values.accountOwnerSysId,
+        accountTypeSysId,
+        accountOwnerSysId,
         amountDue: parseFloat(values.amountDue) || 0,
-        dueDate: values.dueDate || null,
+        dueDate: dueDate || null,
         accountNumber: values.accountNumber || null,
         phoneNumber: values.phoneNumber || null,
         webAddress: values.webAddress || null,
         username: values.username || null,
         password: values.password || null,
         notes: values.notes || null,
-        accountFlag: values.accountFlag || 'Standard',
+        accountFlag: accountFlag || 'Standard',
         autoPay: values.autoPay || false,
         resetAmountDue: values.resetAmountDue || false,
       };
@@ -165,17 +183,19 @@ const AccountForm: React.FC = () => {
       <NavBar
         onBack={() => navigate(isEditing ? `/bills/${id}` : '/bills')}
         right={
-          <span
-            onClick={handleSubmit}
-            style={{
-              fontSize: 14,
-              color: submitting ? '#8c8c8c' : '#1890ff',
-              fontWeight: 600,
-              cursor: submitting ? 'default' : 'pointer',
-            }}
-          >
-            {submitting ? 'Saving...' : 'Save'}
-          </span>
+          isEditing ? (
+            <span
+              onClick={handleSubmit}
+              style={{
+                fontSize: 14,
+                color: submitting ? '#8c8c8c' : '#1890ff',
+                fontWeight: 600,
+                cursor: submitting ? 'default' : 'pointer',
+              }}
+            >
+              {submitting ? 'Saving...' : 'Save'}
+            </span>
+          ) : undefined
         }
       >
         {isEditing ? 'Edit Account' : 'New Account'}
@@ -325,26 +345,28 @@ const AccountForm: React.FC = () => {
           <TextArea placeholder="Notes" rows={3} />
         </Form.Item>
 
-        <div style={{ padding: '16px 12px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <Button
-            block
-            color="primary"
-            size="large"
-            loading={submitting}
-            onClick={handleSubmit}
-            style={{ borderRadius: 8 }}
-          >
-            {isEditing ? 'Update Account' : 'Create Account'}
-          </Button>
-          <Button
-            block
-            size="large"
-            onClick={() => navigate(isEditing ? `/bills/${id}` : '/bills')}
-            style={{ borderRadius: 8 }}
-          >
-            Cancel
-          </Button>
-        </div>
+        {!isEditing && (
+          <div style={{ padding: '16px 12px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <Button
+              block
+              color="primary"
+              size="large"
+              loading={submitting}
+              onClick={handleSubmit}
+              style={{ borderRadius: 8 }}
+            >
+              Create Account
+            </Button>
+            <Button
+              block
+              size="large"
+              onClick={() => navigate('/bills')}
+              style={{ borderRadius: 8 }}
+            >
+              Cancel
+            </Button>
+          </div>
+        )}
       </Form>
     </>
   );

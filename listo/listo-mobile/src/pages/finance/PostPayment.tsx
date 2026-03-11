@@ -61,11 +61,14 @@ const PostPayment: React.FC = () => {
 
   const handleSubmit = async () => {
     const values = form.getFieldsValue();
+    const paymentMethodSysId = form.getFieldValue('paymentMethodSysId');
+    const bankAccountSysId = form.getFieldValue('bankAccountSysId');
+
     if (!values.amount || parseFloat(values.amount) <= 0) {
       Toast.show({ content: 'Please enter an amount' });
       return;
     }
-    if (!values.paymentMethodSysId) {
+    if (!paymentMethodSysId) {
       Toast.show({ content: 'Please select a payment method' });
       return;
     }
@@ -75,8 +78,8 @@ const PostPayment: React.FC = () => {
       await api.post('/finance/payments', {
         accountSysId: Number(id),
         amount: parseFloat(values.amount),
-        paymentMethodSysId: values.paymentMethodSysId,
-        bankAccountSysId: values.bankAccountSysId || null,
+        paymentMethodSysId,
+        bankAccountSysId: bankAccountSysId || null,
         description: values.description || null,
         confirmationNumber: values.confirmationNumber || null,
       });
@@ -111,22 +114,7 @@ const PostPayment: React.FC = () => {
 
   return (
     <>
-      <NavBar
-        onBack={() => navigate(`/bills/${id}`)}
-        right={
-          <span
-            onClick={handleSubmit}
-            style={{
-              fontSize: 14,
-              color: submitting ? '#8c8c8c' : '#1890ff',
-              fontWeight: 600,
-              cursor: submitting ? 'default' : 'pointer',
-            }}
-          >
-            {submitting ? 'Posting...' : 'Post'}
-          </span>
-        }
-      >
+      <NavBar onBack={() => navigate(`/bills/${id}`)}>
         Post Payment
       </NavBar>
 

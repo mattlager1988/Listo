@@ -7,7 +7,6 @@ import {
   Button,
   Tag,
   Toast,
-  Dialog,
   Skeleton,
   ErrorBlock,
   PullToRefresh,
@@ -57,10 +56,6 @@ const AccountDetail: React.FC = () => {
 
   const handleDiscontinue = async () => {
     if (!account) return;
-    const confirmed = await Dialog.confirm({
-      content: `Discontinue "${account.name}"?`,
-    });
-    if (!confirmed) return;
     try {
       await api.post(`/finance/accounts/${account.sysId}/discontinue`);
       Toast.show({ icon: 'success', content: 'Account discontinued' });

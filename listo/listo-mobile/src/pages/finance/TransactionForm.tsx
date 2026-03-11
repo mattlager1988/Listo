@@ -75,6 +75,9 @@ const TransactionForm: React.FC = () => {
 
   const handleSubmit = async () => {
     const values = form.getFieldsValue();
+    const transactionType = form.getFieldValue('transactionType');
+    const status = form.getFieldValue('status');
+
     if (!values.name) {
       Toast.show({ content: 'Please enter a name' });
       return;
@@ -86,8 +89,8 @@ const TransactionForm: React.FC = () => {
         cyclePlanSysId: Number(planId),
         name: values.name,
         amount: parseFloat(values.amount) || 0,
-        transactionType: values.transactionType || 'Debit',
-        status: values.status || 'Planned',
+        transactionType: transactionType || 'Debit',
+        status: status || 'Planned',
         notes: values.notes || null,
       };
 
@@ -128,17 +131,19 @@ const TransactionForm: React.FC = () => {
       <NavBar
         onBack={() => navigate(`/cycle/${planId}`)}
         right={
-          <span
-            onClick={handleSubmit}
-            style={{
-              fontSize: 14,
-              color: submitting ? '#8c8c8c' : '#1890ff',
-              fontWeight: 600,
-              cursor: submitting ? 'default' : 'pointer',
-            }}
-          >
-            {submitting ? 'Saving...' : 'Save'}
-          </span>
+          isEditing ? (
+            <span
+              onClick={handleSubmit}
+              style={{
+                fontSize: 14,
+                color: submitting ? '#8c8c8c' : '#1890ff',
+                fontWeight: 600,
+                cursor: submitting ? 'default' : 'pointer',
+              }}
+            >
+              {submitting ? 'Saving...' : 'Save'}
+            </span>
+          ) : undefined
         }
       >
         {isEditing ? 'Edit Transaction' : 'New Transaction'}
@@ -209,26 +214,28 @@ const TransactionForm: React.FC = () => {
           <TextArea placeholder="Notes (optional)" rows={3} />
         </Form.Item>
 
-        <div style={{ padding: '16px 12px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <Button
-            block
-            color="primary"
-            size="large"
-            loading={submitting}
-            onClick={handleSubmit}
-            style={{ borderRadius: 8 }}
-          >
-            {isEditing ? 'Update' : 'Create'}
-          </Button>
-          <Button
-            block
-            size="large"
-            onClick={() => navigate(`/cycle/${planId}`)}
-            style={{ borderRadius: 8 }}
-          >
-            Cancel
-          </Button>
-        </div>
+        {!isEditing && (
+          <div style={{ padding: '16px 12px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <Button
+              block
+              color="primary"
+              size="large"
+              loading={submitting}
+              onClick={handleSubmit}
+              style={{ borderRadius: 8 }}
+            >
+              Create
+            </Button>
+            <Button
+              block
+              size="large"
+              onClick={() => navigate(`/cycle/${planId}`)}
+              style={{ borderRadius: 8 }}
+            >
+              Cancel
+            </Button>
+          </div>
+        )}
       </Form>
     </>
   );

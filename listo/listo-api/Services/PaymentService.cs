@@ -166,6 +166,32 @@ public class PaymentService : IPaymentService
         if (request.ConfirmationNumber != null)
             payment.ConfirmationNumber = request.ConfirmationNumber;
 
+        // Handle amount change with optional ledger adjustment
+        if (request.Amount.HasValue && request.Amount.Value != payment.Amount)
+        {
+            var oldAmount = payment.Amount;
+            var newAmount = request.Amount.Value;
+            payment.Amount = newAmount;
+
+            if (request.AdjustLedger && payment.BankAccountSysId.HasValue)
+            {
+                var ledgerTransaction = await _context.LedgerTransactions
+                    .FirstOrDefaultAsync(lt => lt.PaymentSysId == payment.SysId);
+
+                if (ledgerTransaction != null)
+                {
+                    var bankAccount = await _context.BankAccounts.FindAsync(payment.BankAccountSysId.Value);
+                    if (bankAccount != null)
+                    {
+                        // Reverse old amount and apply new amount
+                        var difference = newAmount - oldAmount;
+                        bankAccount.Balance -= difference;
+                        ledgerTransaction.Amount = newAmount;
+                    }
+                }
+            }
+        }
+
         await _context.SaveChangesAsync();
 
         await _context.Entry(payment).Reference(p => p.PaymentMethod).LoadAsync();

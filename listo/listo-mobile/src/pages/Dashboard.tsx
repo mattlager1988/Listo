@@ -68,7 +68,6 @@ const Dashboard: React.FC = () => {
   }
 
   const cyclePlan = data.activeCyclePlan;
-  const pendingTotal = pendingPayments.reduce((sum, p) => sum + p.amount, 0);
 
   return (
     <PullToRefresh onRefresh={fetchData}>
@@ -193,9 +192,9 @@ const Dashboard: React.FC = () => {
             title="Pending Payments"
             style={{ borderRadius: 8 }}
             extra={
-              <Tag color="warning" style={{ fontSize: 12, fontWeight: 600 }}>
-                ${pendingTotal.toFixed(2)}
-              </Tag>
+              <a onClick={() => navigate('/pending')} style={{ fontSize: 13 }}>
+                Details
+              </a>
             }
           >
             <List style={{ '--border-top': 'none', '--border-bottom': 'none' }}>

@@ -580,11 +580,21 @@ const Accounts: React.FC = () => {
   const handlePaymentSubmit = async (values: Record<string, unknown>) => {
     if (!editingPayment) return;
     try {
-      await api.put(`/finance/payments/${editingPayment.sysId}`, values);
+      const adjustLedger = !!values.adjustLedger;
+      await api.put(`/finance/payments/${editingPayment.sysId}`, {
+        paymentMethodSysId: values.paymentMethodSysId,
+        description: values.description,
+        confirmationNumber: values.confirmationNumber,
+        amount: values.amount,
+        adjustLedger,
+      });
       message.success('Payment updated');
       setPaymentModalVisible(false);
       setEditingPayment(null);
       fetchPendingPayments();
+      if (adjustLedger) {
+        fetchBankAccounts();
+      }
     } catch {
       message.error('Failed to update payment');
     }
@@ -2078,6 +2088,15 @@ const Accounts: React.FC = () => {
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             <Form.Item
+              name="amount"
+              label="Amount"
+              rules={[{ required: true, message: 'Amount is required' }]}
+              style={{ marginBottom: 0 }}
+            >
+              <InputNumber prefix="$" min={0} step={0.01} style={{ width: '100%' }} />
+            </Form.Item>
+
+            <Form.Item
               name="paymentMethodSysId"
               label="Payment Method"
               rules={[{ required: true, message: 'Payment method is required' }]}
@@ -2095,6 +2114,28 @@ const Accounts: React.FC = () => {
 
             <Form.Item name="description" label="Description" style={{ marginBottom: 0 }}>
               <Input />
+            </Form.Item>
+
+            <Form.Item noStyle shouldUpdate={(prev, cur) => prev.amount !== cur.amount}>
+              {() => {
+                const currentAmount = paymentForm.getFieldValue('amount');
+                const amountChanged = editingPayment && currentAmount != null && currentAmount !== editingPayment.amount;
+                const hasBank = editingPayment?.bankAccountSysId != null;
+                if (!amountChanged || !hasBank) return null;
+                const difference = (currentAmount as number) - editingPayment.amount;
+                const action = difference > 0 ? 'deducted from' : 'added to';
+                const absDiff = Math.abs(difference).toFixed(2);
+                return (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
+                    <Form.Item name="adjustLedger" valuePropName="checked" style={{ marginBottom: 0 }}>
+                      <Switch checkedChildren="Yes" unCheckedChildren="No" />
+                    </Form.Item>
+                    <span style={{ fontSize: 12, color: '#595959' }}>
+                      Adjust {editingPayment.bankAccountName} balance (${absDiff} {action})
+                    </span>
+                  </div>
+                );
+              }}
             </Form.Item>
 
             <Form.Item style={{ marginBottom: 0, marginTop: 12 }}>

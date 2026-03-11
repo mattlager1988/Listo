@@ -108,11 +108,16 @@ const CyclePlanForm: React.FC = () => {
 
   const handleSubmit = async () => {
     const values = form.getFieldsValue();
-    if (!values.cycleGoalSysId) {
+    const cycleGoalSysId = form.getFieldValue('cycleGoalSysId');
+    const status = form.getFieldValue('status');
+    const startDate = form.getFieldValue('startDate');
+    const endDate = form.getFieldValue('endDate');
+
+    if (!cycleGoalSysId) {
       Toast.show({ content: 'Please select a cycle goal' });
       return;
     }
-    if (!values.startDate || !values.endDate) {
+    if (!startDate || !endDate) {
       Toast.show({ content: 'Please select start and end dates' });
       return;
     }
@@ -120,10 +125,10 @@ const CyclePlanForm: React.FC = () => {
     setSubmitting(true);
     try {
       const payload = {
-        cycleGoalSysId: values.cycleGoalSysId,
-        status: values.status || 'Pending',
-        startDate: values.startDate,
-        endDate: values.endDate,
+        cycleGoalSysId,
+        status: status || 'Pending',
+        startDate,
+        endDate,
         amountIn: parseFloat(values.amountIn) || 0,
         amountOut: parseFloat(values.amountOut) || 0,
         notes: values.notes || null,
@@ -168,17 +173,19 @@ const CyclePlanForm: React.FC = () => {
       <NavBar
         onBack={() => navigate(isEditing ? `/cycle/${id}` : '/cycle')}
         right={
-          <span
-            onClick={handleSubmit}
-            style={{
-              fontSize: 14,
-              color: submitting ? '#8c8c8c' : '#1890ff',
-              fontWeight: 600,
-              cursor: submitting ? 'default' : 'pointer',
-            }}
-          >
-            {submitting ? 'Saving...' : 'Save'}
-          </span>
+          isEditing ? (
+            <span
+              onClick={handleSubmit}
+              style={{
+                fontSize: 14,
+                color: submitting ? '#8c8c8c' : '#1890ff',
+                fontWeight: 600,
+                cursor: submitting ? 'default' : 'pointer',
+              }}
+            >
+              {submitting ? 'Saving...' : 'Save'}
+            </span>
+          ) : undefined
         }
       >
         {isEditing ? 'Edit Plan' : 'New Plan'}
@@ -289,26 +296,28 @@ const CyclePlanForm: React.FC = () => {
           <TextArea placeholder="Notes (optional)" rows={3} />
         </Form.Item>
 
-        <div style={{ padding: '16px 12px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <Button
-            block
-            color="primary"
-            size="large"
-            loading={submitting}
-            onClick={handleSubmit}
-            style={{ borderRadius: 8 }}
-          >
-            {isEditing ? 'Update Plan' : 'Create Plan'}
-          </Button>
-          <Button
-            block
-            size="large"
-            onClick={() => navigate(isEditing ? `/cycle/${id}` : '/cycle')}
-            style={{ borderRadius: 8 }}
-          >
-            Cancel
-          </Button>
-        </div>
+        {!isEditing && (
+          <div style={{ padding: '16px 12px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <Button
+              block
+              color="primary"
+              size="large"
+              loading={submitting}
+              onClick={handleSubmit}
+              style={{ borderRadius: 8 }}
+            >
+              Create Plan
+            </Button>
+            <Button
+              block
+              size="large"
+              onClick={() => navigate('/cycle')}
+              style={{ borderRadius: 8 }}
+            >
+              Cancel
+            </Button>
+          </div>
+        )}
       </Form>
     </>
   );

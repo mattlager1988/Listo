@@ -23,6 +23,7 @@ import AccountDetail from './pages/finance/AccountDetail';
 import AccountForm from './pages/finance/AccountForm';
 import PendingPayments from './pages/finance/PendingPayments';
 import PostPayment from './pages/finance/PostPayment';
+import EditPayment from './pages/finance/EditPayment';
 import CyclePlans from './pages/finance/CyclePlans';
 import CyclePlanDetail from './pages/finance/CyclePlanDetail';
 import CyclePlanForm from './pages/finance/CyclePlanForm';
@@ -153,6 +154,7 @@ const App: React.FC = () => {
           <Route path="bills/:id/edit" element={<AccountForm />} />
           <Route path="bills/:id/pay" element={<PostPayment />} />
           <Route path="pending" element={<PendingPayments />} />
+          <Route path="pending/:paymentId/edit" element={<EditPayment />} />
           <Route path="cycle" element={<CyclePlans />} />
           <Route path="cycle/new" element={<CyclePlanForm />} />
           <Route path="cycle/:id" element={<CyclePlanDetail />} />

@@ -11,12 +11,14 @@ import {
 } from 'antd-mobile';
 import type { Action } from 'antd-mobile/es/components/action-sheet';
 import dayjs from 'dayjs';
+import { useNavigate } from 'react-router-dom';
 import api from '@shared/services/api';
 import type { Payment } from '@shared/types';
 import { useMenu } from '../../contexts/MenuContext';
 import { UnorderedListOutline } from 'antd-mobile-icons';
 
 const PendingPayments: React.FC = () => {
+  const navigate = useNavigate();
   const { openMenu } = useMenu();
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -65,6 +67,13 @@ const PendingPayments: React.FC = () => {
   };
 
   const actionSheetActions: Action[] = [
+    {
+      text: 'Edit Payment',
+      key: 'edit',
+      onClick: () => {
+        if (selectedPayment) navigate(`/pending/${selectedPayment.sysId}/edit`);
+      },
+    },
     {
       text: 'Complete Payment',
       key: 'complete',
