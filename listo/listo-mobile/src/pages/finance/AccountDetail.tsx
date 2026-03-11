@@ -33,8 +33,6 @@ const AccountDetail: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [actionSheetVisible, setActionSheetVisible] = useState(false);
-  const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
-  const [paymentActionSheetVisible, setPaymentActionSheetVisible] = useState(false);
 
   const fetchData = useCallback(async () => {
     if (!id) return;
@@ -90,30 +88,6 @@ const AccountDetail: React.FC = () => {
     document.body.removeChild(textarea);
   };
 
-  const handleCompletePayment = async (paymentId: number) => {
-    try {
-      await api.post(`/finance/payments/${paymentId}/complete`);
-      Toast.show({ icon: 'success', content: 'Payment completed' });
-      fetchData();
-    } catch {
-      Toast.show({ icon: 'fail', content: 'Failed to complete payment' });
-    }
-  };
-
-  const handleDeletePayment = async (payment: Payment) => {
-    const confirmed = await Dialog.confirm({
-      content: `Delete payment of $${payment.amount.toFixed(2)}?`,
-    });
-    if (!confirmed) return;
-    try {
-      await api.delete(`/finance/payments/${payment.sysId}?reverseLedger=true`);
-      Toast.show({ icon: 'success', content: 'Payment deleted' });
-      fetchData();
-    } catch {
-      Toast.show({ icon: 'fail', content: 'Failed to delete payment' });
-    }
-  };
-
   if (loading) {
     return (
       <>
@@ -135,7 +109,6 @@ const AccountDetail: React.FC = () => {
     );
   }
 
-  const pendingPayments = payments.filter(p => p.status === 'Pending');
   const completedPayments = payments.filter(p => p.status === 'Completed');
 
   const actionSheetActions: Action[] = [
@@ -273,7 +246,7 @@ const AccountDetail: React.FC = () => {
               {account.accountNumber && (
                 <List.Item
                   description="Account Number"
-                  onClick={() => handleCopy(account.accountNumber!, 'Account number')}
+                  onClick={() => copyToClipboard(account.accountNumber!, 'Account number')}
                 >
                   ···{account.accountNumber.slice(-4)}
                 </List.Item>
@@ -294,40 +267,6 @@ const AccountDetail: React.FC = () => {
                   {account.webAddress.replace(/^https?:\/\//, '').slice(0, 30)}
                 </List.Item>
               )}
-            </List>
-          </Card>
-        )}
-
-        {/* Pending Payments */}
-        {pendingPayments.length > 0 && (
-          <Card
-            title="Pending Payments"
-            style={{ borderRadius: 8 }}
-            extra={
-              <Tag color="warning">{pendingPayments.length}</Tag>
-            }
-          >
-            <List style={{ '--border-top': 'none', '--border-bottom': 'none' }}>
-              {pendingPayments.map(payment => (
-                <List.Item
-                  key={payment.sysId}
-                  description={
-                    <span>
-                      {payment.paymentMethodName}
-                      {payment.dueDate && ` · Due ${dayjs(payment.dueDate).format('MMM D')}`}
-                    </span>
-                  }
-                  extra={
-                    <span style={{ fontWeight: 600 }}>${payment.amount.toFixed(2)}</span>
-                  }
-                  onClick={() => {
-                    setSelectedPayment(payment);
-                    setPaymentActionSheetVisible(true);
-                  }}
-                >
-                  {payment.description || 'Payment'}
-                </List.Item>
-              ))}
             </List>
           </Card>
         )}
@@ -387,31 +326,6 @@ const AccountDetail: React.FC = () => {
         cancelText="Cancel"
       />
 
-      <ActionSheet
-        visible={paymentActionSheetVisible}
-        actions={[
-          {
-            text: 'Complete Payment',
-            key: 'complete',
-            onClick: () => {
-              if (selectedPayment) handleCompletePayment(selectedPayment.sysId);
-            },
-          },
-          {
-            text: 'Delete Payment',
-            key: 'delete',
-            danger: true,
-            onClick: () => {
-              if (selectedPayment) handleDeletePayment(selectedPayment);
-            },
-          },
-        ]}
-        onClose={() => {
-          setPaymentActionSheetVisible(false);
-          setSelectedPayment(null);
-        }}
-        cancelText="Cancel"
-      />
     </PullToRefresh>
   );
 };

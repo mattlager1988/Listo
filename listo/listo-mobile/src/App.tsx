@@ -3,6 +3,7 @@ import { Routes, Route, Navigate, Outlet, useNavigate, useLocation } from 'react
 import { TabBar, SafeArea } from 'antd-mobile';
 import {
   BillOutline,
+  ClockCircleOutline,
   HistogramOutline,
   TravelOutline,
   FolderOutline,
@@ -20,6 +21,7 @@ import Dashboard from './pages/Dashboard';
 import Accounts from './pages/finance/Accounts';
 import AccountDetail from './pages/finance/AccountDetail';
 import AccountForm from './pages/finance/AccountForm';
+import PendingPayments from './pages/finance/PendingPayments';
 import PostPayment from './pages/finance/PostPayment';
 import CyclePlans from './pages/finance/CyclePlans';
 import CyclePlanDetail from './pages/finance/CyclePlanDetail';
@@ -59,6 +61,7 @@ interface TabConfig {
 
 const FINANCE_TABS: TabConfig[] = [
   { key: '/bills', title: 'Accounts', icon: <BillOutline /> },
+  { key: '/pending', title: 'Pending', icon: <ClockCircleOutline /> },
   { key: '/cycle', title: 'Cycle Plans', icon: <HistogramOutline /> },
 ];
 
@@ -77,6 +80,7 @@ const ADMIN_TABS: TabConfig[] = [
 // Paths that show the bottom tab bar (main list pages only)
 const MAIN_PATHS = new Set([
   '/bills',
+  '/pending',
   '/cycle',
   '/aviation/training',
   '/aviation/documents',
@@ -89,7 +93,7 @@ const MAIN_PATHS = new Set([
 type ActiveModule = 'finance' | 'aviation' | 'admin' | null;
 
 function getActiveModule(pathname: string): ActiveModule {
-  if (pathname.startsWith('/bills') || pathname.startsWith('/cycle')) return 'finance';
+  if (pathname.startsWith('/bills') || pathname.startsWith('/pending') || pathname.startsWith('/cycle')) return 'finance';
   if (pathname.startsWith('/aviation')) return 'aviation';
   if (pathname.startsWith('/admin')) return 'admin';
   return null;
@@ -148,6 +152,7 @@ const App: React.FC = () => {
           <Route path="bills/:id" element={<AccountDetail />} />
           <Route path="bills/:id/edit" element={<AccountForm />} />
           <Route path="bills/:id/pay" element={<PostPayment />} />
+          <Route path="pending" element={<PendingPayments />} />
           <Route path="cycle" element={<CyclePlans />} />
           <Route path="cycle/new" element={<CyclePlanForm />} />
           <Route path="cycle/:id" element={<CyclePlanDetail />} />

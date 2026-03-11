@@ -14,7 +14,7 @@ import {
 import { UnorderedListOutline } from 'antd-mobile-icons';
 import dayjs from 'dayjs';
 import api from '@shared/services/api';
-import type { Account, Payment } from '@shared/types';
+import type { Account } from '@shared/types';
 import { useMenu } from '../../contexts/MenuContext';
 
 const FLAG_ORDER = ['Standard', 'Static', 'Alert', 'OnHold'];
@@ -36,7 +36,6 @@ const Accounts: React.FC = () => {
   const navigate = useNavigate();
   const { openMenu } = useMenu();
   const [accounts, setAccounts] = useState<Account[]>([]);
-  const [pendingPayments, setPendingPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -45,12 +44,8 @@ const Accounts: React.FC = () => {
   const fetchData = useCallback(async () => {
     setError(false);
     try {
-      const [accountsRes, pendingRes] = await Promise.all([
-        api.get('/finance/accounts'),
-        api.get('/finance/payments/pending'),
-      ]);
-      setAccounts(accountsRes.data);
-      setPendingPayments(pendingRes.data);
+      const res = await api.get('/finance/accounts');
+      setAccounts(res.data);
     } catch {
       setError(true);
     } finally {
@@ -81,12 +76,6 @@ const Accounts: React.FC = () => {
       return { flag, accounts: flagAccounts, total };
     })
     .filter(g => g.accounts.length > 0);
-
-  // Pending payment count by account
-  const pendingByAccount = new Map<number, number>();
-  pendingPayments.forEach(p => {
-    pendingByAccount.set(p.accountSysId, (pendingByAccount.get(p.accountSysId) || 0) + 1);
-  });
 
   if (loading) {
     return (
@@ -142,27 +131,6 @@ const Accounts: React.FC = () => {
         />
       </div>
 
-      {/* Pending Payments Banner */}
-      {pendingPayments.length > 0 && (
-        <div style={{
-          margin: '0 12px 8px',
-          background: '#fffbe6',
-          border: '1px solid #ffe58f',
-          borderRadius: 8,
-          padding: '8px 12px',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-        }}>
-          <span style={{ fontSize: 13, fontWeight: 500 }}>
-            {pendingPayments.length} pending payment{pendingPayments.length > 1 ? 's' : ''}
-          </span>
-          <Tag color="warning" style={{ fontSize: 13, fontWeight: 600 }}>
-            ${pendingPayments.reduce((s, p) => s + p.amount, 0).toFixed(2)}
-          </Tag>
-        </div>
-      )}
-
       {groups.length === 0 ? (
         <ErrorBlock
           status="empty"
@@ -205,9 +173,6 @@ const Accounts: React.FC = () => {
                         )}
                         {account.autoPay && (
                           <Tag color="success" style={{ fontSize: 10, padding: '0 4px' }}>Auto</Tag>
-                        )}
-                        {(pendingByAccount.get(account.sysId) || 0) > 0 && (
-                          <Tag color="warning" style={{ fontSize: 10, padding: '0 4px' }}>Pending</Tag>
                         )}
                       </div>
                     }
