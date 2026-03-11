@@ -3,14 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import {
   NavBar,
   List,
-  SwipeAction,
   PullToRefresh,
   SearchBar,
   FloatingBubble,
   Tag,
   Skeleton,
   ErrorBlock,
-  Toast,
   Collapse,
 } from 'antd-mobile';
 import { AddOutline, UnorderedListOutline } from 'antd-mobile-icons';
@@ -64,18 +62,6 @@ const Accounts: React.FC = () => {
     fetchData();
   }, [fetchData]);
 
-  const handleLaunch = (account: Account) => {
-    if (account.password) {
-      navigator.clipboard.writeText(account.password).then(
-        () => Toast.show({ content: 'Password copied' }),
-        () => {}
-      );
-    }
-    if (account.webAddress) {
-      window.open(account.webAddress, '_blank', 'noopener,noreferrer');
-    }
-  };
-
   // Filter accounts
   const filteredAccounts = accounts.filter(a => {
     if (!showOnHold && a.accountFlag === 'OnHold') return false;
@@ -124,35 +110,6 @@ const Accounts: React.FC = () => {
       </>
     );
   }
-
-  const getSwipeActions = (account: Account) => {
-    const actions: { key: string; text: string; color: 'primary' | 'warning' | 'danger' | 'default' | 'light'; onClick: () => void }[] = [];
-
-    actions.push({
-      key: 'pay',
-      text: 'Pay',
-      color: 'primary',
-      onClick: () => navigate(`/bills/${account.sysId}/pay`),
-    });
-
-    actions.push({
-      key: 'edit',
-      text: 'Edit',
-      color: 'warning',
-      onClick: () => navigate(`/bills/${account.sysId}/edit`),
-    });
-
-    if (account.webAddress) {
-      actions.push({
-        key: 'launch',
-        text: 'Go',
-        color: 'default',
-        onClick: () => handleLaunch(account),
-      });
-    }
-
-    return actions;
-  };
 
   return (
     <PullToRefresh onRefresh={fetchData}>
@@ -236,40 +193,36 @@ const Accounts: React.FC = () => {
             >
               <List style={{ '--border-top': 'none' }}>
                 {group.accounts.map(account => (
-                  <SwipeAction
+                  <List.Item
                     key={account.sysId}
-                    rightActions={getSwipeActions(account)}
+                    onClick={() => navigate(`/bills/${account.sysId}`)}
+                    arrow={false}
+                    description={
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
+                        <span>{account.accountTypeName}</span>
+                        {account.dueDate && (
+                          <span> · Due {dayjs(account.dueDate).format('MMM D')}</span>
+                        )}
+                        {account.autoPay && (
+                          <Tag color="success" style={{ fontSize: 10, padding: '0 4px' }}>Auto</Tag>
+                        )}
+                        {(pendingByAccount.get(account.sysId) || 0) > 0 && (
+                          <Tag color="warning" style={{ fontSize: 10, padding: '0 4px' }}>Pending</Tag>
+                        )}
+                      </div>
+                    }
+                    extra={
+                      <span style={{
+                        fontWeight: 600,
+                        fontSize: 14,
+                        color: account.amountDue > 0 ? '#ff4d4f' : '#52c41a',
+                      }}>
+                        ${account.amountDue.toFixed(2)}
+                      </span>
+                    }
                   >
-                    <List.Item
-                      onClick={() => navigate(`/bills/${account.sysId}`)}
-                      arrow={false}
-                      description={
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
-                          <span>{account.accountTypeName}</span>
-                          {account.dueDate && (
-                            <span> · Due {dayjs(account.dueDate).format('MMM D')}</span>
-                          )}
-                          {account.autoPay && (
-                            <Tag color="success" style={{ fontSize: 10, padding: '0 4px' }}>Auto</Tag>
-                          )}
-                          {(pendingByAccount.get(account.sysId) || 0) > 0 && (
-                            <Tag color="warning" style={{ fontSize: 10, padding: '0 4px' }}>Pending</Tag>
-                          )}
-                        </div>
-                      }
-                      extra={
-                        <span style={{
-                          fontWeight: 600,
-                          fontSize: 14,
-                          color: account.amountDue > 0 ? '#ff4d4f' : '#52c41a',
-                        }}>
-                          ${account.amountDue.toFixed(2)}
-                        </span>
-                      }
-                    >
-                      {account.name}
-                    </List.Item>
-                  </SwipeAction>
+                    {account.name}
+                  </List.Item>
                 ))}
               </List>
             </Collapse.Panel>

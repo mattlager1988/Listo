@@ -9,9 +9,6 @@ import {
   Skeleton,
   ErrorBlock,
   FloatingBubble,
-  Toast,
-  Dialog,
-  SwipeAction,
 } from 'antd-mobile';
 import { AddOutline, UnorderedListOutline } from 'antd-mobile-icons';
 import dayjs from 'dayjs';
@@ -48,20 +45,6 @@ const CyclePlans: React.FC = () => {
     fetchData();
   }, [fetchData]);
 
-  const handleDiscontinue = async (plan: CyclePlan) => {
-    const confirmed = await Dialog.confirm({
-      content: `Discontinue this cycle plan?`,
-    });
-    if (!confirmed) return;
-    try {
-      await api.post(`/finance/cycleplans/${plan.sysId}/discontinue`);
-      Toast.show({ icon: 'success', content: 'Plan discontinued' });
-      fetchData();
-    } catch {
-      Toast.show({ icon: 'fail', content: 'Failed to discontinue' });
-    }
-  };
-
   if (loading) {
     return (
       <>
@@ -97,45 +80,34 @@ const CyclePlans: React.FC = () => {
           <Card title="Active & Pending" style={{ borderRadius: 8 }}>
             <List style={{ '--border-top': 'none', '--border-bottom': 'none' }}>
               {activePlans.map(plan => (
-                <SwipeAction
+                <List.Item
                   key={plan.sysId}
-                  rightActions={[
-                    {
-                      key: 'discontinue',
-                      text: 'Remove',
-                      color: 'danger',
-                      onClick: () => handleDiscontinue(plan),
-                    },
-                  ]}
+                  onClick={() => navigate(`/cycle/${plan.sysId}`)}
+                  description={
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <span>
+                        {dayjs(plan.startDate).format('MMM D')} - {dayjs(plan.endDate).format('MMM D, YYYY')}
+                      </span>
+                      <Tag color={statusColors[plan.status]} style={{ fontSize: 10, padding: '0 4px' }}>
+                        {plan.status}
+                      </Tag>
+                    </div>
+                  }
+                  extra={
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{
+                        fontWeight: 600,
+                        fontSize: 14,
+                        color: plan.balance >= 0 ? '#52c41a' : '#ff4d4f',
+                      }}>
+                        ${plan.balance.toFixed(0)}
+                      </div>
+                      <div style={{ fontSize: 11, color: '#8c8c8c' }}>balance</div>
+                    </div>
+                  }
                 >
-                  <List.Item
-                    onClick={() => navigate(`/cycle/${plan.sysId}`)}
-                    description={
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                        <span>
-                          {dayjs(plan.startDate).format('MMM D')} - {dayjs(plan.endDate).format('MMM D, YYYY')}
-                        </span>
-                        <Tag color={statusColors[plan.status]} style={{ fontSize: 10, padding: '0 4px' }}>
-                          {plan.status}
-                        </Tag>
-                      </div>
-                    }
-                    extra={
-                      <div style={{ textAlign: 'right' }}>
-                        <div style={{
-                          fontWeight: 600,
-                          fontSize: 14,
-                          color: plan.balance >= 0 ? '#52c41a' : '#ff4d4f',
-                        }}>
-                          ${plan.balance.toFixed(0)}
-                        </div>
-                        <div style={{ fontSize: 11, color: '#8c8c8c' }}>balance</div>
-                      </div>
-                    }
-                  >
-                    {plan.cycleGoalName}
-                  </List.Item>
-                </SwipeAction>
+                  {plan.cycleGoalName}
+                </List.Item>
               ))}
             </List>
           </Card>

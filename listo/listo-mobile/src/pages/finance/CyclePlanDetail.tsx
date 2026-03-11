@@ -11,7 +11,6 @@ import {
   ErrorBlock,
   PullToRefresh,
   FloatingBubble,
-  SwipeAction,
   ActionSheet,
 } from 'antd-mobile';
 import type { Action } from 'antd-mobile/es/components/action-sheet';
@@ -61,39 +60,6 @@ const CyclePlanDetail: React.FC = () => {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
-
-  const handleDeleteTransaction = async (txn: CycleTransaction) => {
-    const confirmed = await Dialog.confirm({
-      content: `Delete "${txn.name}"?`,
-    });
-    if (!confirmed) return;
-    try {
-      await api.delete(`/finance/cycletransactions/${txn.sysId}`);
-      Toast.show({ icon: 'success', content: 'Deleted' });
-      fetchData();
-    } catch {
-      Toast.show({ icon: 'fail', content: 'Failed to delete' });
-    }
-  };
-
-  const handleStatusCycle = async (txn: CycleTransaction) => {
-    const statusOrder = ['Planned', 'Estimated', 'Confirmed'];
-    const currentIdx = statusOrder.indexOf(txn.status);
-    const nextStatus = statusOrder[(currentIdx + 1) % statusOrder.length];
-    try {
-      await api.put(`/finance/cycletransactions/${txn.sysId}`, {
-        cyclePlanSysId: txn.cyclePlanSysId,
-        name: txn.name,
-        amount: txn.amount,
-        transactionType: txn.transactionType,
-        status: nextStatus,
-        notes: txn.notes,
-      });
-      fetchData();
-    } catch {
-      Toast.show({ icon: 'fail', content: 'Failed to update' });
-    }
-  };
 
   const credits = useMemo(() => transactions.filter(t => t.transactionType === 'Credit'), [transactions]);
   const debits = useMemo(() => transactions.filter(t => t.transactionType === 'Debit'), [transactions]);
@@ -152,51 +118,34 @@ const CyclePlanDetail: React.FC = () => {
   const renderTransactionList = (items: CycleTransaction[], type: string) => (
     <List style={{ '--border-top': 'none', '--border-bottom': 'none' }}>
       {items.map(txn => (
-        <SwipeAction
+        <List.Item
           key={txn.sysId}
-          rightActions={[
-            {
-              key: 'edit',
-              text: 'Edit',
-              color: 'warning',
-              onClick: () => navigate(`/cycle/${id}/transaction/${txn.sysId}/edit`),
-            },
-            {
-              key: 'delete',
-              text: 'Delete',
-              color: 'danger',
-              onClick: () => handleDeleteTransaction(txn),
-            },
-          ]}
+          onClick={() => navigate(`/cycle/${id}/transaction/${txn.sysId}/edit`)}
+          description={
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <Tag
+                color={txnStatusColors[txn.status]}
+                style={{ fontSize: 10, padding: '0 4px' }}
+              >
+                {txn.status}
+              </Tag>
+              {txn.notes && (
+                <span style={{ fontSize: 11, color: '#8c8c8c' }}>{txn.notes}</span>
+              )}
+            </div>
+          }
+          extra={
+            <span style={{
+              fontWeight: 600,
+              fontSize: 14,
+              color: type === 'Credit' ? '#52c41a' : '#ff4d4f',
+            }}>
+              {type === 'Debit' ? '-' : ''}${txn.amount.toFixed(2)}
+            </span>
+          }
         >
-          <List.Item
-            onClick={() => handleStatusCycle(txn)}
-            description={
-              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                <Tag
-                  color={txnStatusColors[txn.status]}
-                  style={{ fontSize: 10, padding: '0 4px' }}
-                >
-                  {txn.status}
-                </Tag>
-                {txn.notes && (
-                  <span style={{ fontSize: 11, color: '#8c8c8c' }}>{txn.notes}</span>
-                )}
-              </div>
-            }
-            extra={
-              <span style={{
-                fontWeight: 600,
-                fontSize: 14,
-                color: type === 'Credit' ? '#52c41a' : '#ff4d4f',
-              }}>
-                {type === 'Debit' ? '-' : ''}${txn.amount.toFixed(2)}
-              </span>
-            }
-          >
-            {txn.name}
-          </List.Item>
-        </SwipeAction>
+          {txn.name}
+        </List.Item>
       ))}
     </List>
   );
