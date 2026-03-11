@@ -10,7 +10,6 @@ import {
   Skeleton,
   ErrorBlock,
   PullToRefresh,
-  FloatingBubble,
   ActionSheet,
 } from 'antd-mobile';
 import type { Action } from 'antd-mobile/es/components/action-sheet';
@@ -155,12 +154,15 @@ const CyclePlanDetail: React.FC = () => {
       <NavBar
         onBack={() => navigate('/cycle')}
         right={
-          <span
-            onClick={() => setActionSheetVisible(true)}
-            style={{ fontSize: 14, color: '#1890ff', cursor: 'pointer' }}
-          >
-            More
-          </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <AddOutline fontSize={22} onClick={() => navigate(`/cycle/${id}/transaction/new`)} style={{ cursor: 'pointer' }} />
+            <span
+              onClick={() => setActionSheetVisible(true)}
+              style={{ fontSize: 14, color: '#1890ff', cursor: 'pointer' }}
+            >
+              More
+            </span>
+          </div>
         }
       >
         {plan.cycleGoalName}
@@ -296,19 +298,6 @@ const CyclePlanDetail: React.FC = () => {
           )}
         </Card>
       </div>
-
-      <FloatingBubble
-        style={{
-          '--initial-position-bottom': '76px',
-          '--initial-position-right': '16px',
-          '--edge-distance': '16px',
-          '--size': '48px',
-          '--background': '#1890ff',
-        }}
-        onClick={() => navigate(`/cycle/${id}/transaction/new`)}
-      >
-        <AddOutline fontSize={24} color="#fff" />
-      </FloatingBubble>
 
       <ActionSheet
         visible={actionSheetVisible}

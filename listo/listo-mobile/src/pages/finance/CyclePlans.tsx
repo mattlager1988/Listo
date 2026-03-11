@@ -8,7 +8,6 @@ import {
   PullToRefresh,
   Skeleton,
   ErrorBlock,
-  FloatingBubble,
 } from 'antd-mobile';
 import { AddOutline, UnorderedListOutline } from 'antd-mobile-icons';
 import dayjs from 'dayjs';
@@ -72,7 +71,14 @@ const CyclePlans: React.FC = () => {
 
   return (
     <PullToRefresh onRefresh={fetchData}>
-      <NavBar back={null} left={<UnorderedListOutline fontSize={20} onClick={openMenu} style={{ cursor: 'pointer' }} />} style={{ '--height': '48px' }}>Cycle Plans</NavBar>
+      <NavBar
+        back={null}
+        left={<UnorderedListOutline fontSize={20} onClick={openMenu} style={{ cursor: 'pointer' }} />}
+        style={{ '--height': '48px' }}
+        right={<AddOutline fontSize={22} onClick={() => navigate('/cycle/new')} style={{ cursor: 'pointer' }} />}
+      >
+        Cycle Plans
+      </NavBar>
 
       <div style={{ padding: 12, display: 'flex', flexDirection: 'column', gap: 12 }}>
         {/* Active / Pending Plans */}
@@ -167,18 +173,6 @@ const CyclePlans: React.FC = () => {
         )}
       </div>
 
-      <FloatingBubble
-        style={{
-          '--initial-position-bottom': '76px',
-          '--initial-position-right': '16px',
-          '--edge-distance': '16px',
-          '--size': '48px',
-          '--background': '#1890ff',
-        }}
-        onClick={() => navigate('/cycle/new')}
-      >
-        <AddOutline fontSize={24} color="#fff" />
-      </FloatingBubble>
     </PullToRefresh>
   );
 };

@@ -5,7 +5,6 @@ import {
   List,
   PullToRefresh,
   SearchBar,
-  FloatingBubble,
   Tag,
   Skeleton,
   ErrorBlock,
@@ -118,16 +117,19 @@ const Accounts: React.FC = () => {
         left={<UnorderedListOutline fontSize={20} onClick={openMenu} style={{ cursor: 'pointer' }} />}
         style={{ '--height': '48px' }}
         right={
-          <span
-            onClick={() => setShowOnHold(!showOnHold)}
-            style={{
-              fontSize: 12,
-              color: showOnHold ? '#1890ff' : '#8c8c8c',
-              cursor: 'pointer',
-            }}
-          >
-            {showOnHold ? 'Hide Held' : 'Show Held'}
-          </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <span
+              onClick={() => setShowOnHold(!showOnHold)}
+              style={{
+                fontSize: 12,
+                color: showOnHold ? '#1890ff' : '#8c8c8c',
+                cursor: 'pointer',
+              }}
+            >
+              {showOnHold ? 'Hide Held' : 'Show Held'}
+            </span>
+            <AddOutline fontSize={22} onClick={() => navigate('/bills/new')} style={{ cursor: 'pointer' }} />
+          </div>
         }
       >
         Accounts
@@ -230,18 +232,6 @@ const Accounts: React.FC = () => {
         </Collapse>
       )}
 
-      <FloatingBubble
-        style={{
-          '--initial-position-bottom': '76px',
-          '--initial-position-right': '16px',
-          '--edge-distance': '16px',
-          '--size': '48px',
-          '--background': '#1890ff',
-        }}
-        onClick={() => navigate('/bills/new')}
-      >
-        <AddOutline fontSize={24} color="#fff" />
-      </FloatingBubble>
     </PullToRefresh>
   );
 };
