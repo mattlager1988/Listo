@@ -44,7 +44,7 @@ const EditPayment: React.FC = () => {
         paymentMethodSysId: pmt.paymentMethodSysId,
         description: pmt.description || '',
         confirmationNumber: pmt.confirmationNumber || '',
-        adjustLedger: false,
+        adjustLedger: true,
       });
     } catch {
       Toast.show({ icon: 'fail', content: 'Failed to load payment' });
@@ -146,14 +146,14 @@ const EditPayment: React.FC = () => {
           />
         </Form.Item>
 
-        {amountChanged && payment?.bankAccountSysId != null && (
+        {payment?.bankAccountSysId != null && (
           <>
             <Form.Item
               name="adjustLedger"
               label={`Adjust ${bankName} balance`}
               childElementPosition="right"
             >
-              <Switch />
+              <Switch defaultChecked />
             </Form.Item>
           </>
         )}

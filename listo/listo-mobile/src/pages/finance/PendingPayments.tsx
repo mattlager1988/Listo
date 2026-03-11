@@ -4,7 +4,6 @@ import {
   List,
   PullToRefresh,
   Toast,
-  Dialog,
   Skeleton,
   ErrorBlock,
   ActionSheet,
@@ -25,6 +24,7 @@ const PendingPayments: React.FC = () => {
   const [error, setError] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
   const [actionSheetVisible, setActionSheetVisible] = useState(false);
+  const [deleteSheetVisible, setDeleteSheetVisible] = useState(false);
 
   const fetchData = useCallback(async () => {
     setError(false);
@@ -52,14 +52,10 @@ const PendingPayments: React.FC = () => {
     }
   };
 
-  const handleDeletePayment = async (payment: Payment) => {
-    const confirmed = await Dialog.confirm({
-      content: `Delete payment of $${payment.amount.toFixed(2)}?`,
-    });
-    if (!confirmed) return;
+  const deletePayment = async (payment: Payment, reverseLedger: boolean) => {
     try {
-      await api.delete(`/finance/payments/${payment.sysId}?reverseLedger=true`);
-      Toast.show({ icon: 'success', content: 'Payment deleted' });
+      await api.delete(`/finance/payments/${payment.sysId}?reverseLedger=${reverseLedger}`);
+      Toast.show({ icon: 'success', content: reverseLedger ? 'Payment deleted and ledger reversed' : 'Payment deleted' });
       fetchData();
     } catch {
       Toast.show({ icon: 'fail', content: 'Failed to delete payment' });
@@ -89,7 +85,7 @@ const PendingPayments: React.FC = () => {
       danger: true,
       onClick: () => {
         setActionSheetVisible(false);
-        if (selectedPayment) handleDeletePayment(selectedPayment);
+        setDeleteSheetVisible(true);
       },
     },
   ];
@@ -161,8 +157,40 @@ const PendingPayments: React.FC = () => {
         actions={actionSheetActions}
         onClose={() => {
           setActionSheetVisible(false);
-          setSelectedPayment(null);
         }}
+        cancelText="Cancel"
+      />
+
+      <ActionSheet
+        visible={deleteSheetVisible}
+        actions={
+          selectedPayment?.bankAccountSysId
+            ? [
+                {
+                  text: 'Delete & Reverse Balance',
+                  key: 'reverse',
+                  danger: true,
+                  description: `Restore $${selectedPayment.amount.toFixed(2)} to ${selectedPayment.bankAccountName}`,
+                  onClick: () => { setDeleteSheetVisible(false); deletePayment(selectedPayment, true); },
+                },
+                {
+                  text: 'Delete Only',
+                  key: 'keep',
+                  danger: true,
+                  description: 'Keep bank balance as-is',
+                  onClick: () => { setDeleteSheetVisible(false); deletePayment(selectedPayment, false); },
+                },
+              ]
+            : [
+                {
+                  text: 'Delete Payment',
+                  key: 'delete',
+                  danger: true,
+                  onClick: () => { if (selectedPayment) { setDeleteSheetVisible(false); deletePayment(selectedPayment, false); } },
+                },
+              ]
+        }
+        onClose={() => setDeleteSheetVisible(false)}
         cancelText="Cancel"
       />
     </PullToRefresh>

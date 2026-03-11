@@ -38,6 +38,8 @@ const CyclePlanDetail: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [actionSheetVisible, setActionSheetVisible] = useState(false);
+  const [selectedTransaction, setSelectedTransaction] = useState<CycleTransaction | null>(null);
+  const [txnSheetVisible, setTxnSheetVisible] = useState(false);
 
   const fetchData = useCallback(async () => {
     if (!id) return;
@@ -112,6 +114,30 @@ const CyclePlanDetail: React.FC = () => {
     },
   ];
 
+  const handleDeleteTransaction = async (txn: CycleTransaction) => {
+    try {
+      await api.delete(`/finance/cycletransactions/${txn.sysId}`);
+      Toast.show({ icon: 'success', content: 'Transaction deleted' });
+      fetchData();
+    } catch {
+      Toast.show({ icon: 'fail', content: 'Failed to delete transaction' });
+    }
+  };
+
+  const txnSheetActions: Action[] = selectedTransaction ? [
+    {
+      text: 'Edit',
+      key: 'edit',
+      onClick: () => { setTxnSheetVisible(false); navigate(`/cycle/${id}/transaction/${selectedTransaction.sysId}/edit`); },
+    },
+    {
+      text: 'Delete',
+      key: 'delete',
+      danger: true,
+      onClick: () => { setTxnSheetVisible(false); handleDeleteTransaction(selectedTransaction); },
+    },
+  ] : [];
+
   const daysTotal = dayjs(plan.endDate).diff(dayjs(plan.startDate), 'day') + 1;
   const daysElapsed = Math.max(0, dayjs().diff(dayjs(plan.startDate), 'day'));
   const daysRemaining = Math.max(0, dayjs(plan.endDate).diff(dayjs(), 'day'));
@@ -121,7 +147,7 @@ const CyclePlanDetail: React.FC = () => {
       {items.map(txn => (
         <List.Item
           key={txn.sysId}
-          onClick={() => navigate(`/cycle/${id}/transaction/${txn.sysId}/edit`)}
+          onClick={() => { setSelectedTransaction(txn); setTxnSheetVisible(true); }}
           description={
             <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
               <Tag
@@ -168,96 +194,73 @@ const CyclePlanDetail: React.FC = () => {
       </NavBar>
 
       <div style={{ padding: 12, paddingBottom: 60, display: 'flex', flexDirection: 'column', gap: 12 }}>
-        {/* Plan Summary Card */}
-        <Card style={{ borderRadius: 8 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div>
-              <div style={{ fontSize: 18, fontWeight: 600 }}>{plan.cycleGoalName}</div>
-              <div style={{ fontSize: 13, color: '#8c8c8c', marginTop: 2 }}>
-                {dayjs(plan.startDate).format('MMM D')} - {dayjs(plan.endDate).format('MMM D, YYYY')}
-              </div>
+        {/* Header */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <div style={{ fontSize: 13, color: '#8c8c8c' }}>
+              {dayjs(plan.startDate).format('MMM D')} – {dayjs(plan.endDate).format('MMM D, YYYY')}
             </div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <Tag color={statusColors[plan.status]}>{plan.status}</Tag>
+            <Tag color="processing">{daysRemaining}d left</Tag>
           </div>
+        </div>
 
-          {/* Financial Summary */}
+        {/* Metric Cards Grid */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
           <div style={{
-            display: 'flex',
-            justifyContent: 'space-around',
-            marginTop: 16,
-            padding: '12px 0',
-            borderTop: '1px solid #f0f0f0',
-            borderBottom: '1px solid #f0f0f0',
+            background: '#f6ffed',
+            border: '1px solid #b7eb8f',
+            borderRadius: 8,
+            padding: 12,
+            textAlign: 'center',
           }}>
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: 11, color: '#8c8c8c' }}>In</div>
-              <div style={{ fontSize: 20, fontWeight: 600, color: '#52c41a' }}>
-                ${plan.amountIn.toFixed(0)}
-              </div>
-            </div>
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: 11, color: '#8c8c8c' }}>Out</div>
-              <div style={{ fontSize: 20, fontWeight: 600, color: '#ff4d4f' }}>
-                ${plan.amountOut.toFixed(0)}
-              </div>
-            </div>
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: 11, color: '#8c8c8c' }}>Balance</div>
-              <div style={{
-                fontSize: 20,
-                fontWeight: 600,
-                color: plan.balance >= 0 ? '#52c41a' : '#ff4d4f',
-              }}>
-                ${plan.balance.toFixed(0)}
-              </div>
+            <div style={{ fontSize: 11, color: '#8c8c8c', marginBottom: 4 }}>Income</div>
+            <div style={{ fontSize: 22, fontWeight: 700, color: '#52c41a' }}>${plan.amountIn.toFixed(0)}</div>
+          </div>
+          <div style={{
+            background: '#fff2f0',
+            border: '1px solid #ffccc7',
+            borderRadius: 8,
+            padding: 12,
+            textAlign: 'center',
+          }}>
+            <div style={{ fontSize: 11, color: '#8c8c8c', marginBottom: 4 }}>Expenses</div>
+            <div style={{ fontSize: 22, fontWeight: 700, color: '#ff4d4f' }}>${plan.amountOut.toFixed(0)}</div>
+          </div>
+          <div style={{
+            background: plan.balance >= 0 ? '#f6ffed' : '#fff2f0',
+            border: `1px solid ${plan.balance >= 0 ? '#b7eb8f' : '#ffccc7'}`,
+            borderRadius: 8,
+            padding: 12,
+            textAlign: 'center',
+          }}>
+            <div style={{ fontSize: 11, color: '#8c8c8c', marginBottom: 4 }}>Balance</div>
+            <div style={{ fontSize: 22, fontWeight: 700, color: plan.balance >= 0 ? '#52c41a' : '#ff4d4f' }}>
+              ${plan.balance.toFixed(0)}
             </div>
           </div>
-
-          {/* Progress */}
-          <div style={{ display: 'flex', justifyContent: 'space-around', marginTop: 8 }}>
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: 11, color: '#8c8c8c' }}>Days</div>
-              <div style={{ fontSize: 14, fontWeight: 500 }}>
-                {daysElapsed}/{daysTotal}
-              </div>
-            </div>
-            <div style={{ textAlign: 'center' }}>
-              <Tag color="processing" style={{ fontSize: 12 }}>
-                {daysRemaining} days remaining
-              </Tag>
+          <div style={{
+            background: '#fafafa',
+            border: '1px solid #e8e8e8',
+            borderRadius: 8,
+            padding: 12,
+            textAlign: 'center',
+          }}>
+            <div style={{ fontSize: 11, color: '#8c8c8c', marginBottom: 4 }}>Transactions</div>
+            <div style={{ fontSize: 22, fontWeight: 700, color: '#595959' }}>{transactions.length}</div>
+            <div style={{ fontSize: 11, color: '#8c8c8c', marginTop: 2 }}>
+              {credits.length} in · {debits.length} out
             </div>
           </div>
+        </div>
 
-          {/* Transaction Totals */}
-          {(totalCredits > 0 || totalDebits > 0) && (
-            <div style={{
-              display: 'flex',
-              justifyContent: 'space-around',
-              marginTop: 12,
-              paddingTop: 12,
-              borderTop: '1px solid #f0f0f0',
-            }}>
-              <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: 11, color: '#8c8c8c' }}>Credits ({credits.length})</div>
-                <div style={{ fontSize: 14, fontWeight: 600, color: '#52c41a' }}>
-                  ${totalCredits.toFixed(2)}
-                </div>
-              </div>
-              <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: 11, color: '#8c8c8c' }}>Debits ({debits.length})</div>
-                <div style={{ fontSize: 14, fontWeight: 600, color: '#ff4d4f' }}>
-                  ${totalDebits.toFixed(2)}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {plan.notes && (
-            <div style={{ marginTop: 12, paddingTop: 8, borderTop: '1px solid #f0f0f0', color: '#595959', fontSize: 13 }}>
-              {plan.notes}
-            </div>
-          )}
-        </Card>
+        {plan.notes && (
+          <Card title="Notes" style={{ borderRadius: 8 }}>
+            <div style={{ fontSize: 13, color: '#595959' }}>{plan.notes}</div>
+          </Card>
+        )}
 
         {/* Credits */}
         <Card
@@ -318,6 +321,13 @@ const CyclePlanDetail: React.FC = () => {
         visible={actionSheetVisible}
         actions={actionSheetActions}
         onClose={() => setActionSheetVisible(false)}
+        cancelText="Cancel"
+      />
+
+      <ActionSheet
+        visible={txnSheetVisible}
+        actions={txnSheetActions}
+        onClose={() => { setTxnSheetVisible(false); setSelectedTransaction(null); }}
         cancelText="Cancel"
       />
     </PullToRefresh>

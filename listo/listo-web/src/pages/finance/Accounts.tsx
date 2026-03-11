@@ -573,6 +573,7 @@ const Accounts: React.FC = () => {
       amount: payment.amount,
       description: payment.description,
       confirmationNumber: payment.confirmationNumber,
+      adjustLedger: true,
     });
     setPaymentModalVisible(true);
   };
