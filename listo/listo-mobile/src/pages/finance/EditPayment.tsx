@@ -10,7 +10,7 @@ import {
   Skeleton,
 } from 'antd-mobile';
 import api from '@shared/services/api';
-import type { Payment, PaymentMethod, BankAccount } from '@shared/types';
+import type { Payment, PaymentMethod } from '@shared/types';
 
 const EditPayment: React.FC = () => {
   const { paymentId } = useParams<{ paymentId: string }>();
@@ -19,25 +19,21 @@ const EditPayment: React.FC = () => {
   const [form] = Form.useForm();
   const [payment, setPayment] = useState<Payment | null>(null);
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
-  const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [amountChanged, setAmountChanged] = useState(false);
 
   const [methodPickerVisible, setMethodPickerVisible] = useState(false);
 
   const fetchData = useCallback(async () => {
     if (!paymentId) return;
     try {
-      const [paymentRes, methodsRes, banksRes] = await Promise.all([
+      const [paymentRes, methodsRes] = await Promise.all([
         api.get(`/finance/payments/${paymentId}`),
         api.get('/finance/paymentmethods'),
-        api.get('/finance/bankaccounts'),
       ]);
       const pmt = paymentRes.data as Payment;
       setPayment(pmt);
       setPaymentMethods(methodsRes.data.filter((pm: PaymentMethod) => !pm.isDeleted));
-      setBankAccounts(banksRes.data.filter((ba: BankAccount) => !ba.isDiscontinued));
 
       form.setFieldsValue({
         amount: pmt.amount.toString(),
@@ -57,12 +53,6 @@ const EditPayment: React.FC = () => {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
-
-  const handleAmountChange = (val: string | undefined) => {
-    if (!payment) return;
-    const newAmount = parseFloat(val || '0');
-    setAmountChanged(newAmount !== payment.amount);
-  };
 
   const handleSubmit = async () => {
     if (!paymentId) return;
@@ -142,7 +132,7 @@ const EditPayment: React.FC = () => {
             inputMode="decimal"
             placeholder="0.00"
             style={{ fontSize: 24, fontWeight: 600 }}
-            onChange={handleAmountChange}
+
           />
         </Form.Item>
 

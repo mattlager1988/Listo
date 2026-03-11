@@ -6,7 +6,6 @@ import {
   List,
   Tag,
   Toast,
-  Dialog,
   Skeleton,
   ErrorBlock,
   PullToRefresh,
@@ -138,8 +137,6 @@ const CyclePlanDetail: React.FC = () => {
     },
   ] : [];
 
-  const daysTotal = dayjs(plan.endDate).diff(dayjs(plan.startDate), 'day') + 1;
-  const daysElapsed = Math.max(0, dayjs().diff(dayjs(plan.startDate), 'day'));
   const daysRemaining = Math.max(0, dayjs(plan.endDate).diff(dayjs(), 'day'));
 
   const renderTransactionList = (items: CycleTransaction[], type: string) => (
