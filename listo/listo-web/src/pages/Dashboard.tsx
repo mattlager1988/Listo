@@ -29,7 +29,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import dayjs from 'dayjs';
 import api from '../services/api';
-import PageHeader from '../components/PageHeader';
+
 
 interface BankAccountSummary {
   sysId: number;
@@ -356,7 +356,6 @@ const Dashboard: React.FC = () => {
   if (!data) {
     return (
       <div>
-        <PageHeader title="Dashboard" />
         <Card>
           <p>Unable to load dashboard data.</p>
           <Button onClick={fetchDashboard}>Retry</Button>
@@ -661,8 +660,7 @@ const Dashboard: React.FC = () => {
 
   return (
     <div>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-        <PageHeader title="Dashboard" />
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', marginBottom: 8 }}>
         <Space>
           <Tooltip title={isLocked ? 'Unlock to rearrange widgets' : 'Lock layout'}>
             <Button
