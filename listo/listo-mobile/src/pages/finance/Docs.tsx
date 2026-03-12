@@ -248,35 +248,51 @@ const Docs: React.FC = () => {
       >
         {viewingDoc && (
           <>
-            <div style={{
-              padding: '16px 16px 12px',
-              borderBottom: '1px solid #f0f0f0',
-              flexShrink: 0,
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-            }}>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontWeight: 600, fontSize: 16, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {viewingDoc.description || viewingDoc.originalFileName}
-                </div>
-                <div style={{ fontSize: 12, color: '#8c8c8c', marginTop: 2 }}>
-                  {viewingDoc.originalFileName} · {formatFileSize(viewingDoc.fileSize)}
-                </div>
+            <div style={{ flexShrink: 0 }}>
+              {/* Drag handle */}
+              <div style={{ display: 'flex', justifyContent: 'center', padding: '8px 0 4px' }}>
+                <div style={{ width: 36, height: 4, borderRadius: 2, background: '#e0e0e0' }} />
               </div>
-              <div style={{ display: 'flex', gap: 16, flexShrink: 0, marginLeft: 12 }}>
-                <span
-                  onClick={() => handleDownload(viewingDoc)}
-                  style={{ color: '#1890ff', fontSize: 14, cursor: 'pointer' }}
-                >
-                  Save
-                </span>
-                <span
-                  onClick={closeViewer}
-                  style={{ color: '#8c8c8c', fontSize: 14, cursor: 'pointer' }}
-                >
-                  Close
-                </span>
+              <div style={{
+                padding: '4px 16px 12px',
+                borderBottom: '1px solid #f0f0f0',
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
+                    <Tag
+                      color={
+                        viewingDoc.mimeType.includes('pdf') ? 'danger' :
+                        viewingDoc.mimeType.includes('image') ? 'primary' :
+                        viewingDoc.mimeType.includes('word') ? 'primary' :
+                        viewingDoc.mimeType.includes('excel') || viewingDoc.mimeType.includes('spreadsheet') ? 'success' :
+                        'default'
+                      }
+                      style={{ fontSize: 10, padding: '0 4px', flexShrink: 0 }}
+                    >
+                      {getFileEmoji(viewingDoc.mimeType)}
+                    </Tag>
+                    <span style={{ fontWeight: 600, fontSize: 16, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {viewingDoc.description || viewingDoc.originalFileName}
+                    </span>
+                  </div>
+                  <span
+                    onClick={closeViewer}
+                    style={{ color: '#8c8c8c', cursor: 'pointer', fontSize: 14, flexShrink: 0, marginLeft: 12 }}
+                  >
+                    Close
+                  </span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: 12, color: '#8c8c8c' }}>
+                    {viewingDoc.originalFileName} · {formatFileSize(viewingDoc.fileSize)}
+                  </span>
+                  <span
+                    onClick={() => handleDownload(viewingDoc)}
+                    style={{ color: '#1677ff', fontSize: 12, cursor: 'pointer', flexShrink: 0 }}
+                  >
+                    Save to device
+                  </span>
+                </div>
               </div>
             </div>
             <div style={{ flex: 1, overflow: 'auto' }}>
