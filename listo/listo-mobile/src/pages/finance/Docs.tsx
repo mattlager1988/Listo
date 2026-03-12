@@ -241,7 +241,7 @@ const Docs: React.FC = () => {
         bodyStyle={{
           borderTopLeftRadius: 12,
           borderTopRightRadius: 12,
-          height: '90vh',
+          maxHeight: 'calc(90vh - env(safe-area-inset-top))',
           display: 'flex',
           flexDirection: 'column',
         }}
