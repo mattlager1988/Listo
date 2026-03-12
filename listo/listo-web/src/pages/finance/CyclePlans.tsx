@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ProTable } from '@ant-design/pro-components';
 import type { ProColumns, ActionType } from '@ant-design/pro-components';
@@ -57,6 +57,16 @@ const statusColors: Record<string, string> = {
   Completed: 'error',
 };
 
+interface CyclePlanGroup {
+  sysId: string;
+  isGroupHeader: true;
+  groupLabel: string;
+  children: CyclePlan[];
+  totalAmountIn: number;
+  totalAmountOut: number;
+  totalBalance: number;
+}
+
 interface EditingCell {
   sysId: number;
   field: 'amountIn' | 'amountOut' | 'status';
@@ -74,6 +84,7 @@ const CyclePlans: React.FC = () => {
   const [discontinuedPlans, setDiscontinuedPlans] = useState<CyclePlan[]>([]);
   const [discontinuedLoading, setDiscontinuedLoading] = useState(false);
   const [editingCell, setEditingCell] = useState<EditingCell | null>(null);
+  const [expandedGroups, setExpandedGroups] = useState<string[]>(['group-active', 'group-completed']);
   const [form] = Form.useForm();
   const actionRef = useRef<ActionType>(null);
 
@@ -232,26 +243,68 @@ const CyclePlans: React.FC = () => {
     setEditingCell(null);
   };
 
+  const groupedData = useMemo(() => {
+    const activePlans = cyclePlans
+      .filter(p => p.status === 'Pending' || p.status === 'Active')
+      .sort((a, b) => dayjs(b.startDate).unix() - dayjs(a.startDate).unix());
+    const completedPlans = cyclePlans
+      .filter(p => p.status === 'Completed')
+      .sort((a, b) => dayjs(b.startDate).unix() - dayjs(a.startDate).unix());
+
+    const groups: (CyclePlanGroup | CyclePlan)[] = [];
+    if (activePlans.length > 0 || completedPlans.length === 0) {
+      groups.push({
+        sysId: 'group-active',
+        isGroupHeader: true,
+        groupLabel: 'Pending / Active',
+        children: activePlans,
+        totalAmountIn: activePlans.reduce((sum, p) => sum + (p.amountIn ?? 0), 0),
+        totalAmountOut: activePlans.reduce((sum, p) => sum + (p.amountOut ?? 0), 0),
+        totalBalance: activePlans.reduce((sum, p) => sum + (p.balance ?? 0), 0),
+      });
+    }
+    if (completedPlans.length > 0) {
+      groups.push({
+        sysId: 'group-completed',
+        isGroupHeader: true,
+        groupLabel: 'Completed',
+        children: completedPlans,
+        totalAmountIn: completedPlans.reduce((sum, p) => sum + (p.amountIn ?? 0), 0),
+        totalAmountOut: completedPlans.reduce((sum, p) => sum + (p.amountOut ?? 0), 0),
+        totalBalance: completedPlans.reduce((sum, p) => sum + (p.balance ?? 0), 0),
+      });
+    }
+    return groups;
+  }, [cyclePlans]);
+
   const columns: ProColumns<CyclePlan>[] = [
     {
       title: 'Start Date',
       dataIndex: 'startDate',
-      render: (_, record) => record.startDate ? dayjs(record.startDate).format('MM/DD/YYYY') : '-',
-      sorter: (a, b) => dayjs(a.startDate).unix() - dayjs(b.startDate).unix(),
-      defaultSortOrder: 'descend',
+      render: (_, record) => {
+        if ('isGroupHeader' in record) {
+          return <span style={{ fontWeight: 600 }}>{(record as unknown as CyclePlanGroup).groupLabel}</span>;
+        }
+        return record.startDate ? dayjs(record.startDate).format('MM/DD/YYYY') : '-';
+      },
     },
     {
       title: 'End Date',
       dataIndex: 'endDate',
-      render: (_, record) => record.endDate ? dayjs(record.endDate).format('MM/DD/YYYY') : '-',
-      sorter: (a, b) => dayjs(a.endDate).unix() - dayjs(b.endDate).unix(),
+      render: (_, record) => {
+        if ('isGroupHeader' in record) return null;
+        return record.endDate ? dayjs(record.endDate).format('MM/DD/YYYY') : '-';
+      },
     },
     {
       title: 'Cycle Goal',
       dataIndex: 'cycleGoalName',
-      sorter: (a, b) => a.cycleGoalName.localeCompare(b.cycleGoalName),
       filters: cycleGoals.map(g => ({ text: g.name, value: g.name })),
-      onFilter: (value, record) => record.cycleGoalName === value,
+      onFilter: (value, record) => 'isGroupHeader' in record || record.cycleGoalName === value,
+      render: (_, record) => {
+        if ('isGroupHeader' in record) return null;
+        return record.cycleGoalName;
+      },
     },
     {
       title: 'Amount In',
@@ -259,6 +312,9 @@ const CyclePlans: React.FC = () => {
       width: 110,
       align: 'right',
       render: (_, record) => {
+        if ('isGroupHeader' in record) {
+          return <Tag style={{ fontWeight: 600 }}>${(record as unknown as CyclePlanGroup).totalAmountIn.toFixed(2)}</Tag>;
+        }
         const isEditing = editingCell?.sysId === record.sysId && editingCell?.field === 'amountIn';
         if (isEditing) {
           return (
@@ -294,7 +350,6 @@ const CyclePlans: React.FC = () => {
           </Tag>
         );
       },
-      sorter: (a, b) => (a.amountIn ?? 0) - (b.amountIn ?? 0),
     },
     {
       title: 'Amount Out',
@@ -302,6 +357,9 @@ const CyclePlans: React.FC = () => {
       width: 110,
       align: 'right',
       render: (_, record) => {
+        if ('isGroupHeader' in record) {
+          return <Tag style={{ fontWeight: 600 }}>${(record as unknown as CyclePlanGroup).totalAmountOut.toFixed(2)}</Tag>;
+        }
         const isEditing = editingCell?.sysId === record.sysId && editingCell?.field === 'amountOut';
         if (isEditing) {
           return (
@@ -337,25 +395,30 @@ const CyclePlans: React.FC = () => {
           </Tag>
         );
       },
-      sorter: (a, b) => (a.amountOut ?? 0) - (b.amountOut ?? 0),
     },
     {
       title: 'Balance',
       dataIndex: 'balance',
       width: 100,
       align: 'right',
-      render: (_, record) => (
-        <Tag color={(record.balance ?? 0) >= 0 ? 'green' : 'red'}>
-          ${(record.balance ?? 0).toFixed(2)}
-        </Tag>
-      ),
-      sorter: (a, b) => (a.balance ?? 0) - (b.balance ?? 0),
+      render: (_, record) => {
+        if ('isGroupHeader' in record) {
+          const total = (record as unknown as CyclePlanGroup).totalBalance;
+          return <Tag color={total >= 0 ? 'green' : 'red'} style={{ fontWeight: 600 }}>${total.toFixed(2)}</Tag>;
+        }
+        return (
+          <Tag color={(record.balance ?? 0) >= 0 ? 'green' : 'red'}>
+            ${(record.balance ?? 0).toFixed(2)}
+          </Tag>
+        );
+      },
     },
     {
       title: 'Status',
       dataIndex: 'status',
       width: 120,
       render: (_, record) => {
+        if ('isGroupHeader' in record) return null;
         const isEditing = editingCell?.sysId === record.sysId && editingCell?.field === 'status';
         if (isEditing) {
           return (
@@ -393,13 +456,16 @@ const CyclePlans: React.FC = () => {
         { text: 'Active', value: 'Active' },
         { text: 'Completed', value: 'Completed' },
       ],
-      onFilter: (value, record) => record.status === value,
+      onFilter: (value, record) => 'isGroupHeader' in record || record.status === value,
     },
     {
       title: 'Notes',
       dataIndex: 'notes',
       ellipsis: true,
-      render: (_, record) => record.notes || '-',
+      render: (_, record) => {
+        if ('isGroupHeader' in record) return null;
+        return record.notes || '-';
+      },
     },
   ];
 
@@ -484,7 +550,7 @@ const CyclePlans: React.FC = () => {
             icon={<EditOutlined />}
             disabled={selectedRowKeys.length !== 1}
             onClick={() => {
-              const plan = cyclePlans.find(p => p.sysId === selectedRowKeys[0]);
+              const plan = cyclePlans.find(p => p.sysId.toString() === selectedRowKeys[0]?.toString());
               if (plan) handleEdit(plan);
             }}
           />
@@ -543,37 +609,49 @@ const CyclePlans: React.FC = () => {
       </div>
 
       <div className="condensed-table" style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
-      <ProTable<CyclePlan>
+      <ProTable<CyclePlan | CyclePlanGroup>
         actionRef={actionRef}
-        columns={columns}
-        dataSource={cyclePlans}
-        rowKey="sysId"
+        columns={columns as ProColumns<CyclePlan | CyclePlanGroup>[]}
+        dataSource={groupedData}
+        rowKey={(record) => record.sysId.toString()}
         loading={loading}
         search={false}
         options={false}
         tableAlertRender={false}
-        pagination={{
-          pageSize: 20,
-          showSizeChanger: true,
-          showQuickJumper: true,
-        }}
+        pagination={false}
         rowSelection={{
           selectedRowKeys,
-          onChange: setSelectedRowKeys,
+          onChange: (keys) => setSelectedRowKeys(keys),
+          getCheckboxProps: (record) => ({
+            disabled: 'isGroupHeader' in record,
+            style: 'isGroupHeader' in record ? { display: 'none' } : undefined,
+          }),
+        }}
+        expandable={{
+          expandedRowKeys: expandedGroups,
+          onExpandedRowsChange: (keys) => setExpandedGroups(keys as string[]),
         }}
         onRow={(record) => {
           let clickTimer: ReturnType<typeof setTimeout> | null = null;
           return {
             onClick: () => {
+              if ('isGroupHeader' in record) return;
               clickTimer = setTimeout(() => {
-                setSelectedRowKeys([record.sysId]);
+                const key = record.sysId.toString();
+                setSelectedRowKeys(prev =>
+                  prev.includes(key) ? [] : [key]
+                );
               }, 200);
             },
             onDoubleClick: () => {
               if (clickTimer) clearTimeout(clickTimer);
-              navigate(`/finance/cycleplans/${record.sysId}`);
+              if (!('isGroupHeader' in record)) navigate(`/finance/cycleplans/${record.sysId}`);
             },
-            style: { cursor: 'pointer' },
+            style: {
+              cursor: 'isGroupHeader' in record ? 'default' : 'pointer',
+              background: 'isGroupHeader' in record ? '#f5f5f5' : undefined,
+              fontWeight: 'isGroupHeader' in record ? 600 : undefined,
+            },
           };
         }}
         toolBarRender={false}
