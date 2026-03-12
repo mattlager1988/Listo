@@ -15,6 +15,7 @@ interface DocumentUploadProps {
   entitySysId?: number;
   onUploadComplete?: () => void;
   showDocumentType?: boolean;
+  documentTypeEndpoint?: string;
 }
 
 const { Dragger } = Upload;
@@ -25,6 +26,7 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({
   entitySysId,
   onUploadComplete,
   showDocumentType = false,
+  documentTypeEndpoint = '/aviation/documenttypes',
 }) => {
   const [modalVisible, setModalVisible] = useState(false);
   const [fileList, setFileList] = useState<UploadFile[]>([]);
@@ -35,11 +37,11 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({
 
   useEffect(() => {
     if (showDocumentType) {
-      api.get('/aviation/documenttypes')
+      api.get(documentTypeEndpoint)
         .then(res => setDocumentTypes(res.data.filter((dt: DocumentType & { isDeleted: boolean }) => !dt.isDeleted)))
         .catch(() => {});
     }
-  }, [showDocumentType]);
+  }, [showDocumentType, documentTypeEndpoint]);
 
   const handleUpload = async () => {
     if (fileList.length === 0) {

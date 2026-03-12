@@ -197,12 +197,13 @@ public class ListoDbContext : DbContext
             entity.HasKey(e => e.SysId);
             entity.Property(e => e.SysId).HasColumnName("sys_id");
             entity.Property(e => e.Name).HasColumnName("name").IsRequired();
+            entity.Property(e => e.Module).HasColumnName("module").HasMaxLength(50);
             entity.Property(e => e.IsDeleted).HasColumnName("is_deleted");
             entity.Property(e => e.CreateTimestamp).HasColumnName("create_timestamp");
             entity.Property(e => e.ModifyTimestamp).HasColumnName("modify_timestamp");
             entity.Property(e => e.CreateUser).HasColumnName("create_user");
             entity.Property(e => e.ModifyUser).HasColumnName("modify_user");
-            entity.HasIndex(e => e.Name).IsUnique();
+            entity.HasIndex(e => new { e.Name, e.Module }).IsUnique();
         });
 
         modelBuilder.Entity<TrainingType>(entity =>

@@ -82,6 +82,10 @@ const MainLayout: React.FC = () => {
           key: '/finance/cycleplans',
           label: 'Cycle Plans',
         },
+        {
+          key: '/finance/documents',
+          label: 'Documents',
+        },
       ],
     },
     {

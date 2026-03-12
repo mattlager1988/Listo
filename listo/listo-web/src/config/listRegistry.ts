@@ -61,6 +61,13 @@ export const listRegistry: ModuleConfig[] = [
         singularLabel: 'Cycle Goal',
         usageCountField: 'cyclePlanCount',
       },
+      {
+        key: 'personaldocumenttypes',
+        label: 'Document Types',
+        endpoint: '/finance/personaldocumenttypes',
+        singularLabel: 'Document Type',
+        usageCountField: 'documentCount',
+      },
     ],
   },
   {

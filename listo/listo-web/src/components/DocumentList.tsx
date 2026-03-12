@@ -55,6 +55,7 @@ interface DocumentListProps {
   entitySysId?: number;
   showUpload?: boolean;
   showDocumentType?: boolean;
+  documentTypeEndpoint?: string;
 }
 
 const DocumentList: React.FC<DocumentListProps> = ({
@@ -63,6 +64,7 @@ const DocumentList: React.FC<DocumentListProps> = ({
   entitySysId,
   showUpload = true,
   showDocumentType = false,
+  documentTypeEndpoint = '/aviation/documenttypes',
 }) => {
   const [documents, setDocuments] = useState<Document[]>([]);
   const [loading, setLoading] = useState(false);
@@ -104,11 +106,11 @@ const DocumentList: React.FC<DocumentListProps> = ({
 
   useEffect(() => {
     if (showDocumentType) {
-      api.get('/aviation/documenttypes')
+      api.get(documentTypeEndpoint)
         .then(res => setDocumentTypes(res.data.filter((dt: DocumentType) => !dt.isDeleted)))
         .catch(() => {});
     }
-  }, [showDocumentType]);
+  }, [showDocumentType, documentTypeEndpoint]);
 
   const filteredDocuments = useMemo(() => {
     return documents.filter(doc => {
@@ -375,6 +377,7 @@ const DocumentList: React.FC<DocumentListProps> = ({
                 entitySysId={entitySysId}
                 onUploadComplete={fetchDocuments}
                 showDocumentType={showDocumentType}
+                documentTypeEndpoint={documentTypeEndpoint}
               />
             )}
           </Space>

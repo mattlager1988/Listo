@@ -21,6 +21,7 @@ import ListoSettings from './pages/admin/ListoSettings';
 import AviationLayout from './pages/aviation';
 import TrainingTracker from './pages/aviation/TrainingTracker';
 import AviationDocuments from './pages/aviation/Documents';
+import FinanceDocuments from './pages/finance/Documents';
 import Notes from './pages/aviation/Notes';
 
 function App() {
@@ -47,6 +48,7 @@ function App() {
                 <Route path="accounts" element={<Accounts />} />
                 <Route path="cycleplans" element={<CyclePlans />} />
                 <Route path="cycleplans/:id" element={<CyclePlanWork />} />
+                <Route path="documents" element={<FinanceDocuments />} />
               </Route>
               <Route path="aviation" element={<AviationLayout />}>
                 <Route index element={<TrainingTracker />} />

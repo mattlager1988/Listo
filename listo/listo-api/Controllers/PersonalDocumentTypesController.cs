@@ -6,14 +6,14 @@ using Listo.Api.Services;
 namespace Listo.Api.Controllers;
 
 [ApiController]
-[Route("api/aviation/[controller]")]
+[Route("api/finance/personaldocumenttypes")]
 [Authorize]
-public class DocumentTypesController : ControllerBase
+public class PersonalDocumentTypesController : ControllerBase
 {
     private readonly IDocumentTypeService _service;
-    private const string Module = "aviation";
+    private const string Module = "finance";
 
-    public DocumentTypesController(IDocumentTypeService service)
+    public PersonalDocumentTypesController(IDocumentTypeService service)
     {
         _service = service;
     }

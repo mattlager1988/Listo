@@ -7,12 +7,12 @@ namespace Listo.Api.Services;
 
 public interface IDocumentTypeService
 {
-    Task<IEnumerable<DocumentTypeResponse>> GetAllAsync(bool includeDeleted = false);
+    Task<IEnumerable<DocumentTypeResponse>> GetAllAsync(string module, bool includeDeleted = false);
     Task<DocumentTypeResponse?> GetByIdAsync(long id);
-    Task<DocumentTypeResponse> CreateAsync(CreateDocumentTypeRequest request);
-    Task<DocumentTypeResponse?> UpdateAsync(long id, UpdateDocumentTypeRequest request);
+    Task<DocumentTypeResponse> CreateAsync(string module, CreateDocumentTypeRequest request);
+    Task<DocumentTypeResponse?> UpdateAsync(string module, long id, UpdateDocumentTypeRequest request);
     Task<bool> SoftDeleteAsync(long id);
-    Task<bool> RestoreAsync(long id);
+    Task<bool> RestoreAsync(string module, long id);
     Task<bool> PurgeAsync(long id);
 }
 
@@ -25,9 +25,9 @@ public class DocumentTypeService : IDocumentTypeService
         _context = context;
     }
 
-    public async Task<IEnumerable<DocumentTypeResponse>> GetAllAsync(bool includeDeleted = false)
+    public async Task<IEnumerable<DocumentTypeResponse>> GetAllAsync(string module, bool includeDeleted = false)
     {
-        var query = _context.DocumentTypes.AsQueryable();
+        var query = _context.DocumentTypes.Where(t => t.Module == module);
         if (!includeDeleted)
             query = query.Where(t => !t.IsDeleted);
 
@@ -51,19 +51,19 @@ public class DocumentTypeService : IDocumentTypeService
             type.SysId, type.Name, type.IsDeleted, type.Documents.Count);
     }
 
-    public async Task<DocumentTypeResponse> CreateAsync(CreateDocumentTypeRequest request)
+    public async Task<DocumentTypeResponse> CreateAsync(string module, CreateDocumentTypeRequest request)
     {
-        if (await _context.DocumentTypes.AnyAsync(t => t.Name == request.Name && !t.IsDeleted))
+        if (await _context.DocumentTypes.AnyAsync(t => t.Name == request.Name && t.Module == module && !t.IsDeleted))
             throw new InvalidOperationException("Document type with this name already exists");
 
-        var type = new DocumentType { Name = request.Name };
+        var type = new DocumentType { Name = request.Name, Module = module };
         _context.DocumentTypes.Add(type);
         await _context.SaveChangesAsync();
 
         return new DocumentTypeResponse(type.SysId, type.Name, type.IsDeleted, 0);
     }
 
-    public async Task<DocumentTypeResponse?> UpdateAsync(long id, UpdateDocumentTypeRequest request)
+    public async Task<DocumentTypeResponse?> UpdateAsync(string module, long id, UpdateDocumentTypeRequest request)
     {
         var type = await _context.DocumentTypes
             .Include(t => t.Documents)
@@ -73,7 +73,7 @@ public class DocumentTypeService : IDocumentTypeService
 
         if (request.Name != null)
         {
-            if (await _context.DocumentTypes.AnyAsync(t => t.Name == request.Name && !t.IsDeleted && t.SysId != id))
+            if (await _context.DocumentTypes.AnyAsync(t => t.Name == request.Name && t.Module == module && !t.IsDeleted && t.SysId != id))
                 throw new InvalidOperationException("Document type with this name already exists");
             type.Name = request.Name;
         }
@@ -93,13 +93,13 @@ public class DocumentTypeService : IDocumentTypeService
         return true;
     }
 
-    public async Task<bool> RestoreAsync(long id)
+    public async Task<bool> RestoreAsync(string module, long id)
     {
         var type = await _context.DocumentTypes.FindAsync(id);
         if (type == null) return false;
 
-        // Check if an active item with the same name already exists
-        if (await _context.DocumentTypes.AnyAsync(t => t.Name == type.Name && !t.IsDeleted && t.SysId != id))
+        // Check if an active item with the same name already exists in this module
+        if (await _context.DocumentTypes.AnyAsync(t => t.Name == type.Name && t.Module == module && !t.IsDeleted && t.SysId != id))
             throw new InvalidOperationException("Cannot restore: an active document type with this name already exists");
 
         type.IsDeleted = false;
