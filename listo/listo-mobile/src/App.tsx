@@ -30,6 +30,7 @@ import CyclePlanDetail from './pages/finance/CyclePlanDetail';
 import CyclePlanForm from './pages/finance/CyclePlanForm';
 import TransactionForm from './pages/finance/TransactionForm';
 import Cards from './pages/finance/Cards';
+import Docs from './pages/finance/Docs';
 import Profile from './pages/Profile';
 import Training from './pages/aviation/Training';
 import AviationDocuments from './pages/aviation/Documents';
@@ -67,6 +68,7 @@ const FINANCE_TABS: TabConfig[] = [
   { key: '/cards', title: 'Cards', icon: <BankcardOutline /> },
   { key: '/pending', title: 'Pending', icon: <ClockCircleOutline /> },
   { key: '/cycle', title: 'Cycle Plans', icon: <HistogramOutline /> },
+  { key: '/docs', title: 'Docs', icon: <FileOutline /> },
 ];
 
 const AVIATION_TABS: TabConfig[] = [
@@ -87,6 +89,7 @@ const MAIN_PATHS = new Set([
   '/cards',
   '/pending',
   '/cycle',
+  '/docs',
   '/aviation/training',
   '/aviation/documents',
   '/aviation/notes',
@@ -98,7 +101,7 @@ const MAIN_PATHS = new Set([
 type ActiveModule = 'finance' | 'aviation' | 'admin' | null;
 
 function getActiveModule(pathname: string): ActiveModule {
-  if (pathname.startsWith('/bills') || pathname.startsWith('/cards') || pathname.startsWith('/pending') || pathname.startsWith('/cycle')) return 'finance';
+  if (pathname.startsWith('/bills') || pathname.startsWith('/cards') || pathname.startsWith('/pending') || pathname.startsWith('/cycle') || pathname.startsWith('/docs')) return 'finance';
   if (pathname.startsWith('/aviation')) return 'aviation';
   if (pathname.startsWith('/admin')) return 'admin';
   return null;
@@ -158,6 +161,7 @@ const App: React.FC = () => {
           <Route path="bills/:id/edit" element={<AccountForm />} />
           <Route path="bills/:id/pay" element={<PostPayment />} />
           <Route path="cards" element={<Cards />} />
+          <Route path="docs" element={<Docs />} />
           <Route path="pending" element={<PendingPayments />} />
           <Route path="pending/:paymentId/edit" element={<EditPayment />} />
           <Route path="cycle" element={<CyclePlans />} />
