@@ -13,6 +13,8 @@ import {
   SearchOutlined,
   EditOutlined,
   UploadOutlined,
+  CompressOutlined,
+  ExpandOutlined,
 } from '@ant-design/icons';
 import api from '../services/api';
 import DocumentUpload from './DocumentUpload';
@@ -36,6 +38,16 @@ interface Document {
   createTimestamp: string;
   modifyTimestamp: string;
 }
+
+interface DocumentGroup {
+  sysId: string;
+  isGroupHeader: true;
+  documentTypeName: string;
+  children: Document[];
+  documentCount: number;
+}
+
+type TableRecord = Document | DocumentGroup;
 
 interface DocumentListProps {
   module: string;
@@ -67,6 +79,7 @@ const DocumentList: React.FC<DocumentListProps> = ({
   const [editUploadProgress, setEditUploadProgress] = useState(0);
   const [downloadProgress, setDownloadProgress] = useState<number | null>(null);
   const [downloadLabel, setDownloadLabel] = useState('');
+  const [expandedGroups, setExpandedGroups] = useState<React.Key[]>([]);
 
   const fetchDocuments = useCallback(async () => {
     setLoading(true);
@@ -106,6 +119,40 @@ const DocumentList: React.FC<DocumentListProps> = ({
       return matchesSearch && matchesType;
     });
   }, [documents, searchText, selectedType]);
+
+  const groupedDocuments = useMemo((): DocumentGroup[] => {
+    if (!showDocumentType) return [];
+
+    const typeMap = new Map<string, Document[]>();
+
+    filteredDocuments.forEach(doc => {
+      const typeName = doc.documentTypeName || 'Uncategorized';
+      if (!typeMap.has(typeName)) typeMap.set(typeName, []);
+      typeMap.get(typeName)!.push(doc);
+    });
+
+    // Sort type names alphabetically, but keep Uncategorized last
+    const sortedKeys = [...typeMap.keys()].sort((a, b) => {
+      if (a === 'Uncategorized') return 1;
+      if (b === 'Uncategorized') return -1;
+      return a.localeCompare(b);
+    });
+
+    return sortedKeys.map(typeName => ({
+      sysId: `group-${typeName}`,
+      isGroupHeader: true as const,
+      documentTypeName: typeName,
+      children: typeMap.get(typeName)!,
+      documentCount: typeMap.get(typeName)!.length,
+    }));
+  }, [filteredDocuments, showDocumentType]);
+
+  // Auto-expand all groups when grouped data changes
+  useEffect(() => {
+    if (showDocumentType && groupedDocuments.length > 0) {
+      setExpandedGroups(groupedDocuments.map(g => g.sysId));
+    }
+  }, [groupedDocuments, showDocumentType]);
 
   const handleDownload = async (doc: Document) => {
     setDownloadLabel(`Downloading ${doc.originalFileName}`);
@@ -261,46 +308,59 @@ const DocumentList: React.FC<DocumentListProps> = ({
       key: 'name',
       width: 300,
       ellipsis: true,
-      render: (_: unknown, record: Document) => (
-        <Space>
-          {getFileIcon(record.mimeType)}
-          <span>{record.description || record.originalFileName}</span>
-        </Space>
-      ),
+      render: (_: unknown, record: TableRecord) => {
+        if ('isGroupHeader' in record && record.isGroupHeader) {
+          return (
+            <Space>
+              <Tag>{record.documentTypeName}</Tag>
+              <span style={{ color: '#8c8c8c' }}>({record.documentCount})</span>
+            </Space>
+          );
+        }
+        const doc = record as Document;
+        return (
+          <Space>
+            {getFileIcon(doc.mimeType)}
+            <span>{doc.description || doc.originalFileName}</span>
+          </Space>
+        );
+      },
     },
-    ...(showDocumentType ? [{
-      title: 'Type',
-      key: 'documentType',
-      width: 150,
-      render: (_: unknown, record: Document) =>
-        record.documentTypeName ? <Tag>{record.documentTypeName}</Tag> : '-',
-    }] : []),
     {
       title: 'Size',
       key: 'size',
       width: 100,
-      render: (_: unknown, record: Document) => formatFileSize(record.fileSize),
+      render: (_: unknown, record: TableRecord) => {
+        if ('isGroupHeader' in record) return null;
+        return formatFileSize((record as Document).fileSize);
+      },
     },
     {
       title: 'Uploaded',
       key: 'uploaded',
       width: 120,
-      render: (_: unknown, record: Document) =>
-        new Date(record.createTimestamp).toLocaleDateString(),
+      render: (_: unknown, record: TableRecord) => {
+        if ('isGroupHeader' in record) return null;
+        return new Date((record as Document).createTimestamp).toLocaleDateString();
+      },
     },
     {
       title: 'Modified',
       key: 'modified',
       width: 120,
-      render: (_: unknown, record: Document) =>
-        new Date(record.modifyTimestamp).toLocaleDateString(),
+      render: (_: unknown, record: TableRecord) => {
+        if ('isGroupHeader' in record) return null;
+        return new Date((record as Document).modifyTimestamp).toLocaleDateString();
+      },
     },
   ];
 
   // Get the selected document for single-select actions
   const selectedDoc = selectedRowKeys.length === 1
-    ? filteredDocuments.find(d => d.sysId === selectedRowKeys[0])
+    ? filteredDocuments.find(d => d.sysId.toString() === selectedRowKeys[0].toString()) ?? null
     : null;
+
+  const tableDataSource = showDocumentType ? groupedDocuments : filteredDocuments;
 
   return (
     <div>
@@ -405,6 +465,25 @@ const DocumentList: React.FC<DocumentListProps> = ({
             />
           </Popconfirm>
         </Tooltip>
+        {showDocumentType && groupedDocuments.length > 0 && (
+          <>
+            <div style={{ borderLeft: '1px solid #d9d9d9', height: 16, margin: '0 8px' }} />
+            <Tooltip title={expandedGroups.length > 0 ? 'Collapse All' : 'Expand All'}>
+              <Button
+                type="text"
+                size="small"
+                icon={expandedGroups.length > 0 ? <CompressOutlined /> : <ExpandOutlined />}
+                onClick={() => {
+                  if (expandedGroups.length > 0) {
+                    setExpandedGroups([]);
+                  } else {
+                    setExpandedGroups(groupedDocuments.map(g => g.sysId));
+                  }
+                }}
+              />
+            </Tooltip>
+          </>
+        )}
         <div style={{ marginLeft: 'auto', fontSize: 12, color: '#8c8c8c' }}>
           {selectedRowKeys.length > 0
             ? `${selectedRowKeys.length} selected`
@@ -413,10 +492,10 @@ const DocumentList: React.FC<DocumentListProps> = ({
       </div>
 
       <div className="condensed-table">
-        <Table
+        <Table<TableRecord>
           columns={columns}
-          dataSource={filteredDocuments}
-          rowKey="sysId"
+          dataSource={tableDataSource}
+          rowKey={(record) => record.sysId.toString()}
           loading={loading}
           size="small"
           pagination={false}
@@ -424,23 +503,39 @@ const DocumentList: React.FC<DocumentListProps> = ({
           rowSelection={{
             selectedRowKeys,
             onChange: (keys) => setSelectedRowKeys(keys),
+            getCheckboxProps: (record) => ({
+              disabled: 'isGroupHeader' in record,
+              style: 'isGroupHeader' in record ? { display: 'none' } : undefined,
+            }),
           }}
+          {...(showDocumentType ? {
+            expandable: {
+              expandedRowKeys: expandedGroups,
+              onExpandedRowsChange: (keys) => setExpandedGroups(keys as React.Key[]),
+              childrenColumnName: 'children',
+            },
+          } : {})}
           onRow={(record) => {
             let clickTimer: ReturnType<typeof setTimeout> | null = null;
             return {
               onClick: () => {
+                if ('isGroupHeader' in record) return;
                 clickTimer = setTimeout(() => {
-                  const key = record.sysId;
+                  const key = (record as Document).sysId.toString();
                   setSelectedRowKeys(prev =>
-                    prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]
+                    prev.includes(key) ? [] : [key]
                   );
                 }, 200);
               },
               onDoubleClick: () => {
                 if (clickTimer) clearTimeout(clickTimer);
-                handleView(record);
+                if (!('isGroupHeader' in record)) handleView(record as Document);
               },
-              style: { cursor: 'pointer' },
+              style: {
+                cursor: 'isGroupHeader' in record ? 'default' : 'pointer',
+                background: 'isGroupHeader' in record ? '#f5f5f5' : undefined,
+                fontWeight: 'isGroupHeader' in record ? 600 : undefined,
+              },
             };
           }}
         />
