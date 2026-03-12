@@ -3,6 +3,7 @@ import { Routes, Route, Navigate, Outlet, useNavigate, useLocation } from 'react
 import { TabBar, SafeArea } from 'antd-mobile';
 import {
   BillOutline,
+  BankcardOutline,
   ClockCircleOutline,
   HistogramOutline,
   TravelOutline,
@@ -28,6 +29,7 @@ import CyclePlans from './pages/finance/CyclePlans';
 import CyclePlanDetail from './pages/finance/CyclePlanDetail';
 import CyclePlanForm from './pages/finance/CyclePlanForm';
 import TransactionForm from './pages/finance/TransactionForm';
+import Cards from './pages/finance/Cards';
 import Profile from './pages/Profile';
 import Training from './pages/aviation/Training';
 import AviationDocuments from './pages/aviation/Documents';
@@ -62,6 +64,7 @@ interface TabConfig {
 
 const FINANCE_TABS: TabConfig[] = [
   { key: '/bills', title: 'Accounts', icon: <BillOutline /> },
+  { key: '/cards', title: 'Cards', icon: <BankcardOutline /> },
   { key: '/pending', title: 'Pending', icon: <ClockCircleOutline /> },
   { key: '/cycle', title: 'Cycle Plans', icon: <HistogramOutline /> },
 ];
@@ -81,6 +84,7 @@ const ADMIN_TABS: TabConfig[] = [
 // Paths that show the bottom tab bar (main list pages only)
 const MAIN_PATHS = new Set([
   '/bills',
+  '/cards',
   '/pending',
   '/cycle',
   '/aviation/training',
@@ -94,7 +98,7 @@ const MAIN_PATHS = new Set([
 type ActiveModule = 'finance' | 'aviation' | 'admin' | null;
 
 function getActiveModule(pathname: string): ActiveModule {
-  if (pathname.startsWith('/bills') || pathname.startsWith('/pending') || pathname.startsWith('/cycle')) return 'finance';
+  if (pathname.startsWith('/bills') || pathname.startsWith('/cards') || pathname.startsWith('/pending') || pathname.startsWith('/cycle')) return 'finance';
   if (pathname.startsWith('/aviation')) return 'aviation';
   if (pathname.startsWith('/admin')) return 'admin';
   return null;
@@ -153,6 +157,7 @@ const App: React.FC = () => {
           <Route path="bills/:id" element={<AccountDetail />} />
           <Route path="bills/:id/edit" element={<AccountForm />} />
           <Route path="bills/:id/pay" element={<PostPayment />} />
+          <Route path="cards" element={<Cards />} />
           <Route path="pending" element={<PendingPayments />} />
           <Route path="pending/:paymentId/edit" element={<EditPayment />} />
           <Route path="cycle" element={<CyclePlans />} />

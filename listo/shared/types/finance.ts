@@ -92,6 +92,21 @@ export interface CycleTransaction {
   modifyTimestamp: string;
 }
 
+export interface AccountCard {
+  sysId: number;
+  accountSysId: number;
+  accountName: string;
+  name: string;
+  cardNumber: string | null;
+  cardNumberFull: string | null;
+  expirationDate: string | null;
+  cvv: string | null;
+  phoneNumber: string | null;
+  hasFrontImage: boolean;
+  hasBackImage: boolean;
+  createTimestamp: string;
+}
+
 export interface ListItem {
   sysId: number;
   name: string;

@@ -30,3 +30,18 @@ public record UpdateAccountCardRequest(
     string? Cvv,
     string? PhoneNumber
 );
+
+public record AccountCardWithAccountResponse(
+    long SysId,
+    long AccountSysId,
+    string AccountName,
+    string Name,
+    string? CardNumber,
+    string? CardNumberFull,
+    string? ExpirationDate,
+    string? Cvv,
+    string? PhoneNumber,
+    bool HasFrontImage,
+    bool HasBackImage,
+    DateTime CreateTimestamp
+);
