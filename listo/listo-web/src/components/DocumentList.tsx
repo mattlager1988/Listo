@@ -65,6 +65,8 @@ const DocumentList: React.FC<DocumentListProps> = ({
   const [editFileList, setEditFileList] = useState<UploadFile[]>([]);
   const [editSaving, setEditSaving] = useState(false);
   const [editUploadProgress, setEditUploadProgress] = useState(0);
+  const [downloadProgress, setDownloadProgress] = useState<number | null>(null);
+  const [downloadLabel, setDownloadLabel] = useState('');
 
   const fetchDocuments = useCallback(async () => {
     setLoading(true);
@@ -106,9 +108,17 @@ const DocumentList: React.FC<DocumentListProps> = ({
   }, [documents, searchText, selectedType]);
 
   const handleDownload = async (doc: Document) => {
+    setDownloadLabel(`Downloading ${doc.originalFileName}`);
+    setDownloadProgress(0);
     try {
       const response = await api.get(`/documents/${doc.sysId}/download`, {
         responseType: 'blob',
+        onDownloadProgress: (progressEvent) => {
+          const percent = progressEvent.total
+            ? Math.round((progressEvent.loaded * 100) / progressEvent.total)
+            : undefined;
+          setDownloadProgress(percent ?? 0);
+        },
       });
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
@@ -120,6 +130,8 @@ const DocumentList: React.FC<DocumentListProps> = ({
       window.URL.revokeObjectURL(url);
     } catch {
       message.error('Failed to download document');
+    } finally {
+      setDownloadProgress(null);
     }
   };
 
@@ -191,27 +203,27 @@ const DocumentList: React.FC<DocumentListProps> = ({
   };
 
   const handleView = async (doc: Document) => {
-    if (doc.mimeType === 'application/pdf') {
+    if (doc.mimeType === 'application/pdf' || doc.mimeType.startsWith('image/')) {
+      setDownloadLabel(`Loading ${doc.originalFileName}`);
+      setDownloadProgress(0);
       try {
         const response = await api.get(`/documents/${doc.sysId}/download`, {
           responseType: 'blob',
+          onDownloadProgress: (progressEvent) => {
+            const percent = progressEvent.total
+              ? Math.round((progressEvent.loaded * 100) / progressEvent.total)
+              : undefined;
+            setDownloadProgress(percent ?? 0);
+          },
         });
-        const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
+        const contentType = doc.mimeType === 'application/pdf' ? 'application/pdf' : doc.mimeType;
+        const url = window.URL.createObjectURL(new Blob([response.data], { type: contentType }));
         setPdfUrl(url);
         setViewingDoc(doc);
       } catch {
         message.error('Failed to load document');
-      }
-    } else if (doc.mimeType.startsWith('image/')) {
-      try {
-        const response = await api.get(`/documents/${doc.sysId}/download`, {
-          responseType: 'blob',
-        });
-        const url = window.URL.createObjectURL(new Blob([response.data], { type: doc.mimeType }));
-        setPdfUrl(url);
-        setViewingDoc(doc);
-      } catch {
-        message.error('Failed to load document');
+      } finally {
+        setDownloadProgress(null);
       }
     } else {
       handleDownload(doc);
@@ -458,6 +470,19 @@ const DocumentList: React.FC<DocumentListProps> = ({
             />
           </div>
         )}
+      </Modal>
+      <Modal
+        open={downloadProgress !== null}
+        closable={false}
+        footer={null}
+        width={400}
+        centered
+        maskClosable={false}
+      >
+        <div style={{ textAlign: 'center', padding: '8px 0' }}>
+          <div style={{ marginBottom: 12, fontSize: 13, color: '#595959' }}>{downloadLabel}</div>
+          <Progress percent={downloadProgress ?? 0} status="active" />
+        </div>
       </Modal>
       <Modal
         title="Edit Document"
