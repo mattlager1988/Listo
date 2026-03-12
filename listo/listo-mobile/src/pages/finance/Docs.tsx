@@ -182,8 +182,17 @@ const Docs: React.FC = () => {
                 key={group.typeName}
                 title={
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <div style={{
+                      width: 8,
+                      height: 8,
+                      borderRadius: '50%',
+                      background: group.typeName === 'Uncategorized' ? '#8c8c8c' : '#1677ff',
+                    }} />
                     <span style={{ fontWeight: 600, fontSize: 13 }}>
-                      {group.typeName} ({group.docs.length})
+                      {group.typeName}
+                    </span>
+                    <span style={{ color: '#8c8c8c', fontSize: 12 }}>
+                      {group.docs.length} {group.docs.length === 1 ? 'file' : 'files'}
                     </span>
                   </div>
                 }
