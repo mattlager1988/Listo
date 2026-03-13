@@ -144,6 +144,7 @@ coverage/
 *.p12
 credentials.json
 secrets.json
+certs/
 
 # =========================
 # Dev script files
