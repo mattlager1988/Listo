@@ -596,7 +596,7 @@ const CyclePlanWork: React.FC = () => {
           {cyclePlan.notes && (
             <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid #f0f0f0' }}>
               <div style={{ fontSize: 12, color: '#8c8c8c', marginBottom: 4 }}>Notes</div>
-              <div style={{ color: '#595959' }}>{cyclePlan.notes}</div>
+              <div style={{ color: '#ff4d4f', fontWeight: 600 }}>{cyclePlan.notes}</div>
             </div>
           )}
         </Card>
