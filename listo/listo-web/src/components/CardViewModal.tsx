@@ -117,6 +117,16 @@ const CardViewModal: React.FC<CardViewModalProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cards, fetchCardImage]);
 
+  // Keep selectedCard in sync when cards data refreshes (e.g., after edit)
+  useEffect(() => {
+    if (selectedCard) {
+      const updated = cards.find(c => c.sysId === selectedCard.sysId);
+      if (updated) {
+        setSelectedCard(updated);
+      }
+    }
+  }, [cards]);
+
   // Clear image cache when modal closes
   useEffect(() => {
     if (!visible) {
