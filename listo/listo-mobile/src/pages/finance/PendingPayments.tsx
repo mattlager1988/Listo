@@ -121,6 +121,26 @@ const PendingPayments: React.FC = () => {
         Pending
       </NavBar>
 
+      {payments.length > 0 && (
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            padding: '12px 16px',
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            color: '#fff',
+          }}
+        >
+          <span style={{ fontSize: 13, opacity: 0.9 }}>
+            {payments.length} payment{payments.length !== 1 ? 's' : ''}
+          </span>
+          <span style={{ fontSize: 20, fontWeight: 700 }}>
+            ${payments.reduce((sum, p) => sum + p.amount, 0).toFixed(2)}
+          </span>
+        </div>
+      )}
+
       {payments.length === 0 ? (
         <ErrorBlock
           status="empty"
