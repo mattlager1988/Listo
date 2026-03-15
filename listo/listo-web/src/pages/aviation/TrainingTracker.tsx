@@ -8,6 +8,7 @@ import {
   InputNumber,
   DatePicker,
   Select,
+  Upload,
   message,
   Popconfirm,
   Card,
@@ -15,6 +16,7 @@ import {
   Col,
   Tooltip,
 } from 'antd';
+import type { UploadFile } from 'antd';
 import {
   PlusOutlined,
   EditOutlined,
@@ -22,6 +24,9 @@ import {
   EyeOutlined,
   PrinterOutlined,
   RobotOutlined,
+  PaperClipOutlined,
+  UploadOutlined,
+  DownloadOutlined,
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { Column } from '@ant-design/charts';
@@ -59,6 +64,13 @@ interface Summary {
   hoursByType: Record<string, number>;
 }
 
+interface Attachment {
+  sysId: number;
+  originalFileName: string;
+  mimeType: string;
+  entitySysId: number;
+}
+
 const TrainingTracker: React.FC = () => {
   const [logs, setLogs] = useState<TrainingLog[]>([]);
   const [trainingTypes, setTrainingTypes] = useState<TrainingType[]>([]);
@@ -71,6 +83,10 @@ const TrainingTracker: React.FC = () => {
   const [viewingLog, setViewingLog] = useState<TrainingLog | null>(null);
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [analysisModalVisible, setAnalysisModalVisible] = useState(false);
+  const [attachmentMap, setAttachmentMap] = useState<Map<number, Attachment>>(new Map());
+  const [fileList, setFileList] = useState<UploadFile[]>([]);
+  const [removeAttachment, setRemoveAttachment] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [form] = Form.useForm();
 
   const fetchLogs = useCallback(async () => {
@@ -107,16 +123,32 @@ const TrainingTracker: React.FC = () => {
     }
   }, []);
 
+  const fetchAttachments = useCallback(async () => {
+    try {
+      const response = await api.get('/documents?module=aviation&entityType=training_log');
+      const map = new Map<number, Attachment>();
+      for (const doc of response.data) {
+        map.set(doc.entitySysId, doc);
+      }
+      setAttachmentMap(map);
+    } catch {
+      // Attachments are supplementary, don't show error
+    }
+  }, []);
+
   useEffect(() => {
     fetchLogs();
     fetchLookups();
     fetchSummary();
-  }, [fetchLogs, fetchLookups, fetchSummary]);
+    fetchAttachments();
+  }, [fetchLogs, fetchLookups, fetchSummary, fetchAttachments]);
 
   const handleCreate = () => {
     setEditingLog(null);
     form.resetFields();
     form.setFieldsValue({ date: dayjs(), hoursFlown: 0 });
+    setFileList([]);
+    setRemoveAttachment(false);
     setModalVisible(true);
   };
 
@@ -129,13 +161,56 @@ const TrainingTracker: React.FC = () => {
       trainingTypeSysId: log.trainingTypeSysId,
       aircraftSysId: log.aircraftSysId,
     });
+    setFileList([]);
+    setRemoveAttachment(false);
     setModalVisible(true);
     setSelectedRowKeys([]);
   };
 
+  const loadAttachmentPreview = useCallback(async (attachment: Attachment) => {
+    try {
+      const response = await api.get(`/documents/${attachment.sysId}/download`, {
+        responseType: 'blob',
+      });
+      const url = URL.createObjectURL(response.data);
+      setPreviewUrl(url);
+    } catch {
+      setPreviewUrl(null);
+    }
+  }, []);
+
   const handleViewDescription = (log: TrainingLog) => {
     setViewingLog(log);
+    setPreviewUrl(null);
+    const attachment = attachmentMap.get(log.sysId);
+    if (attachment) {
+      loadAttachmentPreview(attachment);
+    }
     setViewModalVisible(true);
+  };
+
+  const handleCloseViewModal = () => {
+    setViewModalVisible(false);
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+      setPreviewUrl(null);
+    }
+  };
+
+  const handleDownloadAttachment = async (attachment: Attachment) => {
+    try {
+      const response = await api.get(`/documents/${attachment.sysId}/download`, {
+        responseType: 'blob',
+      });
+      const url = URL.createObjectURL(response.data);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = attachment.originalFileName;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      message.error('Failed to download attachment');
+    }
   };
 
   const handlePrint = () => {
@@ -173,6 +248,28 @@ const TrainingTracker: React.FC = () => {
     }
   };
 
+  const uploadAttachment = async (logSysId: number, file: UploadFile) => {
+    const formData = new FormData();
+    formData.append('file', file as unknown as Blob);
+    formData.append('description', '');
+    formData.append('module', 'aviation');
+    formData.append('entityType', 'training_log');
+    formData.append('entitySysId', logSysId.toString());
+    await api.post('/documents', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: 300000,
+      maxBodyLength: Infinity,
+      maxContentLength: Infinity,
+    });
+  };
+
+  const deleteAttachment = async (logSysId: number) => {
+    const attachment = attachmentMap.get(logSysId);
+    if (attachment) {
+      await api.delete(`/documents/${attachment.sysId}`);
+    }
+  };
+
   const handleSubmit = async (values: {
     date: dayjs.Dayjs;
     description: string;
@@ -191,15 +288,34 @@ const TrainingTracker: React.FC = () => {
     try {
       if (editingLog) {
         await api.put(`/aviation/traininglogs/${editingLog.sysId}`, payload);
+
+        // Handle attachment changes
+        const existingAttachment = attachmentMap.get(editingLog.sysId);
+        if (removeAttachment && existingAttachment && fileList.length === 0) {
+          await deleteAttachment(editingLog.sysId);
+        } else if (fileList.length > 0) {
+          if (existingAttachment) {
+            await deleteAttachment(editingLog.sysId);
+          }
+          await uploadAttachment(editingLog.sysId, fileList[0]);
+        }
+
         message.success('Training log updated');
       } else {
-        await api.post('/aviation/traininglogs', payload);
+        const response = await api.post('/aviation/traininglogs', payload);
+        const newSysId = response.data.sysId;
+
+        if (fileList.length > 0) {
+          await uploadAttachment(newSysId, fileList[0]);
+        }
+
         message.success('Training log created');
       }
       setModalVisible(false);
       setSelectedRowKeys([]);
       fetchLogs();
       fetchSummary();
+      fetchAttachments();
     } catch (err: unknown) {
       const error = err as { response?: { data?: { message?: string } } };
       message.error(error.response?.data?.message || 'Operation failed');
@@ -208,11 +324,21 @@ const TrainingTracker: React.FC = () => {
 
   const handleBulkDelete = async () => {
     try {
-      await Promise.all(selectedRowKeys.map(id => api.delete(`/aviation/traininglogs/${id}`)));
+      // Delete attachments first, then training logs
+      await Promise.all(
+        selectedRowKeys.map(async (id) => {
+          const attachment = attachmentMap.get(Number(id));
+          if (attachment) {
+            await api.delete(`/documents/${attachment.sysId}`);
+          }
+          await api.delete(`/aviation/traininglogs/${id}`);
+        })
+      );
       message.success(`${selectedRowKeys.length} training log${selectedRowKeys.length > 1 ? 's' : ''} deleted`);
       setSelectedRowKeys([]);
       fetchLogs();
       fetchSummary();
+      fetchAttachments();
     } catch {
       message.error('Failed to delete training logs');
     }
@@ -249,6 +375,25 @@ const TrainingTracker: React.FC = () => {
       key: 'hoursFlown',
       width: 80,
       render: (hours: number) => hours.toFixed(1),
+    },
+    {
+      title: '',
+      key: 'attachment',
+      width: 40,
+      render: (_: unknown, record: TrainingLog) => {
+        const attachment = attachmentMap.get(record.sysId);
+        return attachment ? (
+          <Tooltip title={attachment.originalFileName}>
+            <PaperClipOutlined
+              style={{ color: '#1890ff' }}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleViewDescription(record);
+              }}
+            />
+          </Tooltip>
+        ) : null;
+      },
     },
   ];
 
@@ -476,6 +621,34 @@ const TrainingTracker: React.FC = () => {
               <RichTextEditor placeholder="Describe your training activity..." />
             </Form.Item>
 
+            <Form.Item label="Attachment" style={{ marginBottom: 0 }}>
+              {editingLog && attachmentMap.get(editingLog.sysId) && !removeAttachment && fileList.length === 0 ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <PaperClipOutlined />
+                  <span style={{ fontSize: 12 }}>{attachmentMap.get(editingLog.sysId)!.originalFileName}</span>
+                  <Button
+                    type="link"
+                    size="small"
+                    danger
+                    onClick={() => setRemoveAttachment(true)}
+                  >
+                    Remove
+                  </Button>
+                </div>
+              ) : (
+                <Upload
+                  beforeUpload={() => false}
+                  fileList={fileList}
+                  onChange={({ fileList: fl }) => setFileList(fl.slice(-1))}
+                  maxCount={1}
+                >
+                  <Button size="small" icon={<UploadOutlined />}>
+                    {editingLog && attachmentMap.get(editingLog.sysId) ? 'Replace File' : 'Attach File'}
+                  </Button>
+                </Upload>
+              )}
+            </Form.Item>
+
             <Form.Item style={{ marginBottom: 0, marginTop: 12 }}>
               <Space>
                 <Button type="primary" htmlType="submit">
@@ -492,13 +665,13 @@ const TrainingTracker: React.FC = () => {
       <Modal
         title={viewingLog ? `Training Log - ${dayjs(viewingLog.date).format('MMM D, YYYY')}` : 'Training Log'}
         open={viewModalVisible}
-        onCancel={() => setViewModalVisible(false)}
+        onCancel={handleCloseViewModal}
         width={700}
         footer={[
           <Button key="print" icon={<PrinterOutlined />} onClick={handlePrint}>
             Print
           </Button>,
-          <Button key="close" type="primary" onClick={() => setViewModalVisible(false)}>
+          <Button key="close" type="primary" onClick={handleCloseViewModal}>
             Close
           </Button>,
         ]}
@@ -528,6 +701,40 @@ const TrainingTracker: React.FC = () => {
               }}
               dangerouslySetInnerHTML={{ __html: viewingLog.description }}
             />
+            {(() => {
+              const attachment = attachmentMap.get(viewingLog.sysId);
+              if (!attachment) return null;
+              return (
+                <div style={{ marginTop: 16 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                    <PaperClipOutlined />
+                    <strong style={{ fontSize: 12 }}>{attachment.originalFileName}</strong>
+                    <Button
+                      size="small"
+                      type="link"
+                      icon={<DownloadOutlined />}
+                      onClick={() => handleDownloadAttachment(attachment)}
+                    >
+                      Download
+                    </Button>
+                  </div>
+                  {previewUrl && attachment.mimeType.startsWith('image/') && (
+                    <img
+                      src={previewUrl}
+                      alt={attachment.originalFileName}
+                      style={{ maxWidth: '100%', borderRadius: 6, border: '1px solid #d9d9d9' }}
+                    />
+                  )}
+                  {previewUrl && attachment.mimeType === 'application/pdf' && (
+                    <iframe
+                      src={previewUrl}
+                      title={attachment.originalFileName}
+                      style={{ width: '100%', height: 400, border: '1px solid #d9d9d9', borderRadius: 6 }}
+                    />
+                  )}
+                </div>
+              );
+            })()}
           </div>
         )}
       </Modal>
