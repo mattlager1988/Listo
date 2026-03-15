@@ -259,7 +259,7 @@ const TrainingTracker: React.FC = () => {
   const uploadAttachment = async (logSysId: number, file: UploadFile) => {
     const formData = new FormData();
     formData.append('file', file.originFileObj as Blob);
-    formData.append('description', '');
+    formData.append('description', file.name);
     formData.append('module', 'aviation');
     formData.append('entityType', 'training_log');
     formData.append('entitySysId', logSysId.toString());
