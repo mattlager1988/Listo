@@ -184,7 +184,14 @@ const Accounts: React.FC = () => {
   const groups = FLAG_ORDER
     .filter(flag => flag !== 'OnHold' || showOnHold)
     .map(flag => {
-      const flagAccounts = filteredAccounts.filter(a => a.accountFlag === flag);
+      const flagAccounts = filteredAccounts
+        .filter(a => a.accountFlag === flag)
+        .sort((a, b) => {
+          if (!a.dueDate && !b.dueDate) return 0;
+          if (!a.dueDate) return 1;
+          if (!b.dueDate) return -1;
+          return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+        });
       const total = flagAccounts.reduce((sum, a) => sum + a.amountDue, 0);
       return { flag, accounts: flagAccounts, total };
     })

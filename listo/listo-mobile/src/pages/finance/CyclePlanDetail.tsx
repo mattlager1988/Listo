@@ -213,7 +213,7 @@ const CyclePlanDetail: React.FC = () => {
             padding: 12,
             textAlign: 'center',
           }}>
-            <div style={{ fontSize: 11, color: '#8c8c8c', marginBottom: 4 }}>Income</div>
+            <div style={{ fontSize: 11, color: '#8c8c8c', marginBottom: 4 }}>In</div>
             <div style={{ fontSize: 22, fontWeight: 700, color: '#52c41a' }}>${plan.amountIn.toFixed(2)}</div>
           </div>
           <div style={{
@@ -223,7 +223,7 @@ const CyclePlanDetail: React.FC = () => {
             padding: 12,
             textAlign: 'center',
           }}>
-            <div style={{ fontSize: 11, color: '#8c8c8c', marginBottom: 4 }}>Expenses</div>
+            <div style={{ fontSize: 11, color: '#8c8c8c', marginBottom: 4 }}>Out</div>
             <div style={{ fontSize: 22, fontWeight: 700, color: '#ff4d4f' }}>${plan.amountOut.toFixed(2)}</div>
           </div>
           <div style={{
