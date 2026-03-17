@@ -10,6 +10,7 @@ import {
   BankOutlined,
   ToolOutlined,
   RocketOutlined,
+  LockOutlined,
 } from '@ant-design/icons';
 import { Outlet, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -106,6 +107,11 @@ const MainLayout: React.FC = () => {
           label: 'Notes',
         },
       ],
+    },
+    {
+      key: '/passwords',
+      icon: <LockOutlined />,
+      label: 'Passwords',
     },
     ...(user?.role === 'admin' ? [{
       key: '/admin',

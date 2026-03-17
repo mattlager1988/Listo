@@ -112,4 +112,17 @@ export const listRegistry: ModuleConfig[] = [
       },
     ],
   },
+  {
+    key: 'passwords',
+    label: 'Passwords',
+    lists: [
+      {
+        key: 'passwordcategories',
+        label: 'Password Categories',
+        endpoint: '/passwords/passwordcategories',
+        singularLabel: 'Password Category',
+        usageCountField: 'passwordEntryCount',
+      },
+    ],
+  },
 ];

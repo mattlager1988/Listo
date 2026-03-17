@@ -81,6 +81,8 @@ builder.Services.AddScoped<ICycleGoalService, CycleGoalService>();
 builder.Services.AddScoped<ICyclePlanService, CyclePlanService>();
 builder.Services.AddScoped<ICycleTransactionService, CycleTransactionService>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
+builder.Services.AddScoped<IPasswordCategoryService, PasswordCategoryService>();
+builder.Services.AddScoped<IPasswordEntryService, PasswordEntryService>();
 
 // CORS
 builder.Services.AddCors(options =>

@@ -23,6 +23,8 @@ import TrainingTracker from './pages/aviation/TrainingTracker';
 import AviationDocuments from './pages/aviation/Documents';
 import FinanceDocuments from './pages/finance/Documents';
 import Notes from './pages/aviation/Notes';
+import PasswordsLayout from './pages/passwords';
+import Passwords from './pages/passwords/Passwords';
 
 function App() {
   return (
@@ -55,6 +57,9 @@ function App() {
                 <Route path="training" element={<TrainingTracker />} />
                 <Route path="documents" element={<AviationDocuments />} />
                 <Route path="notes" element={<Notes />} />
+              </Route>
+              <Route path="passwords" element={<PasswordsLayout />}>
+                <Route index element={<Passwords />} />
               </Route>
               <Route
                 path="admin"

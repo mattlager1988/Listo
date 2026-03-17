@@ -36,6 +36,8 @@ public class ListoDbContext : DbContext
     public DbSet<CycleTransaction> CycleTransactions => Set<CycleTransaction>();
     public DbSet<AccountCard> AccountCards => Set<AccountCard>();
     public DbSet<DashboardLayout> DashboardLayouts => Set<DashboardLayout>();
+    public DbSet<PasswordCategory> PasswordCategories => Set<PasswordCategory>();
+    public DbSet<PasswordEntry> PasswordEntries => Set<PasswordEntry>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -523,6 +525,50 @@ public class ListoDbContext : DbContext
                 .WithMany()
                 .HasForeignKey(e => e.UserSysId);
             entity.HasIndex(e => e.UserSysId).IsUnique();
+        });
+
+        modelBuilder.Entity<PasswordCategory>(entity =>
+        {
+            entity.ToTable("password_categories");
+            entity.HasKey(e => e.SysId);
+            entity.Property(e => e.SysId).HasColumnName("sys_id");
+            entity.Property(e => e.Name).HasColumnName("name").IsRequired();
+            entity.Property(e => e.IsDeleted).HasColumnName("is_deleted");
+            entity.Property(e => e.CreateTimestamp).HasColumnName("create_timestamp");
+            entity.Property(e => e.ModifyTimestamp).HasColumnName("modify_timestamp");
+            entity.Property(e => e.CreateUser).HasColumnName("create_user");
+            entity.Property(e => e.ModifyUser).HasColumnName("modify_user");
+            entity.HasIndex(e => e.Name).IsUnique();
+        });
+
+        modelBuilder.Entity<PasswordEntry>(entity =>
+        {
+            entity.ToTable("password_entries");
+            entity.HasKey(e => e.SysId);
+            entity.Property(e => e.SysId).HasColumnName("sys_id");
+            entity.Property(e => e.Title).HasColumnName("title").IsRequired();
+            entity.Property(e => e.Url).HasColumnName("url").HasMaxLength(500);
+            entity.Property(e => e.EncryptedUsername).HasColumnName("encrypted_username").HasColumnType("text");
+            entity.Property(e => e.EncryptedPassword).HasColumnName("encrypted_password").HasColumnType("text");
+            entity.Property(e => e.EncryptedNotes).HasColumnName("encrypted_notes").HasColumnType("text");
+            entity.Property(e => e.IsFavorite).HasColumnName("is_favorite");
+            entity.Property(e => e.CategorySysId).HasColumnName("category_sys_id");
+            entity.Property(e => e.UserSysId).HasColumnName("user_sys_id");
+            entity.Property(e => e.CreateTimestamp).HasColumnName("create_timestamp");
+            entity.Property(e => e.ModifyTimestamp).HasColumnName("modify_timestamp");
+            entity.Property(e => e.CreateUser).HasColumnName("create_user");
+            entity.Property(e => e.ModifyUser).HasColumnName("modify_user");
+
+            entity.HasOne(e => e.Category)
+                .WithMany(c => c.PasswordEntries)
+                .HasForeignKey(e => e.CategorySysId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserSysId);
+
+            entity.HasIndex(e => e.UserSysId);
         });
     }
 
