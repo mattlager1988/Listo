@@ -5,6 +5,7 @@ import {
   AppOutline,
   BankcardOutline,
   GlobalOutline,
+  LockOutline,
   SetOutline,
   UserOutline,
 } from 'antd-mobile-icons';
@@ -25,6 +26,7 @@ const menuItems: MenuEntry[] = [
   { label: 'Dashboard', path: '/', icon: <AppOutline /> },
   { label: 'Finance & Bills', path: '/bills', icon: <BankcardOutline />, matchPrefix: '/bills,/cards,/cycle,/docs' },
   { label: 'Aviation', path: '/aviation/training', icon: <GlobalOutline />, matchPrefix: '/aviation' },
+  { label: 'Passwords', path: '/passwords', icon: <LockOutline />, matchPrefix: '/passwords' },
   { label: 'Admin', path: '/admin/users', icon: <SetOutline />, matchPrefix: '/admin', adminOnly: true },
 ];
 

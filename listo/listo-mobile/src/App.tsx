@@ -12,6 +12,7 @@ import {
   TeamOutline,
   UnorderedListOutline,
   SetOutline,
+  LockOutline,
 } from 'antd-mobile-icons';
 import { useAuth } from '@shared/contexts/AuthContext';
 import { MenuProvider } from './contexts/MenuContext';
@@ -38,6 +39,8 @@ import TrainingForm from './pages/aviation/TrainingForm';
 import AviationDocuments from './pages/aviation/Documents';
 import AviationNotes from './pages/aviation/Notes';
 import NoteForm from './pages/aviation/NoteForm';
+import Passwords from './pages/passwords/Passwords';
+import PasswordForm from './pages/passwords/PasswordForm';
 import AdminUsers from './pages/admin/Users';
 import AdminLists from './pages/admin/Lists';
 import AdminSettings from './pages/admin/Settings';
@@ -80,6 +83,10 @@ const AVIATION_TABS: TabConfig[] = [
   { key: '/aviation/notes', title: 'Notes', icon: <FileOutline /> },
 ];
 
+const PASSWORDS_TABS: TabConfig[] = [
+  { key: '/passwords', title: 'Passwords', icon: <LockOutline /> },
+];
+
 const ADMIN_TABS: TabConfig[] = [
   { key: '/admin/users', title: 'Users', icon: <TeamOutline /> },
   { key: '/admin/lists', title: 'Lists', icon: <UnorderedListOutline /> },
@@ -96,16 +103,18 @@ const MAIN_PATHS = new Set([
   '/aviation/training',
   '/aviation/documents',
   '/aviation/notes',
+  '/passwords',
   '/admin/users',
   '/admin/lists',
   '/admin/settings',
 ]);
 
-type ActiveModule = 'finance' | 'aviation' | 'admin' | null;
+type ActiveModule = 'finance' | 'aviation' | 'passwords' | 'admin' | null;
 
 function getActiveModule(pathname: string): ActiveModule {
   if (pathname.startsWith('/bills') || pathname.startsWith('/cards') || pathname.startsWith('/pending') || pathname.startsWith('/cycle') || pathname.startsWith('/docs')) return 'finance';
   if (pathname.startsWith('/aviation')) return 'aviation';
+  if (pathname.startsWith('/passwords')) return 'passwords';
   if (pathname.startsWith('/admin')) return 'admin';
   return null;
 }
@@ -114,6 +123,7 @@ function getModuleTabs(module: ActiveModule): TabConfig[] {
   switch (module) {
     case 'finance': return FINANCE_TABS;
     case 'aviation': return AVIATION_TABS;
+    case 'passwords': return PASSWORDS_TABS;
     case 'admin': return ADMIN_TABS;
     default: return [];
   }
@@ -181,6 +191,9 @@ const App: React.FC = () => {
           <Route path="aviation/notes" element={<AviationNotes />} />
           <Route path="aviation/notes/new" element={<NoteForm />} />
           <Route path="aviation/notes/:id/edit" element={<NoteForm />} />
+          <Route path="passwords" element={<Passwords />} />
+          <Route path="passwords/new" element={<PasswordForm />} />
+          <Route path="passwords/:id/edit" element={<PasswordForm />} />
           <Route path="admin/users" element={<AdminUsers />} />
           <Route path="admin/lists" element={<AdminLists />} />
           <Route path="admin/settings" element={<AdminSettings />} />
