@@ -33,8 +33,11 @@ import Cards from './pages/finance/Cards';
 import Docs from './pages/finance/Docs';
 import Profile from './pages/Profile';
 import Training from './pages/aviation/Training';
+import TrainingDetail from './pages/aviation/TrainingDetail';
+import TrainingForm from './pages/aviation/TrainingForm';
 import AviationDocuments from './pages/aviation/Documents';
 import AviationNotes from './pages/aviation/Notes';
+import NoteForm from './pages/aviation/NoteForm';
 import AdminUsers from './pages/admin/Users';
 import AdminLists from './pages/admin/Lists';
 import AdminSettings from './pages/admin/Settings';
@@ -171,8 +174,13 @@ const App: React.FC = () => {
           <Route path="cycle/:id/transaction/new" element={<TransactionForm />} />
           <Route path="cycle/:id/transaction/:txnId/edit" element={<TransactionForm />} />
           <Route path="aviation/training" element={<Training />} />
+          <Route path="aviation/training/new" element={<TrainingForm />} />
+          <Route path="aviation/training/:id" element={<TrainingDetail />} />
+          <Route path="aviation/training/:id/edit" element={<TrainingForm />} />
           <Route path="aviation/documents" element={<AviationDocuments />} />
           <Route path="aviation/notes" element={<AviationNotes />} />
+          <Route path="aviation/notes/new" element={<NoteForm />} />
+          <Route path="aviation/notes/:id/edit" element={<NoteForm />} />
           <Route path="admin/users" element={<AdminUsers />} />
           <Route path="admin/lists" element={<AdminLists />} />
           <Route path="admin/settings" element={<AdminSettings />} />
