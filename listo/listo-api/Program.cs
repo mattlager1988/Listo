@@ -83,6 +83,8 @@ builder.Services.AddScoped<ICycleTransactionService, CycleTransactionService>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
 builder.Services.AddScoped<IPasswordCategoryService, PasswordCategoryService>();
 builder.Services.AddScoped<IPasswordEntryService, PasswordEntryService>();
+builder.Services.AddScoped<ITaskBoardService, TaskBoardService>();
+builder.Services.AddScoped<ITaskItemService, TaskItemService>();
 
 // CORS
 builder.Services.AddCors(options =>

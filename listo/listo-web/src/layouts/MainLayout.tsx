@@ -11,6 +11,7 @@ import {
   ToolOutlined,
   RocketOutlined,
   LockOutlined,
+  ProjectOutlined,
 } from '@ant-design/icons';
 import { Outlet, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -32,6 +33,7 @@ const MainLayout: React.FC = () => {
   const [openKeys, setOpenKeys] = useState<string[]>(() => {
     if (location.pathname.startsWith('/finance')) return ['/finance'];
     if (location.pathname.startsWith('/aviation')) return ['/aviation'];
+    if (location.pathname.startsWith('/tasks')) return ['/tasks'];
     if (location.pathname.startsWith('/admin')) return ['/admin'];
     return [];
   });
@@ -43,6 +45,8 @@ const MainLayout: React.FC = () => {
       setOpenKeys(prev => [...prev, '/finance']);
     } else if (path.startsWith('/aviation') && !openKeys.includes('/aviation')) {
       setOpenKeys(prev => [...prev, '/aviation']);
+    } else if (path.startsWith('/tasks') && !openKeys.includes('/tasks')) {
+      setOpenKeys(prev => [...prev, '/tasks']);
     } else if (path.startsWith('/admin') && !openKeys.includes('/admin')) {
       setOpenKeys(prev => [...prev, '/admin']);
     }
@@ -112,6 +116,21 @@ const MainLayout: React.FC = () => {
       key: '/passwords',
       icon: <LockOutlined />,
       label: 'Passwords',
+    },
+    {
+      key: '/tasks',
+      icon: <ProjectOutlined />,
+      label: 'Tasks',
+      children: [
+        {
+          key: '/tasks/backlog',
+          label: 'Backlog',
+        },
+        {
+          key: '/tasks/boards',
+          label: 'Boards',
+        },
+      ],
     },
     ...(user?.role === 'admin' ? [{
       key: '/admin',
