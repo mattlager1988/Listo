@@ -8,6 +8,7 @@ import {
   RollbackOutlined,
   DeleteOutlined,
   ExclamationCircleOutlined,
+  PlusOutlined,
 } from '@ant-design/icons';
 import {
   DndContext,
@@ -372,17 +373,26 @@ const BoardView: React.FC = () => {
     setFormModalOpen(true);
   };
 
+  const handleCreateTask = () => {
+    setEditingTask(null);
+    setFormModalOpen(true);
+  };
+
   const handleFormSubmit = async (values: { name: string; description?: string; priority?: string; dueDate?: string }) => {
-    if (!editingTask) return;
     setSaving(true);
     try {
-      await api.put(`/tasks/items/${editingTask.sysId}`, values);
-      message.success('Task updated');
+      if (editingTask) {
+        await api.put(`/tasks/items/${editingTask.sysId}`, values);
+        message.success('Task updated');
+      } else {
+        await api.post('/tasks/items', { ...values, taskBoardSysId: Number(id) });
+        message.success('Task created');
+      }
       setFormModalOpen(false);
       fetchBoard();
     } catch (err: unknown) {
       const error = err as { response?: { data?: { message?: string } } };
-      message.error(error.response?.data?.message || 'Failed to update task');
+      message.error(error.response?.data?.message || (editingTask ? 'Failed to update task' : 'Failed to create task'));
     } finally {
       setSaving(false);
     }
@@ -413,6 +423,9 @@ const BoardView: React.FC = () => {
         title={board.name}
         actions={
           <Space>
+            <Button size="small" type="primary" icon={<PlusOutlined />} onClick={handleCreateTask}>
+              Add Task
+            </Button>
             <Button size="small" icon={<SettingOutlined />} onClick={() => setSettingsOpen(true)}>
               Columns
             </Button>
@@ -518,8 +531,8 @@ const BoardView: React.FC = () => {
           priority: editingTask.priority,
           dueDate: editingTask.dueDate,
         } : undefined}
-        title="Edit Task"
-        submitLabel="Update"
+        title={editingTask ? 'Edit Task' : 'Add Task'}
+        submitLabel={editingTask ? 'Update' : 'Create'}
         loading={saving}
       />
 

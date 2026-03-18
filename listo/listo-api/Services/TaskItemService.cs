@@ -92,6 +92,29 @@ public class TaskItemService : ITaskItemService
             DueDate = request.DueDate
         };
 
+        // If board specified, assign to its first column
+        if (request.TaskBoardSysId.HasValue)
+        {
+            var board = await _context.TaskBoards
+                .Include(b => b.Columns.OrderBy(c => c.SortOrder))
+                .FirstOrDefaultAsync(b => b.SysId == request.TaskBoardSysId.Value);
+
+            if (board == null)
+                throw new ArgumentException("Board not found.");
+
+            var firstColumn = board.Columns.FirstOrDefault();
+            if (firstColumn == null)
+                throw new ArgumentException("Board has no columns.");
+
+            var maxSort = await _context.TaskItems
+                .Where(t => t.TaskBoardColumnSysId == firstColumn.SysId && !t.IsCompleted)
+                .MaxAsync(t => (int?)t.SortOrder) ?? -1;
+
+            task.TaskBoardSysId = board.SysId;
+            task.TaskBoardColumnSysId = firstColumn.SysId;
+            task.SortOrder = maxSort + 1;
+        }
+
         _context.TaskItems.Add(task);
         await _context.SaveChangesAsync();
 

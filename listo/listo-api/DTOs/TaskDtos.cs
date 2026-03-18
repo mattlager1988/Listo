@@ -70,7 +70,8 @@ public record CreateTaskItemRequest(
     string Name,
     string? Description,
     string? Priority,  // Defaults to Medium
-    DateTime? DueDate
+    DateTime? DueDate,
+    long? TaskBoardSysId  // If provided, assigns to board's first column
 );
 
 public record UpdateTaskItemRequest(
