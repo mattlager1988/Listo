@@ -25,6 +25,10 @@ import FinanceDocuments from './pages/finance/Documents';
 import Notes from './pages/aviation/Notes';
 import PasswordsLayout from './pages/passwords';
 import Passwords from './pages/passwords/Passwords';
+import TasksLayout from './pages/tasks';
+import Boards from './pages/tasks/Boards';
+import Backlog from './pages/tasks/Backlog';
+import BoardView from './pages/tasks/BoardView';
 
 function App() {
   return (
@@ -60,6 +64,12 @@ function App() {
               </Route>
               <Route path="passwords" element={<PasswordsLayout />}>
                 <Route index element={<Passwords />} />
+              </Route>
+              <Route path="tasks" element={<TasksLayout />}>
+                <Route index element={<Boards />} />
+                <Route path="boards" element={<Boards />} />
+                <Route path="boards/:id" element={<BoardView />} />
+                <Route path="backlog" element={<Backlog />} />
               </Route>
               <Route
                 path="admin"

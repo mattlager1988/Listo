@@ -38,6 +38,9 @@ public class ListoDbContext : DbContext
     public DbSet<DashboardLayout> DashboardLayouts => Set<DashboardLayout>();
     public DbSet<PasswordCategory> PasswordCategories => Set<PasswordCategory>();
     public DbSet<PasswordEntry> PasswordEntries => Set<PasswordEntry>();
+    public DbSet<TaskBoard> TaskBoards => Set<TaskBoard>();
+    public DbSet<TaskBoardColumn> TaskBoardColumns => Set<TaskBoardColumn>();
+    public DbSet<TaskItem> TaskItems => Set<TaskItem>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -569,6 +572,74 @@ public class ListoDbContext : DbContext
                 .HasForeignKey(e => e.UserSysId);
 
             entity.HasIndex(e => e.UserSysId);
+        });
+
+        modelBuilder.Entity<TaskBoard>(entity =>
+        {
+            entity.ToTable("task_boards");
+            entity.HasKey(e => e.SysId);
+            entity.Property(e => e.SysId).HasColumnName("sys_id");
+            entity.Property(e => e.Name).HasColumnName("name").IsRequired();
+            entity.Property(e => e.Color).HasColumnName("color");
+            entity.Property(e => e.CreateTimestamp).HasColumnName("create_timestamp");
+            entity.Property(e => e.ModifyTimestamp).HasColumnName("modify_timestamp");
+            entity.Property(e => e.CreateUser).HasColumnName("create_user");
+            entity.Property(e => e.ModifyUser).HasColumnName("modify_user");
+        });
+
+        modelBuilder.Entity<TaskBoardColumn>(entity =>
+        {
+            entity.ToTable("task_board_columns");
+            entity.HasKey(e => e.SysId);
+            entity.Property(e => e.SysId).HasColumnName("sys_id");
+            entity.Property(e => e.Name).HasColumnName("name").IsRequired();
+            entity.Property(e => e.SortOrder).HasColumnName("sort_order");
+            entity.Property(e => e.TaskBoardSysId).HasColumnName("task_board_sys_id");
+            entity.Property(e => e.CreateTimestamp).HasColumnName("create_timestamp");
+            entity.Property(e => e.ModifyTimestamp).HasColumnName("modify_timestamp");
+            entity.Property(e => e.CreateUser).HasColumnName("create_user");
+            entity.Property(e => e.ModifyUser).HasColumnName("modify_user");
+
+            entity.HasOne(e => e.TaskBoard)
+                .WithMany(b => b.Columns)
+                .HasForeignKey(e => e.TaskBoardSysId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(e => e.TaskBoardSysId);
+        });
+
+        modelBuilder.Entity<TaskItem>(entity =>
+        {
+            entity.ToTable("task_items");
+            entity.HasKey(e => e.SysId);
+            entity.Property(e => e.SysId).HasColumnName("sys_id");
+            entity.Property(e => e.Name).HasColumnName("name").IsRequired();
+            entity.Property(e => e.Description).HasColumnName("description").HasColumnType("text");
+            entity.Property(e => e.Priority).HasColumnName("priority").HasConversion<string>();
+            entity.Property(e => e.DueDate).HasColumnName("due_date");
+            entity.Property(e => e.SortOrder).HasColumnName("sort_order");
+            entity.Property(e => e.IsCompleted).HasColumnName("is_completed");
+            entity.Property(e => e.CompletedDate).HasColumnName("completed_date");
+            entity.Property(e => e.TaskBoardSysId).HasColumnName("task_board_sys_id");
+            entity.Property(e => e.TaskBoardColumnSysId).HasColumnName("task_board_column_sys_id");
+            entity.Property(e => e.CreateTimestamp).HasColumnName("create_timestamp");
+            entity.Property(e => e.ModifyTimestamp).HasColumnName("modify_timestamp");
+            entity.Property(e => e.CreateUser).HasColumnName("create_user");
+            entity.Property(e => e.ModifyUser).HasColumnName("modify_user");
+
+            entity.HasOne(e => e.TaskBoard)
+                .WithMany(b => b.Tasks)
+                .HasForeignKey(e => e.TaskBoardSysId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(e => e.TaskBoardColumn)
+                .WithMany(c => c.Tasks)
+                .HasForeignKey(e => e.TaskBoardColumnSysId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasIndex(e => e.TaskBoardSysId);
+            entity.HasIndex(e => e.TaskBoardColumnSysId);
+            entity.HasIndex(e => e.IsCompleted);
         });
     }
 
