@@ -21,6 +21,7 @@ import {
 } from '@dnd-kit/core';
 import type { DragEndEvent, DragOverEvent, DragStartEvent } from '@dnd-kit/core';
 import {
+  arrayMove,
   SortableContext,
   sortableKeyboardCoordinates,
   useSortable,
@@ -281,52 +282,55 @@ const BoardView: React.FC = () => {
       return;
     }
 
-    // Build the new order for affected columns
-    const updatedTasks = tasks.map(t =>
-      t.sysId === taskNumId ? { ...t, taskBoardColumnSysId: targetColumnId } : t
-    );
-
-    // Compute sort orders for all tasks in affected columns
-    const affectedColumnIds = new Set<number>();
-    affectedColumnIds.add(targetColumnId);
     const originalTask = tasks.find(t => t.sysId === taskNumId);
-    if (originalTask?.taskBoardColumnSysId) affectedColumnIds.add(originalTask.taskBoardColumnSysId);
+    const sourceColumnId = originalTask?.taskBoardColumnSysId;
+    const isSameColumn = sourceColumnId === targetColumnId;
 
     const reorderItems: { sysId: number; taskBoardColumnSysId: number; sortOrder: number }[] = [];
 
-    affectedColumnIds.forEach(colId => {
-      const columnTasks = updatedTasks
-        .filter(t => t.taskBoardColumnSysId === colId)
-        .sort((a, b) => {
-          // Keep existing relative order, but moved task goes to the position of the over item
-          if (a.sysId === taskNumId && overId.startsWith('task-')) {
-            const overNumId = parseInt(overId.replace('task-', ''));
-            const overTask = tasks.find(t => t.sysId === overNumId);
-            if (overTask) return a.sortOrder - overTask.sortOrder;
-          }
-          return a.sortOrder - b.sortOrder;
-        });
+    if (isSameColumn) {
+      // Within-column reorder using arrayMove
+      const columnTasks = [...(tasksByColumn[targetColumnId] || [])];
+      const oldIndex = columnTasks.findIndex(t => t.sysId === taskNumId);
+      let newIndex = columnTasks.length - 1;
+      if (overId.startsWith('task-')) {
+        const overNumId = parseInt(overId.replace('task-', ''));
+        newIndex = columnTasks.findIndex(t => t.sysId === overNumId);
+      }
+      if (oldIndex === -1 || oldIndex === newIndex) return;
 
-      columnTasks.forEach((t, idx) => {
-        reorderItems.push({
-          sysId: t.sysId,
-          taskBoardColumnSysId: colId,
-          sortOrder: idx,
-        });
+      const reordered = arrayMove(columnTasks, oldIndex, newIndex);
+      reordered.forEach((t, idx) => {
+        reorderItems.push({ sysId: t.sysId, taskBoardColumnSysId: targetColumnId, sortOrder: idx });
       });
-    });
+    } else {
+      // Cross-column move: remove from source, insert into target
+      const sourceCol = [...(tasksByColumn[sourceColumnId!] || [])].filter(t => t.sysId !== taskNumId);
+      sourceCol.forEach((t, idx) => {
+        reorderItems.push({ sysId: t.sysId, taskBoardColumnSysId: sourceColumnId!, sortOrder: idx });
+      });
 
-    // Update local state with new sort orders
+      const targetCol = [...(tasksByColumn[targetColumnId] || [])];
+      let insertIndex = targetCol.length;
+      if (overId.startsWith('task-')) {
+        const overNumId = parseInt(overId.replace('task-', ''));
+        const overIdx = targetCol.findIndex(t => t.sysId === overNumId);
+        if (overIdx !== -1) insertIndex = overIdx;
+      }
+      targetCol.splice(insertIndex, 0, originalTask!);
+      targetCol.forEach((t, idx) => {
+        reorderItems.push({ sysId: t.sysId, taskBoardColumnSysId: targetColumnId, sortOrder: idx });
+      });
+    }
+
+    // Update local state
     setTasks(prev => {
-      const updated = [...prev];
-      reorderItems.forEach(item => {
-        const task = updated.find(t => t.sysId === item.sysId);
-        if (task) {
-          task.taskBoardColumnSysId = item.taskBoardColumnSysId;
-          task.sortOrder = item.sortOrder;
-        }
+      const updated = prev.map(t => {
+        const item = reorderItems.find(r => r.sysId === t.sysId);
+        if (item) return { ...t, taskBoardColumnSysId: item.taskBoardColumnSysId, sortOrder: item.sortOrder };
+        return t;
       });
-      return [...updated];
+      return updated;
     });
 
     // Persist to API
