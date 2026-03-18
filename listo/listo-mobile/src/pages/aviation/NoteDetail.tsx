@@ -131,19 +131,28 @@ const NoteDetail: React.FC = () => {
 
           {/* Content */}
           {note.description && (
-            <div style={{ background: '#fff', borderRadius: 8, padding: 16 }}>
-              {note.description.includes('<') ? (
-                <div
-                  className="rich-text-content"
-                  style={{ fontSize: 14, color: '#333', lineHeight: 1.6 }}
-                  dangerouslySetInnerHTML={{ __html: note.description }}
-                />
-              ) : (
-                <div style={{ fontSize: 14, color: '#333', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
-                  {note.description}
-                </div>
-              )}
-            </div>
+            <textarea
+              readOnly
+              value={note.description.includes('<')
+                ? note.description.replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/\s+/g, ' ').trim()
+                : note.description
+              }
+              style={{
+                width: '100%',
+                minHeight: 200,
+                padding: 12,
+                fontSize: 14,
+                color: '#333',
+                lineHeight: 1.6,
+                background: '#fff',
+                border: '1px solid #e8e8e8',
+                borderRadius: 8,
+                resize: 'none',
+                fontFamily: 'inherit',
+                boxSizing: 'border-box',
+              }}
+              onFocus={(e) => e.target.select()}
+            />
           )}
         </div>
       </PullToRefresh>
