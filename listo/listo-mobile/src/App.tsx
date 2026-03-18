@@ -38,6 +38,7 @@ import TrainingDetail from './pages/aviation/TrainingDetail';
 import TrainingForm from './pages/aviation/TrainingForm';
 import AviationDocuments from './pages/aviation/Documents';
 import AviationNotes from './pages/aviation/Notes';
+import NoteDetail from './pages/aviation/NoteDetail';
 import NoteForm from './pages/aviation/NoteForm';
 import Passwords from './pages/passwords/Passwords';
 import PasswordForm from './pages/passwords/PasswordForm';
@@ -190,6 +191,7 @@ const App: React.FC = () => {
           <Route path="aviation/documents" element={<AviationDocuments />} />
           <Route path="aviation/notes" element={<AviationNotes />} />
           <Route path="aviation/notes/new" element={<NoteForm />} />
+          <Route path="aviation/notes/:id" element={<NoteDetail />} />
           <Route path="aviation/notes/:id/edit" element={<NoteForm />} />
           <Route path="passwords" element={<Passwords />} />
           <Route path="passwords/new" element={<PasswordForm />} />

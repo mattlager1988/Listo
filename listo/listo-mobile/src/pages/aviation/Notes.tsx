@@ -7,12 +7,7 @@ import {
   Skeleton,
   ErrorBlock,
   Button,
-  ActionSheet,
-  Dialog,
-  Toast,
-  Popup,
 } from 'antd-mobile';
-import type { Action } from 'antd-mobile/es/components/action-sheet';
 import { UnorderedListOutline } from 'antd-mobile-icons';
 import dayjs from 'dayjs';
 import api from '@shared/services/api';
@@ -32,9 +27,6 @@ const Notes: React.FC = () => {
   const [notes, setNotes] = useState<Note[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
-  const [actionSheetVisible, setActionSheetVisible] = useState(false);
-  const [selectedNote, setSelectedNote] = useState<Note | null>(null);
-  const [viewingNote, setViewingNote] = useState<Note | null>(null);
 
   const fetchNotes = useCallback(async () => {
     try {
@@ -51,47 +43,6 @@ const Notes: React.FC = () => {
   useEffect(() => {
     fetchNotes();
   }, [fetchNotes]);
-
-  const handleDelete = async (note: Note) => {
-    setActionSheetVisible(false);
-    const confirmed = await Dialog.confirm({
-      content: `Delete "${note.subject}"? This cannot be undone.`,
-    });
-    if (!confirmed) return;
-
-    try {
-      await api.delete(`/aviation/notes/${note.sysId}`);
-      Toast.show({ icon: 'success', content: 'Note deleted' });
-      fetchNotes();
-    } catch {
-      Toast.show({ icon: 'fail', content: 'Failed to delete note' });
-    }
-  };
-
-  const actionSheetActions: Action[] = selectedNote ? [
-    {
-      text: 'View',
-      key: 'view',
-      onClick: () => {
-        setActionSheetVisible(false);
-        setViewingNote(selectedNote);
-      },
-    },
-    {
-      text: 'Edit',
-      key: 'edit',
-      onClick: () => {
-        setActionSheetVisible(false);
-        navigate(`/aviation/notes/${selectedNote.sysId}/edit`);
-      },
-    },
-    {
-      text: 'Delete',
-      key: 'delete',
-      danger: true,
-      onClick: () => handleDelete(selectedNote),
-    },
-  ] : [];
 
   if (loading) {
     return (
@@ -143,10 +94,7 @@ const Notes: React.FC = () => {
             {notes.map(note => (
               <List.Item
                 key={note.sysId}
-                onClick={() => {
-                  setSelectedNote(note);
-                  setActionSheetVisible(true);
-                }}
+                onClick={() => navigate(`/aviation/notes/${note.sysId}`)}
                 description={
                   <div>
                     <div style={{ fontSize: 12, color: '#8c8c8c', marginBottom: 2 }}>
@@ -190,73 +138,6 @@ const Notes: React.FC = () => {
           Add Note
         </Button>
       </div>
-
-      {/* ActionSheet */}
-      <ActionSheet
-        visible={actionSheetVisible}
-        actions={actionSheetActions}
-        onClose={() => { setActionSheetVisible(false); setSelectedNote(null); }}
-        cancelText="Cancel"
-      />
-
-      {/* View Note Popup */}
-      <Popup
-        visible={!!viewingNote}
-        onMaskClick={() => setViewingNote(null)}
-        position="bottom"
-        bodyStyle={{
-          borderTopLeftRadius: 12,
-          borderTopRightRadius: 12,
-          maxHeight: 'calc(80vh - env(safe-area-inset-top))',
-          display: 'flex',
-          flexDirection: 'column',
-        }}
-      >
-        {viewingNote && (
-          <>
-            <div style={{ flexShrink: 0 }}>
-              <div style={{ display: 'flex', justifyContent: 'center', padding: '8px 0 4px' }}>
-                <div style={{ width: 36, height: 4, borderRadius: 2, background: '#e0e0e0' }} />
-              </div>
-              <div style={{
-                padding: '4px 16px 12px',
-                borderBottom: '1px solid #f0f0f0',
-              }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontWeight: 600, fontSize: 16 }}>
-                    {viewingNote.subject}
-                  </span>
-                  <span
-                    onClick={() => setViewingNote(null)}
-                    style={{ color: '#8c8c8c', cursor: 'pointer', fontSize: 14, flexShrink: 0, marginLeft: 12 }}
-                  >
-                    Close
-                  </span>
-                </div>
-                <span style={{ fontSize: 12, color: '#8c8c8c' }}>
-                  {dayjs(viewingNote.createTimestamp).format('MMM D, YYYY')}
-                  {viewingNote.modifyTimestamp !== viewingNote.createTimestamp && (
-                    <> · Edited {dayjs(viewingNote.modifyTimestamp).format('MMM D, YYYY')}</>
-                  )}
-                </span>
-              </div>
-            </div>
-            <div style={{ flex: 1, overflow: 'auto', padding: 16 }}>
-              {viewingNote.description.includes('<') ? (
-                <div
-                  className="rich-text-content"
-                  style={{ fontSize: 14, color: '#333', lineHeight: 1.6 }}
-                  dangerouslySetInnerHTML={{ __html: viewingNote.description }}
-                />
-              ) : (
-                <div style={{ fontSize: 14, color: '#333', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
-                  {viewingNote.description}
-                </div>
-              )}
-            </div>
-          </>
-        )}
-      </Popup>
     </>
   );
 };
