@@ -133,13 +133,19 @@ const NoteDetail: React.FC = () => {
           {note.description && (
             <textarea
               readOnly
+              ref={(el) => {
+                if (el) {
+                  el.style.height = 'auto';
+                  el.style.height = `${el.scrollHeight}px`;
+                }
+              }}
               value={note.description.includes('<')
                 ? note.description.replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/\s+/g, ' ').trim()
                 : note.description
               }
               style={{
                 width: '100%',
-                minHeight: 200,
+                minHeight: 100,
                 padding: 12,
                 fontSize: 14,
                 color: '#333',
@@ -150,6 +156,7 @@ const NoteDetail: React.FC = () => {
                 resize: 'none',
                 fontFamily: 'inherit',
                 boxSizing: 'border-box',
+                overflow: 'hidden',
               }}
               onFocus={(e) => e.target.select()}
             />
