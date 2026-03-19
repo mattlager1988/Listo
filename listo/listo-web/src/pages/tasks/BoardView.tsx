@@ -286,7 +286,6 @@ const BoardView: React.FC = () => {
       return;
     }
 
-    const originalTask = tasks.find(t => t.sysId === taskNumId);
     const isSameColumn = sourceColumnId === targetColumnId;
 
     const reorderItems: { sysId: number; taskBoardColumnSysId: number; sortOrder: number }[] = [];
