@@ -171,6 +171,7 @@ const BoardView: React.FC = () => {
   const [tasks, setTasks] = useState<TaskItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTask, setActiveTask] = useState<TaskItem | null>(null);
+  const [dragSourceColumnId, setDragSourceColumnId] = useState<number | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [formModalOpen, setFormModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<TaskItem | null>(null);
@@ -231,6 +232,7 @@ const BoardView: React.FC = () => {
   const handleDragStart = (event: DragStartEvent) => {
     const task = findTaskById(event.active.id as string);
     setActiveTask(task || null);
+    setDragSourceColumnId(task?.taskBoardColumnSysId ?? null);
   };
 
   const handleDragOver = (event: DragOverEvent) => {
@@ -263,6 +265,8 @@ const BoardView: React.FC = () => {
 
   const handleDragEnd = async (event: DragEndEvent) => {
     setActiveTask(null);
+    const sourceColumnId = dragSourceColumnId;
+    setDragSourceColumnId(null);
     const { active, over } = event;
     if (!over) return;
 
@@ -283,7 +287,6 @@ const BoardView: React.FC = () => {
     }
 
     const originalTask = tasks.find(t => t.sysId === taskNumId);
-    const sourceColumnId = originalTask?.taskBoardColumnSysId;
     const isSameColumn = sourceColumnId === targetColumnId;
 
     const reorderItems: { sysId: number; taskBoardColumnSysId: number; sortOrder: number }[] = [];
@@ -304,20 +307,14 @@ const BoardView: React.FC = () => {
         reorderItems.push({ sysId: t.sysId, taskBoardColumnSysId: targetColumnId, sortOrder: idx });
       });
     } else {
-      // Cross-column move: remove from source, insert into target
-      const sourceCol = [...(tasksByColumn[sourceColumnId!] || [])].filter(t => t.sysId !== taskNumId);
+      // Cross-column move: handleDragOver already moved the task in local state,
+      // so tasksByColumn already reflects the move. Just reindex both columns.
+      const sourceCol = tasksByColumn[sourceColumnId!] || [];
       sourceCol.forEach((t, idx) => {
         reorderItems.push({ sysId: t.sysId, taskBoardColumnSysId: sourceColumnId!, sortOrder: idx });
       });
 
-      const targetCol = [...(tasksByColumn[targetColumnId] || [])];
-      let insertIndex = targetCol.length;
-      if (overId.startsWith('task-')) {
-        const overNumId = parseInt(overId.replace('task-', ''));
-        const overIdx = targetCol.findIndex(t => t.sysId === overNumId);
-        if (overIdx !== -1) insertIndex = overIdx;
-      }
-      targetCol.splice(insertIndex, 0, originalTask!);
+      const targetCol = tasksByColumn[targetColumnId] || [];
       targetCol.forEach((t, idx) => {
         reorderItems.push({ sysId: t.sysId, taskBoardColumnSysId: targetColumnId, sortOrder: idx });
       });
