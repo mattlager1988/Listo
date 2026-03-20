@@ -13,6 +13,8 @@ import {
   UnorderedListOutline,
   SetOutline,
   LockOutline,
+  CheckOutline,
+  AppstoreOutline,
 } from 'antd-mobile-icons';
 import { useAuth } from '@shared/contexts/AuthContext';
 import { MenuProvider } from './contexts/MenuContext';
@@ -45,6 +47,12 @@ import PasswordForm from './pages/passwords/PasswordForm';
 import AdminUsers from './pages/admin/Users';
 import AdminLists from './pages/admin/Lists';
 import AdminSettings from './pages/admin/Settings';
+import TaskBacklog from './pages/tasks/Backlog';
+import TaskBoards from './pages/tasks/Boards';
+import TaskBoardDetail from './pages/tasks/BoardDetail';
+import TaskBoardForm from './pages/tasks/BoardForm';
+import TaskForm from './pages/tasks/TaskForm';
+import TaskColumnSettings from './pages/tasks/ColumnSettings';
 
 const ProtectedRoute: React.FC = () => {
   const { isAuthenticated, isLoading } = useAuth();
@@ -84,6 +92,11 @@ const AVIATION_TABS: TabConfig[] = [
   { key: '/aviation/notes', title: 'Notes', icon: <FileOutline /> },
 ];
 
+const TASKS_TABS: TabConfig[] = [
+  { key: '/tasks/backlog', title: 'Backlog', icon: <CheckOutline /> },
+  { key: '/tasks/boards', title: 'Boards', icon: <AppstoreOutline /> },
+];
+
 const PASSWORDS_TABS: TabConfig[] = [
   { key: '/passwords', title: 'Passwords', icon: <LockOutline /> },
 ];
@@ -101,6 +114,8 @@ const MAIN_PATHS = new Set([
   '/pending',
   '/cycle',
   '/docs',
+  '/tasks/backlog',
+  '/tasks/boards',
   '/aviation/training',
   '/aviation/documents',
   '/aviation/notes',
@@ -110,10 +125,11 @@ const MAIN_PATHS = new Set([
   '/admin/settings',
 ]);
 
-type ActiveModule = 'finance' | 'aviation' | 'passwords' | 'admin' | null;
+type ActiveModule = 'finance' | 'tasks' | 'aviation' | 'passwords' | 'admin' | null;
 
 function getActiveModule(pathname: string): ActiveModule {
   if (pathname.startsWith('/bills') || pathname.startsWith('/cards') || pathname.startsWith('/pending') || pathname.startsWith('/cycle') || pathname.startsWith('/docs')) return 'finance';
+  if (pathname.startsWith('/tasks')) return 'tasks';
   if (pathname.startsWith('/aviation')) return 'aviation';
   if (pathname.startsWith('/passwords')) return 'passwords';
   if (pathname.startsWith('/admin')) return 'admin';
@@ -123,6 +139,7 @@ function getActiveModule(pathname: string): ActiveModule {
 function getModuleTabs(module: ActiveModule): TabConfig[] {
   switch (module) {
     case 'finance': return FINANCE_TABS;
+    case 'tasks': return TASKS_TABS;
     case 'aviation': return AVIATION_TABS;
     case 'passwords': return PASSWORDS_TABS;
     case 'admin': return ADMIN_TABS;
@@ -184,6 +201,14 @@ const App: React.FC = () => {
           <Route path="cycle/:id/edit" element={<CyclePlanForm />} />
           <Route path="cycle/:id/transaction/new" element={<TransactionForm />} />
           <Route path="cycle/:id/transaction/:txnId/edit" element={<TransactionForm />} />
+          <Route path="tasks/backlog" element={<TaskBacklog />} />
+          <Route path="tasks/boards" element={<TaskBoards />} />
+          <Route path="tasks/boards/new" element={<TaskBoardForm />} />
+          <Route path="tasks/boards/:id" element={<TaskBoardDetail />} />
+          <Route path="tasks/boards/:id/edit" element={<TaskBoardForm />} />
+          <Route path="tasks/boards/:id/columns" element={<TaskColumnSettings />} />
+          <Route path="tasks/new" element={<TaskForm />} />
+          <Route path="tasks/:id/edit" element={<TaskForm />} />
           <Route path="aviation/training" element={<Training />} />
           <Route path="aviation/training/new" element={<TrainingForm />} />
           <Route path="aviation/training/:id" element={<TrainingDetail />} />

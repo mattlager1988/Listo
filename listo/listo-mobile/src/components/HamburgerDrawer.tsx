@@ -8,6 +8,7 @@ import {
   LockOutline,
   SetOutline,
   UserOutline,
+  UnorderedListOutline,
 } from 'antd-mobile-icons';
 import { useAuth } from '@shared/contexts/AuthContext';
 import { useMenu } from '../contexts/MenuContext';
@@ -24,6 +25,7 @@ interface MenuEntry {
 
 const menuItems: MenuEntry[] = [
   { label: 'Dashboard', path: '/', icon: <AppOutline /> },
+  { label: 'Tasks', path: '/tasks/backlog', icon: <UnorderedListOutline />, matchPrefix: '/tasks' },
   { label: 'Finance & Bills', path: '/bills', icon: <BankcardOutline />, matchPrefix: '/bills,/cards,/cycle,/docs' },
   { label: 'Aviation', path: '/aviation/training', icon: <GlobalOutline />, matchPrefix: '/aviation' },
   { label: 'Passwords', path: '/passwords', icon: <LockOutline />, matchPrefix: '/passwords' },

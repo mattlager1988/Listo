@@ -83,6 +83,16 @@ button,
   line-height: 1.6;
 }
 
+/* Board column headers */
+.board-columns .adm-collapse-panel-header {
+  background: #1d3557;
+  color: #fff;
+}
+
+.board-columns .adm-collapse-panel-header .adm-list-item-content-arrow {
+  color: #fff;
+}
+
 /* Rich Text Content Viewer Styles */
 .rich-text-content p {
   margin: 0 0 0.5em 0;
