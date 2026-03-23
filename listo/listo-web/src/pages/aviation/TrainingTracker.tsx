@@ -29,6 +29,11 @@ import {
   DownloadOutlined,
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
+
+// Parse date-only values without timezone conversion.
+// The UTC value converter adds a "Z" suffix to all DateTimes, but TrainingLog.Date
+// is a calendar date - interpreting it as UTC shifts it by the local timezone offset.
+const parseDate = (date: string) => dayjs(date.substring(0, 10));
 import { Column } from '@ant-design/charts';
 import api from '../../services/api';
 import PageHeader from '../../components/PageHeader';
@@ -157,7 +162,7 @@ const TrainingTracker: React.FC = () => {
   const handleEdit = (log: TrainingLog) => {
     setEditingLog(log);
     form.setFieldsValue({
-      date: dayjs(log.date),
+      date: parseDate(log.date),
       description: log.description,
       hoursFlown: log.hoursFlown,
       trainingTypeSysId: log.trainingTypeSysId,
@@ -228,7 +233,7 @@ const TrainingTracker: React.FC = () => {
       printWindow.document.write(`
         <html>
           <head>
-            <title>Training Log - ${dayjs(viewingLog.date).format('MMM D, YYYY')}</title>
+            <title>Training Log - ${parseDate(viewingLog.date).format('MMM D, YYYY')}</title>
             <style>
               body { font-family: Arial, sans-serif; padding: 20px; }
               h1 { font-size: 18px; margin-bottom: 10px; }
@@ -242,7 +247,7 @@ const TrainingTracker: React.FC = () => {
           <body>
             <h1>Training Log</h1>
             <div class="meta">
-              <strong>Date:</strong> ${dayjs(viewingLog.date).format('MMMM D, YYYY')}<br/>
+              <strong>Date:</strong> ${parseDate(viewingLog.date).format('MMMM D, YYYY')}<br/>
               <strong>Type:</strong> ${viewingLog.trainingTypeName}<br/>
               <strong>Aircraft:</strong> ${viewingLog.aircraftPlaneId ? `${viewingLog.aircraftPlaneId} - ${viewingLog.aircraftName}` : 'N/A'}<br/>
               <strong>Hours:</strong> ${viewingLog.hoursFlown.toFixed(1)}
@@ -350,8 +355,8 @@ const TrainingTracker: React.FC = () => {
       dataIndex: 'date',
       key: 'date',
       width: 120,
-      render: (date: string) => dayjs(date).format('MMM D, YYYY'),
-      sorter: (a: TrainingLog, b: TrainingLog) => dayjs(a.date).unix() - dayjs(b.date).unix(),
+      render: (date: string) => parseDate(date).format('MMM D, YYYY'),
+      sorter: (a: TrainingLog, b: TrainingLog) => parseDate(a.date).unix() - parseDate(b.date).unix(),
       defaultSortOrder: 'descend' as const,
     },
     {
@@ -674,7 +679,7 @@ const TrainingTracker: React.FC = () => {
 
       {/* View Description Modal */}
       <Modal
-        title={viewingLog ? `Training Log - ${dayjs(viewingLog.date).format('MMM D, YYYY')}` : 'Training Log'}
+        title={viewingLog ? `Training Log - ${parseDate(viewingLog.date).format('MMM D, YYYY')}` : 'Training Log'}
         open={viewModalVisible}
         onCancel={handleCloseViewModal}
         width={700}
