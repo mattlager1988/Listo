@@ -166,7 +166,7 @@ The `PageHeader` component provides a consistent title bar:
 ```tsx
 <PageHeader title="Page Title" actions={<Button>Optional Action</Button>} />
 ```
-Style: gradient background (#f8fafc → #f1f5f9), 1px solid #e2e8f0 border, 4px radius.
+Style: `Title level={2}`, gradient background (#f8fafc → #f1f5f9), 1px solid #e2e8f0 border, 4px radius.
 
 ### Action Toolbar
 Pages with grids use a custom action toolbar above the table instead of ProTable's built-in toolbar:
