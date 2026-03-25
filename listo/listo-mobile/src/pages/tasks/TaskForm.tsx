@@ -10,6 +10,7 @@ import {
   DatePicker,
 } from 'antd-mobile';
 import dayjs from 'dayjs';
+import { parseDate } from '@shared/utils/format';
 import api from '@shared/services/api';
 import RichTextEditor from '../../components/RichTextEditor';
 
@@ -47,7 +48,7 @@ const TaskForm: React.FC = () => {
       form.setFieldsValue({ name: task.name });
       setDescription(task.description || '');
       setPriority(task.priority || 'Medium');
-      setDueDate(task.dueDate ? new Date(task.dueDate) : null);
+      setDueDate(task.dueDate ? parseDate(task.dueDate).toDate() : null);
     } catch {
       Toast.show({ icon: 'fail', content: 'Failed to load task' });
       goBack();

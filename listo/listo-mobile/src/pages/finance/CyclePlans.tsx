@@ -11,7 +11,7 @@ import {
   Button,
 } from 'antd-mobile';
 import { UnorderedListOutline } from 'antd-mobile-icons';
-import dayjs from 'dayjs';
+import { parseDate } from '@shared/utils/format';
 import api from '@shared/services/api';
 import type { CyclePlan } from '@shared/types';
 import { useMenu } from '../../contexts/MenuContext';
@@ -92,7 +92,7 @@ const CyclePlans: React.FC = () => {
                   description={
                     <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                       <span>
-                        {dayjs(plan.startDate).format('MMM D')} - {dayjs(plan.endDate).format('MMM D, YYYY')}
+                        {parseDate(plan.startDate).format('MMM D')} - {parseDate(plan.endDate).format('MMM D, YYYY')}
                       </span>
                       <Tag color={statusColors[plan.status]} style={{ fontSize: 10, padding: '0 4px' }}>
                         {plan.status}
@@ -143,7 +143,7 @@ const CyclePlans: React.FC = () => {
                   onClick={() => navigate(`/cycle/${plan.sysId}`)}
                   description={
                     <span>
-                      {dayjs(plan.startDate).format('MMM D')} - {dayjs(plan.endDate).format('MMM D, YYYY')}
+                      {parseDate(plan.startDate).format('MMM D')} - {parseDate(plan.endDate).format('MMM D, YYYY')}
                     </span>
                   }
                   extra={

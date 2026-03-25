@@ -18,6 +18,7 @@ import {
 } from 'antd-mobile';
 import { UnorderedListOutline } from 'antd-mobile-icons';
 import dayjs from 'dayjs';
+import { parseDate } from '@shared/utils/format';
 import api from '@shared/services/api';
 import type { Account, BankAccount } from '@shared/types';
 import { useMenu } from '../../contexts/MenuContext';
@@ -337,7 +338,7 @@ const Accounts: React.FC = () => {
                         <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
                           <span>{account.accountTypeName}</span>
                           {account.dueDate && (
-                            <span> · Due {dayjs(account.dueDate).format('MMM D')}</span>
+                            <span> · Due {parseDate(account.dueDate).format('MMM D')}</span>
                           )}
                           {account.autoPay && (
                             <Tag color="success" style={{ fontSize: 10, padding: '0 4px' }}>Auto</Tag>

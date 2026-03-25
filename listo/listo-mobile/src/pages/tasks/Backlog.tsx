@@ -16,6 +16,7 @@ import {
 import type { Action } from 'antd-mobile/es/components/action-sheet';
 import { UnorderedListOutline } from 'antd-mobile-icons';
 import dayjs from 'dayjs';
+import { parseDate } from '@shared/utils/format';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import api from '@shared/services/api';
 import type { TaskItem, BoardSummary } from '@shared/types';
@@ -117,7 +118,7 @@ const Backlog: React.FC = () => {
 
   const getDueDateDisplay = (dueDate?: string) => {
     if (!dueDate) return null;
-    const due = dayjs(dueDate);
+    const due = parseDate(dueDate);
     const today = dayjs().startOf('day');
     const isOverdue = due.isBefore(today);
     const isToday = due.isSame(today, 'day');

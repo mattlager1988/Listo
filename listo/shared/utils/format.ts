@@ -1,3 +1,11 @@
+import dayjs from 'dayjs';
+
+/** Parse date-only values without timezone conversion.
+ *  The backend UTC value converter adds a "Z" suffix to all DateTimes,
+ *  but date-only fields are calendar dates — interpreting as UTC shifts
+ *  by the local timezone offset. */
+export const parseDate = (date: string) => dayjs(date.substring(0, 10));
+
 export function formatCurrency(amount: number, decimals = 2): string {
   return `$${amount.toFixed(decimals)}`;
 }

@@ -14,6 +14,7 @@ import {
 } from 'antd-mobile';
 import type { Action } from 'antd-mobile/es/components/action-sheet';
 import dayjs from 'dayjs';
+import { parseDate } from '@shared/utils/format';
 import api from '@shared/services/api';
 import type { TaskItem, BoardDetail as BoardDetailType, BoardColumn } from '@shared/types';
 
@@ -226,7 +227,7 @@ const BoardDetail: React.FC = () => {
 
   const getDueDateDisplay = (dueDate?: string) => {
     if (!dueDate) return null;
-    const due = dayjs(dueDate);
+    const due = parseDate(dueDate);
     const today = dayjs().startOf('day');
     const isOverdue = due.isBefore(today);
     const isToday = due.isSame(today, 'day');

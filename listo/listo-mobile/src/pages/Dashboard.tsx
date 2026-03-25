@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { NavBar, Card, Grid, List, PullToRefresh, Tag, Skeleton, ErrorBlock } from 'antd-mobile';
-import dayjs from 'dayjs';
+import { parseDate } from '@shared/utils/format';
 import { UnorderedListOutline } from 'antd-mobile-icons';
 import api from '@shared/services/api';
 import type { DashboardSummary, PendingPayment } from '@shared/types';
@@ -120,7 +120,7 @@ const Dashboard: React.FC = () => {
             <div style={{ textAlign: 'center', marginBottom: 8 }}>
               <div style={{ fontWeight: 600, fontSize: 14 }}>{cyclePlan.cycleGoalName}</div>
               <div style={{ fontSize: 12, color: '#8c8c8c' }}>
-                {dayjs(cyclePlan.startDate).format('MMM D')} - {dayjs(cyclePlan.endDate).format('MMM D, YYYY')}
+                {parseDate(cyclePlan.startDate).format('MMM D')} - {parseDate(cyclePlan.endDate).format('MMM D, YYYY')}
               </div>
             </div>
             <Grid columns={3} gap={8}>
@@ -201,7 +201,7 @@ const Dashboard: React.FC = () => {
               {pendingPayments.slice(0, 5).map(p => (
                 <List.Item
                   key={p.sysId}
-                  description={p.dueDate ? `Due ${dayjs(p.dueDate).format('MMM D')}` : undefined}
+                  description={p.dueDate ? `Due ${parseDate(p.dueDate).format('MMM D')}` : undefined}
                   extra={
                     <span style={{ fontWeight: 600, fontSize: 14 }}>
                       ${p.amount.toFixed(2)}
@@ -240,7 +240,7 @@ const Dashboard: React.FC = () => {
                   onClick={() => navigate('/bills')}
                   description={
                     <span>
-                      {dayjs(bill.dueDate).format('MMM D')}
+                      {parseDate(bill.dueDate).format('MMM D')}
                       {bill.autoPay && (
                         <Tag color="success" style={{ marginLeft: 4, fontSize: 10 }}>Auto</Tag>
                       )}

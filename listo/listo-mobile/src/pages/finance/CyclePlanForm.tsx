@@ -12,6 +12,7 @@ import {
   Skeleton,
 } from 'antd-mobile';
 import dayjs from 'dayjs';
+import { parseDate } from '@shared/utils/format';
 import api from '@shared/services/api';
 import type { CyclePlan, CycleGoal } from '@shared/types';
 
@@ -77,10 +78,10 @@ const CyclePlanForm: React.FC = () => {
       const plans = response.data as CyclePlan[];
       const sorted = [...plans]
         .filter(p => p.endDate)
-        .sort((a, b) => dayjs(b.endDate).unix() - dayjs(a.endDate).unix());
+        .sort((a, b) => parseDate(b.endDate).unix() - parseDate(a.endDate).unix());
       const prior = sorted[0];
       if (prior) {
-        const start = dayjs(prior.endDate).add(1, 'day');
+        const start = parseDate(prior.endDate).add(1, 'day');
         const end = start.add(13, 'day');
         form.setFieldsValue({
           startDate: start.format('YYYY-MM-DD'),
@@ -252,7 +253,7 @@ const CyclePlanForm: React.FC = () => {
               const startDate = form.getFieldValue('startDate');
               return (
                 <span style={{ color: startDate ? undefined : '#ccc' }}>
-                  {startDate ? dayjs(startDate).format('MMM D, YYYY') : 'Select date'}
+                  {startDate ? parseDate(startDate).format('MMM D, YYYY') : 'Select date'}
                 </span>
               );
             }}
@@ -275,7 +276,7 @@ const CyclePlanForm: React.FC = () => {
               const endDate = form.getFieldValue('endDate');
               return (
                 <span style={{ color: endDate ? undefined : '#ccc' }}>
-                  {endDate ? dayjs(endDate).format('MMM D, YYYY') : 'Select date'}
+                  {endDate ? parseDate(endDate).format('MMM D, YYYY') : 'Select date'}
                 </span>
               );
             }}

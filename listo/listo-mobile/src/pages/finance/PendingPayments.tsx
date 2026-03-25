@@ -9,7 +9,7 @@ import {
   ActionSheet,
 } from 'antd-mobile';
 import type { Action } from 'antd-mobile/es/components/action-sheet';
-import dayjs from 'dayjs';
+import { parseDate } from '@shared/utils/format';
 import { useNavigate } from 'react-router-dom';
 import api from '@shared/services/api';
 import type { Payment } from '@shared/types';
@@ -159,7 +159,7 @@ const PendingPayments: React.FC = () => {
               description={
                 <span>
                   {payment.paymentMethodName}
-                  {payment.dueDate && ` · Due ${dayjs(payment.dueDate).format('MMM D')}`}
+                  {payment.dueDate && ` · Due ${parseDate(payment.dueDate).format('MMM D')}`}
                 </span>
               }
               extra={

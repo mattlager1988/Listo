@@ -13,6 +13,7 @@ import {
   Skeleton,
 } from 'antd-mobile';
 import dayjs from 'dayjs';
+import { parseDate } from '@shared/utils/format';
 import api from '@shared/services/api';
 import type { Account, ListItem } from '@shared/types';
 
@@ -284,7 +285,7 @@ const AccountForm: React.FC = () => {
               const dueDate = form.getFieldValue('dueDate');
               return (
                 <span style={{ color: dueDate ? undefined : '#ccc' }}>
-                  {dueDate ? dayjs(dueDate).format('MMM D, YYYY') : 'Select date'}
+                  {dueDate ? parseDate(dueDate).format('MMM D, YYYY') : 'Select date'}
                 </span>
               );
             }}

@@ -10,7 +10,7 @@ import {
   Button,
 } from 'antd-mobile';
 import { UnorderedListOutline } from 'antd-mobile-icons';
-import dayjs from 'dayjs';
+import { parseDate } from '@shared/utils/format';
 import api from '@shared/services/api';
 import { useMenu } from '../../contexts/MenuContext';
 
@@ -207,7 +207,7 @@ const Training: React.FC = () => {
                   description={
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                       <span style={{ fontSize: 12 }}>
-                        {dayjs(log.date).format('MMM D, YYYY')}
+                        {parseDate(log.date).format('MMM D, YYYY')}
                       </span>
                       {log.aircraftPlaneId && (
                         <>

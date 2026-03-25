@@ -11,6 +11,7 @@ import {
   DatePicker,
 } from 'antd-mobile';
 import dayjs from 'dayjs';
+import { parseDate } from '@shared/utils/format';
 import api from '@shared/services/api';
 import RichTextEditor from '../../components/RichTextEditor';
 
@@ -68,7 +69,7 @@ const TrainingForm: React.FC = () => {
         hoursFlown: log.hoursFlown.toString(),
       });
       setDescription(log.description || '');
-      setSelectedDate(new Date(log.date));
+      setSelectedDate(parseDate(log.date).toDate());
       setSelectedTypeId(log.trainingTypeSysId);
       setSelectedAircraftId(log.aircraftSysId);
     } catch {

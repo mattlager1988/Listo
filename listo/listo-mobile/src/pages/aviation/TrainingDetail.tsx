@@ -14,7 +14,7 @@ import {
   Popup,
 } from 'antd-mobile';
 import type { Action } from 'antd-mobile/es/components/action-sheet';
-import dayjs from 'dayjs';
+import { parseDate } from '@shared/utils/format';
 import api from '@shared/services/api';
 
 interface TrainingLog {
@@ -224,7 +224,7 @@ const TrainingDetail: React.FC = () => {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div style={{ fontSize: 16, fontWeight: 600 }}>{log.trainingTypeName}</div>
             <span style={{ fontSize: 13, color: '#8c8c8c' }}>
-              {dayjs(log.date).format('MMM D, YYYY')}
+              {parseDate(log.date).format('MMM D, YYYY')}
             </span>
           </div>
 

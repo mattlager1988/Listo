@@ -14,6 +14,7 @@ import {
 } from 'antd-mobile';
 import type { Action } from 'antd-mobile/es/components/action-sheet';
 import dayjs from 'dayjs';
+import { parseDate } from '@shared/utils/format';
 import api from '@shared/services/api';
 import type { CyclePlan, CycleTransaction } from '@shared/types';
 
@@ -137,7 +138,7 @@ const CyclePlanDetail: React.FC = () => {
     },
   ] : [];
 
-  const daysRemaining = Math.max(0, dayjs(plan.endDate).diff(dayjs(), 'day'));
+  const daysRemaining = Math.max(0, parseDate(plan.endDate).diff(dayjs(), 'day'));
 
   const renderTransactionList = (items: CycleTransaction[], type: string) => (
     <List style={{ '--border-top': 'none', '--border-bottom': 'none' }}>
@@ -195,7 +196,7 @@ const CyclePlanDetail: React.FC = () => {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
             <div style={{ fontSize: 13, color: '#8c8c8c' }}>
-              {dayjs(plan.startDate).format('MMM D')} – {dayjs(plan.endDate).format('MMM D, YYYY')}
+              {parseDate(plan.startDate).format('MMM D')} – {parseDate(plan.endDate).format('MMM D, YYYY')}
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>

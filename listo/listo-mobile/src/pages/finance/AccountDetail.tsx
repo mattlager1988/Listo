@@ -14,6 +14,7 @@ import {
 } from 'antd-mobile';
 import type { Action } from 'antd-mobile/es/components/action-sheet';
 import dayjs from 'dayjs';
+import { parseDate } from '@shared/utils/format';
 import api from '@shared/services/api';
 import type { Account, Payment } from '@shared/types';
 
@@ -197,14 +198,14 @@ const AccountDetail: React.FC = () => {
             <div style={{ textAlign: 'center' }}>
               <div style={{ fontSize: 11, color: '#8c8c8c' }}>Due Date</div>
               <div style={{ fontSize: 16, fontWeight: 500 }}>
-                {account.dueDate ? dayjs(account.dueDate).format('MMM D') : '—'}
+                {account.dueDate ? parseDate(account.dueDate).format('MMM D') : '—'}
               </div>
             </div>
             <div style={{ textAlign: 'center' }}>
               <div style={{ fontSize: 11, color: '#8c8c8c' }}>Last Paid</div>
               <div style={{ fontSize: 14, fontWeight: 500 }}>
                 {account.lastPaymentDate
-                  ? `$${account.lastPaymentAmount?.toFixed(0)} · ${dayjs(account.lastPaymentDate).format('MM/DD')}`
+                  ? `$${account.lastPaymentAmount?.toFixed(0)} · ${parseDate(account.lastPaymentDate).format('MM/DD')}`
                   : '—'
                 }
               </div>
@@ -270,7 +271,7 @@ const AccountDetail: React.FC = () => {
                   description={
                     <span>
                       {payment.paymentMethodName}
-                      {payment.completedDate && ` · ${dayjs(payment.completedDate).format('MMM D, YYYY')}`}
+                      {payment.completedDate && ` · ${parseDate(payment.completedDate).format('MMM D, YYYY')}`}
                       {payment.confirmationNumber && ` · #${payment.confirmationNumber}`}
                     </span>
                   }
