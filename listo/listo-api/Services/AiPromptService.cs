@@ -17,6 +17,7 @@ public interface IAiPromptService
     Task<bool> RestoreAsync(long id);
     Task<bool> PurgeAsync(long id);
     Task<TrainingAnalysisResponse> AnalyzeTrainingLogsAsync(TrainingAnalysisRequest request);
+    Task<FormatContentResponse> FormatContentAsync(FormatContentRequest request);
 }
 
 public class AiPromptService : IAiPromptService
@@ -166,6 +167,30 @@ public class AiPromptService : IAiPromptService
         var analysis = await _openAIService.GetCompletionAsync(systemPrompt, userPrompt);
 
         return new TrainingAnalysisResponse(analysis, DateTime.UtcNow);
+    }
+
+    private const string HtmlFormatSuffix = @"
+
+IMPORTANT: Return your response as HTML only. Use only these HTML tags: <p>, <h1>, <h2>, <h3>, <h4>, <h5>, <h6>, <ul>, <ol>, <li>, <blockquote>, <pre>, <code>, <hr>, <strong>, <em>, <u>, <br>. Do not wrap the response in a code block or use markdown syntax. Do not include <html>, <head>, or <body> tags. Return only the formatted content.";
+
+    public async Task<FormatContentResponse> FormatContentAsync(FormatContentRequest request)
+    {
+        var prompt = await _context.AiPrompts.FindAsync(request.PromptSysId);
+        if (prompt == null || prompt.IsDeleted)
+            throw new InvalidOperationException("Selected AI prompt not found");
+
+        var plainText = StripHtml(request.Content);
+        if (string.IsNullOrWhiteSpace(plainText))
+            throw new ArgumentException("Content is empty");
+
+        var systemPrompt = prompt.PromptText + HtmlFormatSuffix;
+        var result = await _openAIService.GetCompletionAsync(systemPrompt, plainText);
+
+        // Strip markdown code fences if the model wrapped the response
+        result = Regex.Replace(result, @"^```html?\s*\n?", "", RegexOptions.Multiline);
+        result = Regex.Replace(result, @"\n?```\s*$", "", RegexOptions.Multiline);
+
+        return new FormatContentResponse(result.Trim());
     }
 
     private static string StripHtml(string html)

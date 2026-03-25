@@ -110,4 +110,22 @@ public class AiPromptsController : ControllerBase
             return BadRequest(new { message = ex.Message });
         }
     }
+
+    [HttpPost("format-content")]
+    public async Task<IActionResult> FormatContent([FromBody] FormatContentRequest request)
+    {
+        try
+        {
+            var result = await _service.FormatContentAsync(request);
+            return Ok(result);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
 }

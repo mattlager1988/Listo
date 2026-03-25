@@ -18,6 +18,7 @@ interface RichTextEditorProps {
   value?: string;
   onChange?: (value: string) => void;
   placeholder?: string;
+  toolbarExtra?: React.ReactNode;
 }
 
 interface ToolbarButtonProps {
@@ -41,6 +42,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
   value = '',
   onChange,
   placeholder = 'Write your description here...',
+  toolbarExtra,
 }) => {
   const editor = useEditor({
     extensions: [
@@ -109,6 +111,12 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
             icon={<RedoOutlined />}
             title="Redo"
           />
+          {toolbarExtra && (
+            <>
+              <Divider type="vertical" />
+              {toolbarExtra}
+            </>
+          )}
         </Space>
       </div>
       <EditorContent

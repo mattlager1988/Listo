@@ -15,6 +15,8 @@ import {
   Row,
   Col,
   Tooltip,
+  Typography,
+  Spin,
 } from 'antd';
 import type { UploadFile } from 'antd';
 import {
@@ -92,6 +94,11 @@ const TrainingTracker: React.FC = () => {
   const [fileList, setFileList] = useState<UploadFile[]>([]);
   const [removeAttachmentIds, setRemoveAttachmentIds] = useState<number[]>([]);
   const [previewUrls, setPreviewUrls] = useState<Map<number, string>>(new Map());
+  const [formatModalVisible, setFormatModalVisible] = useState(false);
+  const [aiPrompts, setAiPrompts] = useState<{ sysId: number; name: string }[]>([]);
+  const [selectedFormatPromptId, setSelectedFormatPromptId] = useState<number | null>(null);
+  const [formatting, setFormatting] = useState(false);
+  const [promptsLoading, setPromptsLoading] = useState(false);
   const [form] = Form.useForm();
 
   const fetchLogs = useCallback(async () => {
@@ -346,6 +353,49 @@ const TrainingTracker: React.FC = () => {
       fetchAttachments();
     } catch {
       message.error('Failed to delete training logs');
+    }
+  };
+
+  const handleOpenFormatModal = async () => {
+    setSelectedFormatPromptId(null);
+    setFormatModalVisible(true);
+    setPromptsLoading(true);
+    try {
+      const response = await api.get('/aviation/aiprompts');
+      setAiPrompts(response.data);
+    } catch {
+      message.error('Failed to fetch AI prompts');
+    } finally {
+      setPromptsLoading(false);
+    }
+  };
+
+  const handleAiFormat = async () => {
+    if (!selectedFormatPromptId) {
+      message.warning('Please select an AI prompt');
+      return;
+    }
+
+    const currentContent = form.getFieldValue('description');
+    if (!currentContent || currentContent === '<p></p>') {
+      message.warning('Description is empty');
+      return;
+    }
+
+    setFormatting(true);
+    try {
+      const response = await api.post('/aviation/aiprompts/format-content', {
+        content: currentContent,
+        promptSysId: selectedFormatPromptId,
+      });
+      form.setFieldsValue({ description: response.data.formattedContent });
+      setFormatModalVisible(false);
+      message.success('Content formatted with AI');
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } } };
+      message.error(error.response?.data?.message || 'AI formatting failed');
+    } finally {
+      setFormatting(false);
     }
   };
 
@@ -628,7 +678,18 @@ const TrainingTracker: React.FC = () => {
               rules={[{ required: true, message: 'Description is required' }]}
               style={{ marginBottom: 0 }}
             >
-              <RichTextEditor placeholder="Describe your training activity..." />
+              <RichTextEditor
+                placeholder="Describe your training activity..."
+                toolbarExtra={
+                  <Tooltip title="Format with AI">
+                    <Button
+                      size="small"
+                      icon={<RobotOutlined />}
+                      onClick={handleOpenFormatModal}
+                    />
+                  </Tooltip>
+                }
+              />
             </Form.Item>
 
             <Form.Item label="Attachments" style={{ marginBottom: 0 }}>
@@ -769,6 +830,51 @@ const TrainingTracker: React.FC = () => {
         onClose={() => setAnalysisModalVisible(false)}
         selectedLogIds={selectedRowKeys.map(k => Number(k))}
       />
+
+      {/* AI Format Modal */}
+      <Modal
+        title="Format with AI"
+        open={formatModalVisible}
+        onCancel={() => !formatting && setFormatModalVisible(false)}
+        width={400}
+        closable={!formatting}
+        maskClosable={!formatting}
+        footer={
+          <Space>
+            <Button onClick={() => setFormatModalVisible(false)} disabled={formatting}>Cancel</Button>
+            <Button
+              type="primary"
+              icon={<RobotOutlined />}
+              onClick={handleAiFormat}
+              loading={formatting}
+              disabled={!selectedFormatPromptId}
+            >
+              Format
+            </Button>
+          </Space>
+        }
+      >
+        <Typography.Paragraph type="secondary" style={{ marginBottom: 12 }}>
+          Select a prompt to format the description content.
+        </Typography.Paragraph>
+        <Select
+          placeholder="Select AI prompt"
+          style={{ width: '100%' }}
+          loading={promptsLoading}
+          value={selectedFormatPromptId}
+          onChange={setSelectedFormatPromptId}
+          options={aiPrompts.map(p => ({ value: p.sysId, label: p.name }))}
+          disabled={formatting}
+        />
+        {formatting && (
+          <div style={{ textAlign: 'center', padding: 24 }}>
+            <Spin />
+            <Typography.Paragraph type="secondary" style={{ marginTop: 8, marginBottom: 0 }}>
+              Formatting content...
+            </Typography.Paragraph>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 };

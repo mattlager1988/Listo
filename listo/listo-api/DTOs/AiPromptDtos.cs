@@ -22,3 +22,13 @@ public record TrainingAnalysisResponse(
     string Analysis,
     DateTime GeneratedAt
 );
+
+// Content Formatting DTOs
+public record FormatContentRequest(
+    string Content,
+    long PromptSysId
+);
+
+public record FormatContentResponse(
+    string FormattedContent
+);
