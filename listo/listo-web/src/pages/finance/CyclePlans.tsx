@@ -639,7 +639,7 @@ const CyclePlans: React.FC = () => {
               clickTimer = setTimeout(() => {
                 const key = record.sysId.toString();
                 setSelectedRowKeys(prev =>
-                  prev.includes(key) ? [] : [key]
+                  prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]
                 );
               }, 200);
             },

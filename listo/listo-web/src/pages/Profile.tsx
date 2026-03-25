@@ -56,6 +56,7 @@ const Profile: React.FC = () => {
             phoneNumber: user?.phoneNumber,
           }}
           onFinish={handleProfileUpdate}
+          size="small"
           style={{ maxWidth: 400 }}
           autoComplete="off"
         >
@@ -92,6 +93,7 @@ const Profile: React.FC = () => {
           form={passwordForm}
           layout="vertical"
           onFinish={handlePasswordChange}
+          size="small"
           style={{ maxWidth: 400 }}
           autoComplete="off"
         >

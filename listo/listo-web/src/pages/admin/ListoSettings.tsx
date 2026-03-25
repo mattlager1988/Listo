@@ -167,7 +167,7 @@ const ListoSettings: React.FC = () => {
         style={{ marginBottom: 24 }}
       />
 
-      <Form form={form} layout="vertical" autoComplete="off">
+      <Form form={form} layout="vertical" size="small" autoComplete="off">
         {/* Hidden fields to prevent browser password save prompts */}
         <input type="text" name="fake_username" style={{ display: 'none' }} autoComplete="username" />
         <input type="password" name="fake_password" style={{ display: 'none' }} autoComplete="current-password" />

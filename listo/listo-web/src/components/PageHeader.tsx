@@ -24,7 +24,7 @@ const PageHeader: React.FC<PageHeaderProps> = ({ title, actions }) => {
       }}
     >
       <Title
-        level={4}
+        level={2}
         style={{
           margin: 0,
           color: '#1e293b',

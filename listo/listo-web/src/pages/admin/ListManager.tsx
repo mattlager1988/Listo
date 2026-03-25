@@ -316,11 +316,12 @@ const ListManager: React.FC = () => {
                     onClick={handleOpenDiscontinuedModal}
                   />
                 </Tooltip>
-                <div style={{ marginLeft: 'auto', fontSize: 12, color: '#8c8c8c' }}>
-                  {selectedRowKeys.length > 0
-                    ? `${selectedRowKeys.length} selected`
-                    : 'Select rows to perform actions'}
-                </div>
+                <div style={{ flex: 1 }} />
+                {selectedRowKeys.length > 0 && (
+                  <span style={{ color: '#8c8c8c', fontSize: 12 }}>
+                    {selectedRowKeys.length} selected
+                  </span>
+                )}
               </div>
 
               {/* Table Container */}
