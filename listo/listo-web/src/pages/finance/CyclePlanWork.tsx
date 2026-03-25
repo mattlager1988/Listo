@@ -25,6 +25,9 @@ import {
   ExportOutlined,
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
+
+const parseDate = (date: string) => dayjs(date.substring(0, 10));
+
 import api from '../../services/api';
 
 interface CyclePlan {
@@ -514,7 +517,7 @@ const CyclePlanWork: React.FC = () => {
             </div>
             <div>
               <div style={{ fontSize: 12, color: '#8c8c8c' }}>Period</div>
-              <div>{dayjs(cyclePlan.startDate).format('MM/DD/YYYY')} - {dayjs(cyclePlan.endDate).format('MM/DD/YYYY')}</div>
+              <div>{parseDate(cyclePlan.startDate).format('MM/DD/YYYY')} - {parseDate(cyclePlan.endDate).format('MM/DD/YYYY')}</div>
             </div>
             <div>
               <div style={{ fontSize: 12, color: '#8c8c8c' }}>Status</div>

@@ -51,6 +51,12 @@ import {
   IdcardOutlined,
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
+
+// Parse date-only values without timezone conversion.
+// The UTC value converter adds a "Z" suffix to all DateTimes, but date-only fields
+// like DueDate are calendar dates - interpreting as UTC shifts by the local timezone offset.
+const parseDate = (date: string) => dayjs(date.substring(0, 10));
+
 import api from '../../services/api';
 import PhoneInput from '../../components/PhoneInput';
 import PageHeader from '../../components/PageHeader';
@@ -497,7 +503,7 @@ const Accounts: React.FC = () => {
     setEditingAccount(account);
     form.setFieldsValue({
       ...account,
-      dueDate: account.dueDate ? dayjs(account.dueDate) : null,
+      dueDate: account.dueDate ? parseDate(account.dueDate) : null,
     });
     setShowPassword(false);
     setModalVisible(true);
@@ -973,7 +979,7 @@ const Accounts: React.FC = () => {
               autoFocus
               open
               allowClear
-              defaultValue={account.dueDate ? dayjs(account.dueDate) : undefined}
+              defaultValue={account.dueDate ? parseDate(account.dueDate) : undefined}
               format="MM/DD/YYYY"
               onChange={(date) => {
                 handleInlineUpdate(account.sysId, 'dueDate', date);
@@ -996,7 +1002,7 @@ const Accounts: React.FC = () => {
             }}
             style={{ cursor: 'pointer', borderBottom: '1px dashed #d9d9d9', padding: '2px 0' }}
           >
-            {account.dueDate ? dayjs(account.dueDate).format('MM/DD/YYYY') : '-'}
+            {account.dueDate ? parseDate(account.dueDate).format('MM/DD/YYYY') : '-'}
           </span>
         );
       },
@@ -1091,7 +1097,7 @@ const Accounts: React.FC = () => {
       render: (_, record) => {
         if ('isGroupHeader' in record) return null;
         const account = record as Account;
-        return account.lastPaymentDate ? dayjs(account.lastPaymentDate).format('MM/DD/YYYY') : '-';
+        return account.lastPaymentDate ? parseDate(account.lastPaymentDate).format('MM/DD/YYYY') : '-';
       },
       width: 110,
     },
@@ -1158,7 +1164,7 @@ const Accounts: React.FC = () => {
       dataIndex: 'dueDate',
       key: 'dueDate',
       width: 100,
-      render: (_, record) => record.dueDate ? dayjs(record.dueDate).format('MM/DD/YYYY') : '-',
+      render: (_, record) => record.dueDate ? parseDate(record.dueDate).format('MM/DD/YYYY') : '-',
     },
     {
       title: 'Date Posted',
@@ -2050,7 +2056,7 @@ const Accounts: React.FC = () => {
                   <div style={{ fontSize: 12, color: '#8c8c8c' }}>
                     {account.accountTypeName} • {account.accountOwnerName}
                     {account.discontinuedDate && (
-                      <> • Discontinued {dayjs(account.discontinuedDate).format('MM/DD/YYYY')}</>
+                      <> • Discontinued {parseDate(account.discontinuedDate).format('MM/DD/YYYY')}</>
                     )}
                   </div>
                 </div>
@@ -2218,7 +2224,7 @@ const Accounts: React.FC = () => {
                       </div>
                       <div style={{ fontSize: 12, color: '#8c8c8c' }}>
                         {dayjs(payment.createTimestamp).format('MM/DD/YYYY')}
-                        {payment.dueDate && ` • Due: ${dayjs(payment.dueDate).format('MM/DD/YYYY')}`}
+                        {payment.dueDate && ` • Due: ${parseDate(payment.dueDate).format('MM/DD/YYYY')}`}
                         {payment.confirmationNumber && ` • ${payment.confirmationNumber}`}
                         {payment.description && ` • ${payment.description}`}
                       </div>

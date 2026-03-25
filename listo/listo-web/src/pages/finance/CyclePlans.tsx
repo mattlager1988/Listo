@@ -27,6 +27,9 @@ import {
   PlayCircleOutlined,
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
+
+const parseDate = (date: string) => dayjs(date.substring(0, 10));
+
 import api from '../../services/api';
 import PageHeader from '../../components/PageHeader';
 
@@ -121,14 +124,14 @@ const CyclePlans: React.FC = () => {
     // Find prior cycle plan with most recent end date
     const sortedPlans = [...cyclePlans]
       .filter(p => p.endDate)
-      .sort((a, b) => dayjs(b.endDate).unix() - dayjs(a.endDate).unix());
+      .sort((a, b) => parseDate(b.endDate).unix() - parseDate(a.endDate).unix());
 
     const priorPlan = sortedPlans[0];
     let startDate: dayjs.Dayjs | undefined;
     let endDate: dayjs.Dayjs | undefined;
 
     if (priorPlan) {
-      startDate = dayjs(priorPlan.endDate).add(1, 'day');
+      startDate = parseDate(priorPlan.endDate).add(1, 'day');
       endDate = startDate.add(13, 'day');
     }
 
@@ -146,8 +149,8 @@ const CyclePlans: React.FC = () => {
     setEditingPlan(plan);
     form.setFieldsValue({
       ...plan,
-      startDate: plan.startDate ? dayjs(plan.startDate) : null,
-      endDate: plan.endDate ? dayjs(plan.endDate) : null,
+      startDate: plan.startDate ? parseDate(plan.startDate) : null,
+      endDate: plan.endDate ? parseDate(plan.endDate) : null,
     });
     setModalVisible(true);
     setSelectedRowKeys([]);
@@ -246,10 +249,10 @@ const CyclePlans: React.FC = () => {
   const groupedData = useMemo(() => {
     const activePlans = cyclePlans
       .filter(p => p.status === 'Pending' || p.status === 'Active')
-      .sort((a, b) => dayjs(b.startDate).unix() - dayjs(a.startDate).unix());
+      .sort((a, b) => parseDate(b.startDate).unix() - parseDate(a.startDate).unix());
     const completedPlans = cyclePlans
       .filter(p => p.status === 'Completed')
-      .sort((a, b) => dayjs(b.startDate).unix() - dayjs(a.startDate).unix());
+      .sort((a, b) => parseDate(b.startDate).unix() - parseDate(a.startDate).unix());
 
     const groups: (CyclePlanGroup | CyclePlan)[] = [];
     if (activePlans.length > 0 || completedPlans.length === 0) {
@@ -285,7 +288,7 @@ const CyclePlans: React.FC = () => {
         if ('isGroupHeader' in record) {
           return <span style={{ fontWeight: 600 }}>{(record as unknown as CyclePlanGroup).groupLabel}</span>;
         }
-        return record.startDate ? dayjs(record.startDate).format('MM/DD/YYYY') : '-';
+        return record.startDate ? parseDate(record.startDate).format('MM/DD/YYYY') : '-';
       },
     },
     {
@@ -293,7 +296,7 @@ const CyclePlans: React.FC = () => {
       dataIndex: 'endDate',
       render: (_, record) => {
         if ('isGroupHeader' in record) return null;
-        return record.endDate ? dayjs(record.endDate).format('MM/DD/YYYY') : '-';
+        return record.endDate ? parseDate(record.endDate).format('MM/DD/YYYY') : '-';
       },
     },
     {
@@ -474,13 +477,13 @@ const CyclePlans: React.FC = () => {
       title: 'Start Date',
       dataIndex: 'startDate',
       key: 'startDate',
-      render: (date: string) => date ? dayjs(date).format('MM/DD/YYYY') : '-',
+      render: (date: string) => date ? parseDate(date).format('MM/DD/YYYY') : '-',
     },
     {
       title: 'End Date',
       dataIndex: 'endDate',
       key: 'endDate',
-      render: (date: string) => date ? dayjs(date).format('MM/DD/YYYY') : '-',
+      render: (date: string) => date ? parseDate(date).format('MM/DD/YYYY') : '-',
     },
     { title: 'Cycle Goal', dataIndex: 'cycleGoalName', key: 'cycleGoalName' },
     {
@@ -493,7 +496,7 @@ const CyclePlans: React.FC = () => {
       title: 'Discontinued',
       dataIndex: 'discontinuedDate',
       key: 'discontinuedDate',
-      render: (date: string) => date ? dayjs(date).format('MM/DD/YYYY') : '-',
+      render: (date: string) => date ? parseDate(date).format('MM/DD/YYYY') : '-',
     },
     {
       title: 'Actions',

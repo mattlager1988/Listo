@@ -28,6 +28,9 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import dayjs from 'dayjs';
+
+const parseDate = (date: string) => dayjs(date.substring(0, 10));
+
 import api from '../services/api';
 
 
@@ -294,7 +297,7 @@ const Dashboard: React.FC = () => {
       dataIndex: 'dueDate',
       key: 'dueDate',
       width: 80,
-      render: (date: string) => dayjs(date).format('MMM D'),
+      render: (date: string) => parseDate(date).format('MMM D'),
     },
     {
       title: 'Amount',
@@ -329,7 +332,7 @@ const Dashboard: React.FC = () => {
       dataIndex: 'dueDate',
       key: 'dueDate',
       width: 80,
-      render: (date: string | null) => date ? dayjs(date).format('MMM D') : '-',
+      render: (date: string | null) => date ? parseDate(date).format('MMM D') : '-',
     },
     {
       title: 'Amount',
@@ -463,7 +466,7 @@ const Dashboard: React.FC = () => {
       case 'cycle-plan':
         return data.activeCyclePlan ? (
           <Card
-            title={`Active Cycle Plan - ${dayjs(data.activeCyclePlan.startDate).format('MMM D')} - ${dayjs(data.activeCyclePlan.endDate).format('MMM D, YYYY')}`}
+            title={`Active Cycle Plan - ${parseDate(data.activeCyclePlan.startDate).format('MMM D')} - ${parseDate(data.activeCyclePlan.endDate).format('MMM D, YYYY')}`}
             size="small"
             extra={
               <Button
@@ -621,7 +624,7 @@ const Dashboard: React.FC = () => {
                     title="Last Flight"
                     value={
                       data.aviationStats.lastTrainingDate
-                        ? dayjs(data.aviationStats.lastTrainingDate).format('MMM D')
+                        ? parseDate(data.aviationStats.lastTrainingDate).format('MMM D')
                         : 'N/A'
                     }
                     valueStyle={{ fontSize: 14 }}
