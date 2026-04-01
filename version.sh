@@ -70,6 +70,8 @@ case "$1" in
     set_mobile_version "$2"
     echo "All versions set to $2"
     print_versions
+    git commit -a -m "$2-RELEASE"
+    git push
     ;;
   set-api)
     [[ $# -lt 2 ]] && { echo "Error: version required"; exit 1; }
