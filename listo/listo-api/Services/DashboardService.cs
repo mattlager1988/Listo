@@ -25,7 +25,7 @@ public class DashboardService : IDashboardService
     {
         var now = DateTime.UtcNow;
         var in14Days = now.AddDays(14);
-        var last30Days = now.AddDays(-30);
+        var twelveMonthsAgo = new DateTime(now.Year, now.Month, 1).AddMonths(-11);
 
         // Finance: Accounts for upcoming bills
         var activeAccounts = await _context.Accounts
@@ -125,19 +125,23 @@ public class DashboardService : IDashboardService
                 .Select(t => (DateTime?)t.Date)
                 .FirstOrDefault();
 
-            // Calculate hours by training type for last 30 days
-            var recentLogs = allTrainingLogs.Where(t => t.Date >= last30Days).ToList();
-            var hoursByType = recentLogs
-                .GroupBy(t => t.TrainingType.Name)
-                .Select(g => new TrainingTypeHoursDto(g.Key, g.Sum(t => t.HoursFlown)))
-                .OrderBy(h => h.TrainingType)
+            // Calculate hours by training type grouped by month for last 12 calendar months
+            var recentLogs = allTrainingLogs.Where(t => t.Date >= twelveMonthsAgo).ToList();
+            var hoursByMonth = recentLogs
+                .GroupBy(t => new { t.Date.Year, t.Date.Month, Type = t.TrainingType.Name })
+                .OrderBy(g => g.Key.Year).ThenBy(g => g.Key.Month).ThenBy(g => g.Key.Type)
+                .Select(g => new MonthlyTrainingHoursDto(
+                    new DateTime(g.Key.Year, g.Key.Month, 1).ToString("MMM yyyy"),
+                    g.Key.Type,
+                    g.Sum(t => t.HoursFlown)
+                ))
                 .ToList();
 
             aviationStats = new AviationSummaryDto(
                 totalDualHours,
                 totalSoloHours,
                 lastTrainingDate,
-                hoursByType
+                hoursByMonth
             );
         }
 

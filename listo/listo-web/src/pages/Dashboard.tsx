@@ -64,7 +64,8 @@ interface UpcomingBill {
   accountFlag: string;
 }
 
-interface TrainingTypeHours {
+interface MonthlyTrainingHours {
+  month: string;
   trainingType: string;
   hours: number;
 }
@@ -73,7 +74,7 @@ interface AviationSummary {
   totalDualHours: number;
   totalSoloHours: number;
   lastTrainingDate: string | null;
-  hoursByTypeLast30Days: TrainingTypeHours[];
+  hoursByMonth: MonthlyTrainingHours[];
 }
 
 interface DashboardSummary {
@@ -367,7 +368,7 @@ const Dashboard: React.FC = () => {
     );
   }
 
-  const chartData = data.aviationStats?.hoursByTypeLast30Days || [];
+  const chartData = data.aviationStats?.hoursByMonth || [];
 
   const trainingTypeColors: Record<string, string> = {
     'Dual Flight Training': '#1890ff',
@@ -378,20 +379,18 @@ const Dashboard: React.FC = () => {
 
   const flightHoursChartConfig = {
     data: chartData,
-    xField: 'trainingType',
+    xField: 'month',
     yField: 'hours',
-    color: (d: { trainingType: string }) => trainingTypeColors[d.trainingType] || '#8c8c8c',
+    colorField: 'trainingType',
+    stack: true,
+    scale: {
+      color: {
+        relations: Object.entries(trainingTypeColors),
+      },
+    },
     style: {
       radiusTopLeft: 4,
       radiusTopRight: 4,
-    },
-    label: {
-      text: (d: { hours: number }) => d.hours > 0 ? d.hours.toFixed(1) : '',
-      position: 'inside' as const,
-      style: {
-        fill: '#ffffff',
-        fontSize: 12,
-      },
     },
     axis: {
       x: {
@@ -402,8 +401,13 @@ const Dashboard: React.FC = () => {
         labelFormatter: (v: number) => `${v}h`,
       },
     },
-    legend: false as const,
-    height: 180,
+    legend: {
+      color: {
+        position: 'top' as const,
+        itemLabelFontSize: 11,
+      },
+    },
+    height: 200,
   };
 
   const renderWidget = (widgetId: WidgetId) => {
@@ -633,12 +637,12 @@ const Dashboard: React.FC = () => {
               </Col>
             </Row>
             <div style={{ marginTop: 16 }}>
-              <div style={{ color: '#8c8c8c', fontSize: 12, marginBottom: 8 }}>Last 30 Days</div>
+              <div style={{ color: '#8c8c8c', fontSize: 12, marginBottom: 8 }}>Last 12 Months</div>
               {chartData.length > 0 ? (
                 <Column {...flightHoursChartConfig} />
               ) : (
                 <p style={{ color: '#8c8c8c', textAlign: 'center', margin: '16px 0' }}>
-                  No training in the last 30 days
+                  No training in the last 12 months
                 </p>
               )}
             </div>

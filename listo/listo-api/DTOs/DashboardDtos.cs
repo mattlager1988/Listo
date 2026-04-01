@@ -48,10 +48,11 @@ public record AviationSummaryDto(
     decimal TotalDualHours,
     decimal TotalSoloHours,
     DateTime? LastTrainingDate,
-    IEnumerable<TrainingTypeHoursDto> HoursByTypeLast30Days
+    IEnumerable<MonthlyTrainingHoursDto> HoursByMonth
 );
 
-public record TrainingTypeHoursDto(
+public record MonthlyTrainingHoursDto(
+    string Month,
     string TrainingType,
     decimal Hours
 );
