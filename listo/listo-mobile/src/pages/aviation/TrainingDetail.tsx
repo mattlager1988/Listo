@@ -16,6 +16,8 @@ import {
 import type { Action } from 'antd-mobile/es/components/action-sheet';
 import { Worker, Viewer } from '@react-pdf-viewer/core';
 import '@react-pdf-viewer/core/lib/styles/index.css';
+import { defaultLayoutPlugin } from '@react-pdf-viewer/default-layout';
+import '@react-pdf-viewer/default-layout/lib/styles/index.css';
 import { parseDate } from '@shared/utils/format';
 import api from '@shared/services/api';
 
@@ -44,6 +46,7 @@ interface Attachment {
 const TrainingDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const defaultLayoutPluginInstance = defaultLayoutPlugin();
   const [log, setLog] = useState<TrainingLog | null>(null);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -373,7 +376,7 @@ const TrainingDetail: React.FC = () => {
                 </div>
               </div>
             </div>
-            <div style={{ flex: 1, overflow: 'auto' }}>
+            <div style={{ flex: 1, overflow: 'hidden' }}>
               {viewLoading ? (
                 <div style={{ padding: 16 }}>
                   <Skeleton.Paragraph lineCount={6} animated />
@@ -381,7 +384,7 @@ const TrainingDetail: React.FC = () => {
               ) : viewUrl && viewingDoc.mimeType === 'application/pdf' ? (
                 <Worker workerUrl={pdfWorkerUrl}>
                   <div style={{ height: '70vh' }}>
-                    <Viewer fileUrl={viewUrl} />
+                    <Viewer fileUrl={viewUrl} plugins={[defaultLayoutPluginInstance]} />
                   </div>
                 </Worker>
               ) : viewUrl && viewingDoc.mimeType.startsWith('image/') ? (

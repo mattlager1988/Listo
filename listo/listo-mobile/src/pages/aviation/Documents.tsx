@@ -3,6 +3,8 @@ import { NavBar, PullToRefresh, List, Tag, Skeleton, ErrorBlock, Toast, Collapse
 import { UnorderedListOutline } from 'antd-mobile-icons';
 import { Worker, Viewer } from '@react-pdf-viewer/core';
 import '@react-pdf-viewer/core/lib/styles/index.css';
+import { defaultLayoutPlugin } from '@react-pdf-viewer/default-layout';
+import '@react-pdf-viewer/default-layout/lib/styles/index.css';
 import api from '@shared/services/api';
 import { useMenu } from '../../contexts/MenuContext';
 
@@ -23,6 +25,7 @@ interface Document {
 
 const Documents: React.FC = () => {
   const { openMenu } = useMenu();
+  const defaultLayoutPluginInstance = defaultLayoutPlugin();
   const [documents, setDocuments] = useState<Document[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -289,7 +292,7 @@ const Documents: React.FC = () => {
               {viewingDoc.description || viewingDoc.originalFileName}
             </div>
           </NavBar>
-          <div style={{ flex: 1, overflow: 'auto' }}>
+          <div style={{ flex: 1, overflow: 'hidden' }}>
             {viewLoading ? (
               <div style={{ padding: 16 }}>
                 <Skeleton.Paragraph lineCount={6} animated />
@@ -297,7 +300,7 @@ const Documents: React.FC = () => {
             ) : viewUrl && viewingDoc.mimeType === 'application/pdf' ? (
               <Worker workerUrl={pdfWorkerUrl}>
                 <div style={{ height: '100%' }}>
-                  <Viewer fileUrl={viewUrl} />
+                  <Viewer fileUrl={viewUrl} plugins={[defaultLayoutPluginInstance]} />
                 </div>
               </Worker>
             ) : viewUrl && viewingDoc.mimeType.startsWith('image/') ? (
