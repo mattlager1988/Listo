@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { NavBar, Card, Grid, List, PullToRefresh, Tag, Skeleton, ErrorBlock } from 'antd-mobile';
 import { parseDate } from '@shared/utils/format';
 import { UnorderedListOutline } from 'antd-mobile-icons';
+import dayjs from 'dayjs';
 import api from '@shared/services/api';
 import type { DashboardSummary, PendingPayment } from '@shared/types';
 import { useMenu } from '../contexts/MenuContext';
@@ -221,6 +222,15 @@ const Dashboard: React.FC = () => {
             )}
           </Card>
         )}
+
+        {/* Sober Days */}
+        <Card title="Sober Days" style={{ borderRadius: 8 }}>
+          <div style={{ textAlign: 'center', padding: '12px 0' }}>
+            <div style={{ fontSize: 48, fontWeight: 700, color: '#3f8600', lineHeight: 1 }}>
+              {dayjs().diff(dayjs('2024-08-31'), 'day') + 1}
+            </div>
+          </div>
+        </Card>
 
         {/* Upcoming Bills */}
         {data.upcomingBills.length > 0 ? (
