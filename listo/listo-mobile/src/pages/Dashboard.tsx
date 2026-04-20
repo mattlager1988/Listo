@@ -75,6 +75,15 @@ const Dashboard: React.FC = () => {
       <NavBar back={null} left={<UnorderedListOutline fontSize={20} onClick={openMenu} style={{ cursor: 'pointer' }} />} style={{ '--height': '48px' }}>Dashboard</NavBar>
 
       <div style={{ padding: 12, display: 'flex', flexDirection: 'column', gap: 12 }}>
+        {/* Sober Days */}
+        <Card title="Sober Days" style={{ borderRadius: 8 }}>
+          <div style={{ textAlign: 'center', padding: '12px 0' }}>
+            <div style={{ fontSize: 48, fontWeight: 700, color: '#3f8600', lineHeight: 1 }}>
+              {dayjs().diff(dayjs('2024-08-31'), 'day') + 1}
+            </div>
+          </div>
+        </Card>
+
         {/* Bank Accounts */}
         {data.bankAccounts.length > 0 && (
           <Card title="Bank Accounts" style={{ borderRadius: 8 }}>
@@ -222,15 +231,6 @@ const Dashboard: React.FC = () => {
             )}
           </Card>
         )}
-
-        {/* Sober Days */}
-        <Card title="Sober Days" style={{ borderRadius: 8 }}>
-          <div style={{ textAlign: 'center', padding: '12px 0' }}>
-            <div style={{ fontSize: 48, fontWeight: 700, color: '#3f8600', lineHeight: 1 }}>
-              {dayjs().diff(dayjs('2024-08-31'), 'day') + 1}
-            </div>
-          </div>
-        </Card>
 
         {/* Upcoming Bills */}
         {data.upcomingBills.length > 0 ? (
