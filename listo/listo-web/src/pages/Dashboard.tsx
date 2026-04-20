@@ -93,7 +93,7 @@ interface PendingPayment {
   accountName: string;
 }
 
-type WidgetId = 'bank-accounts' | 'upcoming-bills' | 'cycle-plan' | 'pending-payments' | 'flight-training';
+type WidgetId = 'bank-accounts' | 'upcoming-bills' | 'cycle-plan' | 'pending-payments' | 'flight-training' | 'sober-days';
 
 type WidgetWidth = 'full' | 'half';
 
@@ -108,6 +108,7 @@ const defaultWidgetLayout: WidgetConfig[] = [
   { id: 'pending-payments', width: 'half' },
   { id: 'cycle-plan', width: 'half' },
   { id: 'flight-training', width: 'half' },
+  { id: 'sober-days', width: 'half' },
 ];
 
 interface SortableWidgetProps {
@@ -217,16 +218,16 @@ const Dashboard: React.FC = () => {
       const saved = JSON.parse(response.data.layoutJson);
       // Handle both old format (array of IDs) and new format (array of WidgetConfig)
       if (Array.isArray(saved) && saved.length > 0) {
+        let parsed: WidgetConfig[];
         if (typeof saved[0] === 'string') {
-          // Old format - convert to new
-          const converted: WidgetConfig[] = (saved as WidgetId[]).map(id => ({
-            id,
-            width: 'full' as WidgetWidth,
-          }));
-          setWidgetLayout(converted);
+          parsed = (saved as WidgetId[]).map(id => ({ id, width: 'full' as WidgetWidth }));
         } else {
-          setWidgetLayout(saved as WidgetConfig[]);
+          parsed = saved as WidgetConfig[];
         }
+        // Append any new default widgets not yet in the saved layout
+        const savedIds = new Set(parsed.map(w => w.id));
+        const missing = defaultWidgetLayout.filter(w => !savedIds.has(w.id));
+        setWidgetLayout([...parsed, ...missing]);
       }
     } catch {
       // No saved layout, use defaults
@@ -659,6 +660,20 @@ const Dashboard: React.FC = () => {
             </div>
           </Card>
         );
+
+      case 'sober-days': {
+        const soberDays = dayjs().diff(dayjs('2024-08-31'), 'day');
+        return (
+          <Card title="Sober Days" size="small">
+            <div style={{ textAlign: 'center', padding: '16px 0' }}>
+              <Statistic
+                value={soberDays}
+                valueStyle={{ fontSize: 48, fontWeight: 700, color: '#3f8600' }}
+              />
+            </div>
+          </Card>
+        );
+      }
 
       default:
         return null;
