@@ -662,7 +662,7 @@ const Dashboard: React.FC = () => {
         );
 
       case 'sober-days': {
-        const soberDays = dayjs().diff(dayjs('2024-08-31'), 'day');
+        const soberDays = dayjs().diff(dayjs('2024-08-31'), 'day') + 1;
         return (
           <Card title="Sober Days" size="small">
             <div style={{ textAlign: 'center', padding: '16px 0' }}>
