@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Button, Card, Tag, Space, message, Popconfirm, Tooltip, Spin, Empty } from 'antd';
+import { Button, Card, Tag, Space, message, Popconfirm, Tooltip, Spin, Empty, Segmented } from 'antd';
 import {
   ArrowLeftOutlined,
   SettingOutlined,
@@ -9,7 +9,12 @@ import {
   DeleteOutlined,
   ExclamationCircleOutlined,
   PlusOutlined,
+  EditOutlined,
+  ReloadOutlined,
+  TableOutlined,
+  AppstoreOutlined,
 } from '@ant-design/icons';
+import { ProTable } from '@ant-design/pro-components';
 import {
   DndContext,
   closestCorners,
@@ -176,6 +181,8 @@ const BoardView: React.FC = () => {
   const [formModalOpen, setFormModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<TaskItem | null>(null);
   const [saving, setSaving] = useState(false);
+  const [viewMode, setViewMode] = useState<'kanban' | 'grid'>('kanban');
+  const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -398,6 +405,107 @@ const BoardView: React.FC = () => {
     }
   };
 
+  const handleBulkComplete = async () => {
+    try {
+      await Promise.all(selectedRowKeys.map(key => api.post(`/tasks/items/${key}/complete`)));
+      setTasks(prev => prev.filter(t => !selectedRowKeys.includes(t.sysId)));
+      setSelectedRowKeys([]);
+      message.success('Tasks completed');
+    } catch {
+      message.error('Failed to complete tasks');
+    }
+  };
+
+  const handleBulkBacklog = async () => {
+    try {
+      await Promise.all(selectedRowKeys.map(key => api.post(`/tasks/items/${key}/backlog`)));
+      setTasks(prev => prev.filter(t => !selectedRowKeys.includes(t.sysId)));
+      setSelectedRowKeys([]);
+      message.success('Tasks moved to backlog');
+    } catch {
+      message.error('Failed to move tasks');
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    try {
+      await Promise.all(selectedRowKeys.map(key => api.delete(`/tasks/items/${key}`)));
+      setTasks(prev => prev.filter(t => !selectedRowKeys.includes(t.sysId)));
+      setSelectedRowKeys([]);
+      message.success('Tasks deleted');
+    } catch {
+      message.error('Failed to delete tasks');
+    }
+  };
+
+  const gridColumns = [
+    {
+      title: 'Name',
+      dataIndex: 'name',
+      key: 'name',
+      sorter: (a: TaskItem, b: TaskItem) => a.name.localeCompare(b.name),
+    },
+    {
+      title: 'Priority',
+      dataIndex: 'priority',
+      key: 'priority',
+      width: 90,
+      sorter: (a: TaskItem, b: TaskItem) => {
+        const order: Record<string, number> = { High: 0, Medium: 1, Low: 2 };
+        return (order[a.priority] ?? 1) - (order[b.priority] ?? 1);
+      },
+      render: (_: unknown, record: TaskItem) => (
+        <Tag color={priorityColors[record.priority]} style={{ fontSize: 10, lineHeight: '16px', padding: '0 4px', margin: 0 }}>
+          {record.priority}
+        </Tag>
+      ),
+    },
+    {
+      title: 'Column',
+      dataIndex: 'taskBoardColumnName',
+      key: 'taskBoardColumnName',
+      width: 140,
+      sorter: (a: TaskItem, b: TaskItem) =>
+        (a.taskBoardColumnName ?? '').localeCompare(b.taskBoardColumnName ?? ''),
+      render: (_: unknown, record: TaskItem) =>
+        record.taskBoardColumnName || <span style={{ color: '#bfbfbf' }}>—</span>,
+    },
+    {
+      title: 'Due Date',
+      dataIndex: 'dueDate',
+      key: 'dueDate',
+      width: 110,
+      sorter: (a: TaskItem, b: TaskItem) => {
+        if (!a.dueDate && !b.dueDate) return 0;
+        if (!a.dueDate) return 1;
+        if (!b.dueDate) return -1;
+        return dayjs(a.dueDate).valueOf() - dayjs(b.dueDate).valueOf();
+      },
+      render: (_: unknown, record: TaskItem) => {
+        if (!record.dueDate) return <span style={{ color: '#bfbfbf' }}>—</span>;
+        const due = dayjs(record.dueDate);
+        const today = dayjs().startOf('day');
+        const isOverdue = due.isBefore(today);
+        const isToday = due.isSame(today, 'day');
+        return (
+          <span style={{ color: isOverdue ? 'red' : isToday ? 'orange' : undefined }}>
+            {isOverdue && <ExclamationCircleOutlined style={{ marginRight: 4 }} />}
+            {due.format('MM/DD/YYYY')}
+          </span>
+        );
+      },
+    },
+    {
+      title: 'Created',
+      dataIndex: 'createTimestamp',
+      key: 'createTimestamp',
+      width: 120,
+      sorter: (a: TaskItem, b: TaskItem) =>
+        dayjs(a.createTimestamp).valueOf() - dayjs(b.createTimestamp).valueOf(),
+      render: (_: unknown, record: TaskItem) => dayjs(record.createTimestamp).format('MM/DD/YYYY'),
+    },
+  ];
+
   if (loading) {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 'calc(100vh - 112px)' }}>
@@ -423,9 +531,15 @@ const BoardView: React.FC = () => {
         title={board.name}
         actions={
           <Space>
-            <Button size="small" type="primary" icon={<PlusOutlined />} onClick={handleCreateTask}>
-              Add Task
-            </Button>
+            <Segmented
+              size="small"
+              value={viewMode}
+              onChange={(val) => { setViewMode(val as 'kanban' | 'grid'); setSelectedRowKeys([]); }}
+              options={[
+                { value: 'kanban', icon: <AppstoreOutlined /> },
+                { value: 'grid', icon: <TableOutlined /> },
+              ]}
+            />
             <Button size="small" icon={<SettingOutlined />} onClick={() => setSettingsOpen(true)}>
               Columns
             </Button>
@@ -436,7 +550,113 @@ const BoardView: React.FC = () => {
         }
       />
 
-      {board.columns.length === 0 ? (
+      {viewMode === 'grid' ? (
+        <>
+          {/* Grid action toolbar */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              padding: '8px 12px',
+              marginBottom: 16,
+              background: '#fafafa',
+              border: '1px solid #e8e8e8',
+              borderRadius: 6,
+              gap: 4,
+              flexShrink: 0,
+            }}
+          >
+            <Tooltip title="Add Task">
+              <Button type="text" size="small" icon={<PlusOutlined />} onClick={handleCreateTask} />
+            </Tooltip>
+            <Tooltip title="Edit">
+              <Button
+                type="text"
+                size="small"
+                icon={<EditOutlined />}
+                disabled={selectedRowKeys.length !== 1}
+                onClick={() => {
+                  const task = tasks.find(t => t.sysId === selectedRowKeys[0]);
+                  if (task) handleEditTask(task);
+                }}
+              />
+            </Tooltip>
+            <div style={{ borderLeft: '1px solid #d9d9d9', height: 16, margin: '0 8px' }} />
+            <Tooltip title="Complete">
+              <Button
+                type="text"
+                size="small"
+                icon={<CheckOutlined />}
+                disabled={selectedRowKeys.length === 0}
+                onClick={handleBulkComplete}
+              />
+            </Tooltip>
+            <Tooltip title="Move to Backlog">
+              <Button
+                type="text"
+                size="small"
+                icon={<RollbackOutlined />}
+                disabled={selectedRowKeys.length === 0}
+                onClick={handleBulkBacklog}
+              />
+            </Tooltip>
+            <div style={{ borderLeft: '1px solid #d9d9d9', height: 16, margin: '0 8px' }} />
+            <Popconfirm
+              title={`Delete ${selectedRowKeys.length} task${selectedRowKeys.length !== 1 ? 's' : ''}?`}
+              onConfirm={handleBulkDelete}
+              okButtonProps={{ danger: true }}
+              disabled={selectedRowKeys.length === 0}
+            >
+              <Tooltip title="Delete">
+                <Button
+                  type="text"
+                  size="small"
+                  danger
+                  icon={<DeleteOutlined />}
+                  disabled={selectedRowKeys.length === 0}
+                />
+              </Tooltip>
+            </Popconfirm>
+            <div style={{ borderLeft: '1px solid #d9d9d9', height: 16, margin: '0 8px' }} />
+            <Tooltip title="Refresh">
+              <Button type="text" size="small" icon={<ReloadOutlined />} onClick={fetchBoard} />
+            </Tooltip>
+            <div style={{ flex: 1 }} />
+            {selectedRowKeys.length > 0 && (
+              <span style={{ color: '#8c8c8c', fontSize: 12 }}>{selectedRowKeys.length} selected</span>
+            )}
+          </div>
+
+          {/* Grid table */}
+          <div className="condensed-table" style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
+            <ProTable
+              columns={gridColumns}
+              dataSource={tasks}
+              rowKey={(record) => record.sysId.toString()}
+              loading={loading}
+              search={false}
+              options={false}
+              tableAlertRender={false}
+              pagination={false}
+              toolBarRender={false}
+              rowSelection={{
+                selectedRowKeys,
+                onChange: (keys) => setSelectedRowKeys(keys),
+              }}
+              onRow={(record) => ({
+                onClick: () => {
+                  const key = record.sysId.toString();
+                  setSelectedRowKeys(prev =>
+                    prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]
+                  );
+                },
+                onDoubleClick: () => handleEditTask(record),
+                style: { cursor: 'pointer' },
+              })}
+            />
+          </div>
+        </>
+      ) : board.columns.length === 0 ? (
         <Empty description="No columns configured" style={{ marginTop: 48 }}>
           <Button type="primary" onClick={() => setSettingsOpen(true)}>
             Add Columns
