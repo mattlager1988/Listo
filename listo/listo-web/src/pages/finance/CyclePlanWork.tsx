@@ -274,7 +274,7 @@ const CyclePlanWork: React.FC = () => {
       title: 'Name',
       dataIndex: 'name',
       key: 'name',
-      width: 180,
+      width: 207,
       render: (_: unknown, record: TableRecord) => {
         if ('isGroupHeader' in record && record.isGroupHeader) {
           return (

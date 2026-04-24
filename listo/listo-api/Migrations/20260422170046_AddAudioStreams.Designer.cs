@@ -4,6 +4,7 @@ using Listo.Api.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Listo.Api.Migrations
 {
     [DbContext(typeof(ListoDbContext))]
-    partial class ListoDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260422170046_AddAudioStreams")]
+    partial class AddAudioStreams
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -435,48 +438,6 @@ namespace Listo.Api.Migrations
                     b.HasIndex("UserSysId");
 
                     b.ToTable("audio_streams", (string)null);
-                });
-
-            modelBuilder.Entity("Listo.Api.Models.AudioStreamCategory", b =>
-                {
-                    b.Property<long>("SysId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasColumnName("sys_id");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("SysId"));
-
-                    b.Property<DateTime>("CreateTimestamp")
-                        .HasColumnType("datetime(6)")
-                        .HasColumnName("create_timestamp");
-
-                    b.Property<long?>("CreateUser")
-                        .HasColumnType("bigint")
-                        .HasColumnName("create_user");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("tinyint(1)")
-                        .HasColumnName("is_deleted");
-
-                    b.Property<DateTime>("ModifyTimestamp")
-                        .HasColumnType("datetime(6)")
-                        .HasColumnName("modify_timestamp");
-
-                    b.Property<long?>("ModifyUser")
-                        .HasColumnType("bigint")
-                        .HasColumnName("modify_user");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("varchar(255)")
-                        .HasColumnName("name");
-
-                    b.HasKey("SysId");
-
-                    b.HasIndex("Name")
-                        .IsUnique();
-
-                    b.ToTable("audio_stream_categories", (string)null);
                 });
 
             modelBuilder.Entity("Listo.Api.Models.BankAccount", b =>

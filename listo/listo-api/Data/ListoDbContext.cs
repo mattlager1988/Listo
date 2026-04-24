@@ -42,6 +42,8 @@ public class ListoDbContext : DbContext
     public DbSet<TaskBoard> TaskBoards => Set<TaskBoard>();
     public DbSet<TaskBoardColumn> TaskBoardColumns => Set<TaskBoardColumn>();
     public DbSet<TaskItem> TaskItems => Set<TaskItem>();
+    public DbSet<AudioStream> AudioStreams => Set<AudioStream>();
+    public DbSet<AudioStreamCategory> AudioStreamCategories => Set<AudioStreamCategory>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -641,6 +643,42 @@ public class ListoDbContext : DbContext
             entity.HasIndex(e => e.TaskBoardSysId);
             entity.HasIndex(e => e.TaskBoardColumnSysId);
             entity.HasIndex(e => e.IsCompleted);
+        });
+
+        modelBuilder.Entity<AudioStreamCategory>(entity =>
+        {
+            entity.ToTable("audio_stream_categories");
+            entity.HasKey(e => e.SysId);
+            entity.Property(e => e.SysId).HasColumnName("sys_id");
+            entity.Property(e => e.Name).HasColumnName("name").IsRequired();
+            entity.Property(e => e.IsDeleted).HasColumnName("is_deleted");
+            entity.Property(e => e.CreateTimestamp).HasColumnName("create_timestamp");
+            entity.Property(e => e.ModifyTimestamp).HasColumnName("modify_timestamp");
+            entity.Property(e => e.CreateUser).HasColumnName("create_user");
+            entity.Property(e => e.ModifyUser).HasColumnName("modify_user");
+            entity.HasIndex(e => e.Name).IsUnique();
+        });
+
+        modelBuilder.Entity<AudioStream>(entity =>
+        {
+            entity.ToTable("audio_streams");
+            entity.HasKey(e => e.SysId);
+            entity.Property(e => e.SysId).HasColumnName("sys_id");
+            entity.Property(e => e.Name).HasColumnName("name").IsRequired();
+            entity.Property(e => e.Url).HasColumnName("url").IsRequired().HasMaxLength(1000);
+            entity.Property(e => e.Category).HasColumnName("category").HasMaxLength(100);
+            entity.Property(e => e.Description).HasColumnName("description");
+            entity.Property(e => e.UserSysId).HasColumnName("user_sys_id");
+            entity.Property(e => e.CreateTimestamp).HasColumnName("create_timestamp");
+            entity.Property(e => e.ModifyTimestamp).HasColumnName("modify_timestamp");
+            entity.Property(e => e.CreateUser).HasColumnName("create_user");
+            entity.Property(e => e.ModifyUser).HasColumnName("modify_user");
+
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserSysId);
+
+            entity.HasIndex(e => e.UserSysId);
         });
 
         // Ensure all DateTime values read from the database are marked as UTC

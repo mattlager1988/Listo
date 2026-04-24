@@ -86,3 +86,23 @@ public record NoteResponse(
 public record CreateNoteRequest(string Subject, string Description);
 
 public record UpdateNoteRequest(string? Subject, string? Description);
+
+// Audio Stream Category DTOs
+public record AudioStreamCategoryResponse(long SysId, string Name, bool IsDeleted, int StreamCount);
+public record CreateAudioStreamCategoryRequest(string Name);
+public record UpdateAudioStreamCategoryRequest(string? Name);
+
+// Audio Stream DTOs
+public record AudioStreamResponse(
+    long SysId,
+    string Name,
+    string Url,
+    string? Category,
+    string? Description,
+    DateTime CreateTimestamp,
+    DateTime ModifyTimestamp
+);
+
+public record CreateAudioStreamRequest(string Name, string Url, string? Category, string? Description);
+
+public record UpdateAudioStreamRequest(string? Name, string? Url, string? Category, string? Description);

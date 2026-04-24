@@ -102,6 +102,13 @@ export const listRegistry: ModuleConfig[] = [
         usageCountField: 'documentCount',
       },
       {
+        key: 'audiostreamcategories',
+        label: 'Stream Categories',
+        endpoint: '/aviation/audiostreamcategories',
+        singularLabel: 'Stream Category',
+        usageCountField: 'streamCount',
+      },
+      {
         key: 'aiprompts',
         label: 'AI Prompts',
         endpoint: '/aviation/aiprompts',

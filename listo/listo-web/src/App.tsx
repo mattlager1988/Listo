@@ -23,6 +23,8 @@ import TrainingTracker from './pages/aviation/TrainingTracker';
 import AviationDocuments from './pages/aviation/Documents';
 import FinanceDocuments from './pages/finance/Documents';
 import Notes from './pages/aviation/Notes';
+import Listen from './pages/aviation/Listen';
+import ListenPlayer from './pages/aviation/ListenPlayer';
 import PasswordsLayout from './pages/passwords';
 import Passwords from './pages/passwords/Passwords';
 import TasksLayout from './pages/tasks';
@@ -61,6 +63,8 @@ function App() {
                 <Route path="training" element={<TrainingTracker />} />
                 <Route path="documents" element={<AviationDocuments />} />
                 <Route path="notes" element={<Notes />} />
+                <Route path="listen" element={<Listen />} />
+                <Route path="listen/player" element={<ListenPlayer />} />
               </Route>
               <Route path="passwords" element={<PasswordsLayout />}>
                 <Route index element={<Passwords />} />
