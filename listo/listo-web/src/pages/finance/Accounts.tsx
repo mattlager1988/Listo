@@ -80,6 +80,7 @@ interface Account {
   resetAmountDue: boolean;
   accountFlag: string;
   notes: string | null;
+  cardCount: number;
   isDiscontinued: boolean;
   discontinuedDate: string | null;
   lastPaymentDate: string | null;
@@ -1100,6 +1101,22 @@ const Accounts: React.FC = () => {
         return account.lastPaymentDate ? parseDate(account.lastPaymentDate).format('MM/DD/YYYY') : '-';
       },
       width: 110,
+    },
+    {
+      title: 'Cards',
+      dataIndex: 'cardCount',
+      key: 'cardCount',
+      sorter: (a, b) => {
+        if ('isGroupHeader' in a || 'isGroupHeader' in b) return 0;
+        return (a as Account).cardCount - (b as Account).cardCount;
+      },
+      sortOrder: sorterState?.field === 'cardCount' ? sorterState.order : undefined,
+      render: (_, record) => {
+        if ('isGroupHeader' in record) return null;
+        const count = (record as Account).cardCount;
+        return count > 0 ? <Tag>{count}</Tag> : '-';
+      },
+      width: 70,
     },
     {
       title: 'Notes',

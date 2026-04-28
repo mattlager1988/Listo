@@ -52,6 +52,7 @@ public record AccountResponse(
     bool ResetAmountDue,
     string AccountFlag,
     string? Notes,
+    int CardCount,
     bool IsDiscontinued,
     DateTime? DiscontinuedDate,
     DateTime? LastPaymentDate,
