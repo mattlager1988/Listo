@@ -128,7 +128,7 @@ public class AuthService : IAuthService
         var qrCodeBytes = qrCode.GetGraphic(20);
         var qrCodeBase64 = Convert.ToBase64String(qrCodeBytes);
 
-        return new MfaSetupResponse(secret, qrCodeBase64, secret);
+        return new MfaSetupResponse(qrCodeBase64, secret);
     }
 
     public async Task<bool> EnableMfaAsync(long userId, string code)
@@ -150,8 +150,8 @@ public class AuthService : IAuthService
 
     public async Task<bool> DisableMfaAsync(long userId)
     {
-        var user = await _context.Users.FindAsync(userId)
-            ?? throw new InvalidOperationException("User not found");
+        var user = await _context.Users.FindAsync(userId);
+        if (user == null) return false;
 
         user.MfaEnabled = false;
         user.MfaSecret = null;

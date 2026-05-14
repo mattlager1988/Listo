@@ -18,6 +18,7 @@ import { Worker, Viewer } from '@react-pdf-viewer/core';
 import '@react-pdf-viewer/core/lib/styles/index.css';
 import { defaultLayoutPlugin } from '@react-pdf-viewer/default-layout';
 import '@react-pdf-viewer/default-layout/lib/styles/index.css';
+import DOMPurify from 'dompurify';
 import { parseDate } from '@shared/utils/format';
 import api from '@shared/services/api';
 
@@ -274,7 +275,7 @@ const TrainingDetail: React.FC = () => {
               <div
                 className="rich-text-content"
                 style={{ fontSize: 13, color: '#595959', lineHeight: 1.6 }}
-                dangerouslySetInnerHTML={{ __html: log.description }}
+                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(log.description) }}
               />
             </Card>
           )}

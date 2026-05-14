@@ -31,6 +31,7 @@ import {
   DownloadOutlined,
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
+import DOMPurify from 'dompurify';
 
 // Parse date-only values without timezone conversion.
 // The UTC value converter adds a "Z" suffix to all DateTimes, but TrainingLog.Date
@@ -777,7 +778,7 @@ const TrainingTracker: React.FC = () => {
                 minHeight: 200,
                 lineHeight: 1.6,
               }}
-              dangerouslySetInnerHTML={{ __html: viewingLog.description }}
+              dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(viewingLog.description) }}
             />
             {(() => {
               const attachments = attachmentMap.get(viewingLog.sysId);
