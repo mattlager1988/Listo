@@ -84,6 +84,15 @@ const Dashboard: React.FC = () => {
           </div>
         </Card>
 
+        {/* Days Until Ring */}
+        <Card title="Days Until Ring" style={{ borderRadius: 8 }}>
+          <div style={{ textAlign: 'center', padding: '12px 0' }}>
+            <div style={{ fontSize: 48, fontWeight: 700, color: '#eb2f96', lineHeight: 1 }}>
+              {dayjs().startOf('day').diff(dayjs('2026-05-19'), 'day')}
+            </div>
+          </div>
+        </Card>
+
         {/* Bank Accounts */}
         {data.bankAccounts.length > 0 && (
           <Card title="Bank Accounts" style={{ borderRadius: 8 }}>

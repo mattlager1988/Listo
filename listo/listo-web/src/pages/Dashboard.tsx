@@ -93,7 +93,7 @@ interface PendingPayment {
   accountName: string;
 }
 
-type WidgetId = 'bank-accounts' | 'upcoming-bills' | 'cycle-plan' | 'pending-payments' | 'flight-training' | 'sober-days';
+type WidgetId = 'bank-accounts' | 'upcoming-bills' | 'cycle-plan' | 'pending-payments' | 'flight-training' | 'sober-days' | 'days-until-ring';
 
 type WidgetWidth = 'full' | 'half';
 
@@ -109,6 +109,7 @@ const defaultWidgetLayout: WidgetConfig[] = [
   { id: 'cycle-plan', width: 'half' },
   { id: 'flight-training', width: 'half' },
   { id: 'sober-days', width: 'half' },
+  { id: 'days-until-ring', width: 'half' },
 ];
 
 interface SortableWidgetProps {
@@ -669,6 +670,20 @@ const Dashboard: React.FC = () => {
               <Statistic
                 value={soberDays}
                 valueStyle={{ fontSize: 48, fontWeight: 700, color: '#3f8600' }}
+              />
+            </div>
+          </Card>
+        );
+      }
+
+      case 'days-until-ring': {
+        const daysUntilRing = dayjs().startOf('day').diff(dayjs('2026-05-19'), 'day');
+        return (
+          <Card title="Days Until Ring" size="small">
+            <div style={{ textAlign: 'center', padding: '16px 0' }}>
+              <Statistic
+                value={daysUntilRing}
+                valueStyle={{ fontSize: 48, fontWeight: 700, color: '#eb2f96' }}
               />
             </div>
           </Card>
