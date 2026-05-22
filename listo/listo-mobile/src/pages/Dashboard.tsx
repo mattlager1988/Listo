@@ -75,20 +75,20 @@ const Dashboard: React.FC = () => {
       <NavBar back={null} left={<UnorderedListOutline fontSize={20} onClick={openMenu} style={{ cursor: 'pointer' }} />} style={{ '--height': '48px' }}>Dashboard</NavBar>
 
       <div style={{ padding: 12, display: 'flex', flexDirection: 'column', gap: 12 }}>
+        {/* Days Until Ring */}
+        <Card title="Days of Love" style={{ borderRadius: 8 }}>
+          <div style={{ textAlign: 'center', padding: '12px 0' }}>
+            <div style={{ fontSize: 48, fontWeight: 700, color: '#eb2f96', lineHeight: 1 }}>
+              {dayjs().startOf('day').diff(dayjs('2026-05-19'), 'day')}
+            </div>
+          </div>
+        </Card>
+
         {/* Sober Days */}
         <Card title="Sober Days" style={{ borderRadius: 8 }}>
           <div style={{ textAlign: 'center', padding: '12px 0' }}>
             <div style={{ fontSize: 48, fontWeight: 700, color: '#3f8600', lineHeight: 1 }}>
               {dayjs().diff(dayjs('2024-08-31'), 'day') + 1}
-            </div>
-          </div>
-        </Card>
-
-        {/* Days Until Ring */}
-        <Card title="Days Until Ring" style={{ borderRadius: 8 }}>
-          <div style={{ textAlign: 'center', padding: '12px 0' }}>
-            <div style={{ fontSize: 48, fontWeight: 700, color: '#eb2f96', lineHeight: 1 }}>
-              {dayjs().startOf('day').diff(dayjs('2026-05-19'), 'day')}
             </div>
           </div>
         </Card>
