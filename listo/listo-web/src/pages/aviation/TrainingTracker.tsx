@@ -596,10 +596,7 @@ const TrainingTracker: React.FC = () => {
             return {
               onClick: () => {
                 clickTimer = setTimeout(() => {
-                  const key = record.sysId;
-                  setSelectedRowKeys(prev =>
-                    prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]
-                  );
+                  setSelectedRowKeys([record.sysId]);
                 }, 200);
               },
               onDoubleClick: () => {

@@ -643,16 +643,21 @@ const BoardView: React.FC = () => {
                 selectedRowKeys,
                 onChange: (keys) => setSelectedRowKeys(keys),
               }}
-              onRow={(record) => ({
-                onClick: () => {
-                  const key = record.sysId.toString();
-                  setSelectedRowKeys(prev =>
-                    prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]
-                  );
-                },
-                onDoubleClick: () => handleEditTask(record),
-                style: { cursor: 'pointer' },
-              })}
+              onRow={(record) => {
+                let clickTimer: ReturnType<typeof setTimeout> | null = null;
+                return {
+                  onClick: () => {
+                    clickTimer = setTimeout(() => {
+                      setSelectedRowKeys([record.sysId.toString()]);
+                    }, 200);
+                  },
+                  onDoubleClick: () => {
+                    if (clickTimer) clearTimeout(clickTimer);
+                    handleEditTask(record);
+                  },
+                  style: { cursor: 'pointer' },
+                };
+              }}
             />
           </div>
         </>

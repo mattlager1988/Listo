@@ -641,9 +641,7 @@ const CyclePlans: React.FC = () => {
               if ('isGroupHeader' in record) return;
               clickTimer = setTimeout(() => {
                 const key = record.sysId.toString();
-                setSelectedRowKeys(prev =>
-                  prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]
-                );
+                setSelectedRowKeys([key]);
               }, 200);
             },
             onDoubleClick: () => {
