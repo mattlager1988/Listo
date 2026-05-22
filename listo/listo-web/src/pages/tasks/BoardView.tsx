@@ -72,11 +72,23 @@ interface BoardDetail {
   columns: BoardColumn[];
 }
 
+interface PriorityGroup {
+  sysId: string;
+  isGroupHeader: true;
+  priority: string;
+  children: TaskItem[];
+  taskCount: number;
+}
+
+type GridRow = TaskItem | PriorityGroup;
+
 const priorityColors: Record<string, string> = {
   High: 'red',
   Medium: 'orange',
   Low: 'blue',
 };
+
+const PRIORITY_ORDER = ['High', 'Medium', 'Low'];
 
 // Droppable column container for empty columns
 const DroppableColumn: React.FC<{ id: string; children: React.ReactNode }> = ({ id, children }) => {
@@ -152,7 +164,12 @@ const SortableTaskCard: React.FC<{
           <Tooltip title="Move to Backlog">
             <Button type="text" size="small" icon={<RollbackOutlined style={{ fontSize: 11 }} />} onClick={(e) => { e.stopPropagation(); onBacklog(task.sysId); }} style={{ padding: '0 2px', height: 20 }} />
           </Tooltip>
-          <Popconfirm title="Delete task?" onConfirm={() => onDelete(task.sysId)} okButtonProps={{ danger: true }}>
+          <Popconfirm
+            title="Delete task?"
+            onConfirm={(e) => { e?.stopPropagation(); onDelete(task.sysId); }}
+            onCancel={(e) => e?.stopPropagation()}
+            okButtonProps={{ danger: true }}
+          >
             <Button type="text" size="small" danger icon={<DeleteOutlined style={{ fontSize: 11 }} />} onClick={(e) => e.stopPropagation()} style={{ padding: '0 2px', height: 20 }} />
           </Popconfirm>
         </Space>
@@ -183,6 +200,9 @@ const BoardView: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [viewMode, setViewMode] = useState<'kanban' | 'grid'>('kanban');
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
+  const [expandedGroups, setExpandedGroups] = useState<React.Key[]>(
+    PRIORITY_ORDER.map(p => `group-${p}`)
+  );
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -406,9 +426,10 @@ const BoardView: React.FC = () => {
   };
 
   const handleBulkComplete = async () => {
+    const selectedIds = new Set(selectedRowKeys.map(k => Number(k)));
     try {
-      await Promise.all(selectedRowKeys.map(key => api.post(`/tasks/items/${key}/complete`)));
-      setTasks(prev => prev.filter(t => !selectedRowKeys.includes(t.sysId)));
+      await Promise.all([...selectedIds].map(id => api.post(`/tasks/items/${id}/complete`)));
+      setTasks(prev => prev.filter(t => !selectedIds.has(t.sysId)));
       setSelectedRowKeys([]);
       message.success('Tasks completed');
     } catch {
@@ -417,9 +438,10 @@ const BoardView: React.FC = () => {
   };
 
   const handleBulkBacklog = async () => {
+    const selectedIds = new Set(selectedRowKeys.map(k => Number(k)));
     try {
-      await Promise.all(selectedRowKeys.map(key => api.post(`/tasks/items/${key}/backlog`)));
-      setTasks(prev => prev.filter(t => !selectedRowKeys.includes(t.sysId)));
+      await Promise.all([...selectedIds].map(id => api.post(`/tasks/items/${id}/backlog`)));
+      setTasks(prev => prev.filter(t => !selectedIds.has(t.sysId)));
       setSelectedRowKeys([]);
       message.success('Tasks moved to backlog');
     } catch {
@@ -428,9 +450,10 @@ const BoardView: React.FC = () => {
   };
 
   const handleBulkDelete = async () => {
+    const selectedIds = new Set(selectedRowKeys.map(k => Number(k)));
     try {
-      await Promise.all(selectedRowKeys.map(key => api.delete(`/tasks/items/${key}`)));
-      setTasks(prev => prev.filter(t => !selectedRowKeys.includes(t.sysId)));
+      await Promise.all([...selectedIds].map(id => api.delete(`/tasks/items/${id}`)));
+      setTasks(prev => prev.filter(t => !selectedIds.has(t.sysId)));
       setSelectedRowKeys([]);
       message.success('Tasks deleted');
     } catch {
@@ -438,50 +461,69 @@ const BoardView: React.FC = () => {
     }
   };
 
+  const groupedTasks = useMemo((): PriorityGroup[] => {
+    return PRIORITY_ORDER
+      .map(priority => {
+        const children = tasks.filter(t => t.priority === priority);
+        return {
+          sysId: `group-${priority}`,
+          isGroupHeader: true as const,
+          priority,
+          children,
+          taskCount: children.length,
+        };
+      })
+      .filter(g => g.taskCount > 0);
+  }, [tasks]);
+
   const gridColumns = [
     {
       title: 'Name',
       dataIndex: 'name',
       key: 'name',
-      sorter: (a: TaskItem, b: TaskItem) => a.name.localeCompare(b.name),
+      render: (_: unknown, record: GridRow) => {
+        if ('isGroupHeader' in record) {
+          return (
+            <Space>
+              <Tag color={priorityColors[record.priority]}>{record.priority}</Tag>
+              <span style={{ color: '#8c8c8c' }}>({record.taskCount})</span>
+            </Space>
+          );
+        }
+        return record.name;
+      },
     },
     {
       title: 'Priority',
       dataIndex: 'priority',
       key: 'priority',
       width: 90,
-      sorter: (a: TaskItem, b: TaskItem) => {
-        const order: Record<string, number> = { High: 0, Medium: 1, Low: 2 };
-        return (order[a.priority] ?? 1) - (order[b.priority] ?? 1);
+      render: (_: unknown, record: GridRow) => {
+        if ('isGroupHeader' in record) return null;
+        return (
+          <Tag color={priorityColors[record.priority]} style={{ fontSize: 10, lineHeight: '16px', padding: '0 4px', margin: 0 }}>
+            {record.priority}
+          </Tag>
+        );
       },
-      render: (_: unknown, record: TaskItem) => (
-        <Tag color={priorityColors[record.priority]} style={{ fontSize: 10, lineHeight: '16px', padding: '0 4px', margin: 0 }}>
-          {record.priority}
-        </Tag>
-      ),
     },
     {
       title: 'Column',
       dataIndex: 'taskBoardColumnName',
       key: 'taskBoardColumnName',
       width: 140,
-      sorter: (a: TaskItem, b: TaskItem) =>
-        (a.taskBoardColumnName ?? '').localeCompare(b.taskBoardColumnName ?? ''),
-      render: (_: unknown, record: TaskItem) =>
-        record.taskBoardColumnName || <span style={{ color: '#bfbfbf' }}>—</span>,
+      render: (_: unknown, record: GridRow) => {
+        if ('isGroupHeader' in record) return null;
+        return record.taskBoardColumnName || <span style={{ color: '#bfbfbf' }}>—</span>;
+      },
     },
     {
       title: 'Due Date',
       dataIndex: 'dueDate',
       key: 'dueDate',
       width: 110,
-      sorter: (a: TaskItem, b: TaskItem) => {
-        if (!a.dueDate && !b.dueDate) return 0;
-        if (!a.dueDate) return 1;
-        if (!b.dueDate) return -1;
-        return dayjs(a.dueDate).valueOf() - dayjs(b.dueDate).valueOf();
-      },
-      render: (_: unknown, record: TaskItem) => {
+      render: (_: unknown, record: GridRow) => {
+        if ('isGroupHeader' in record) return null;
         if (!record.dueDate) return <span style={{ color: '#bfbfbf' }}>—</span>;
         const due = dayjs(record.dueDate);
         const today = dayjs().startOf('day');
@@ -500,9 +542,10 @@ const BoardView: React.FC = () => {
       dataIndex: 'createTimestamp',
       key: 'createTimestamp',
       width: 120,
-      sorter: (a: TaskItem, b: TaskItem) =>
-        dayjs(a.createTimestamp).valueOf() - dayjs(b.createTimestamp).valueOf(),
-      render: (_: unknown, record: TaskItem) => dayjs(record.createTimestamp).format('MM/DD/YYYY'),
+      render: (_: unknown, record: GridRow) => {
+        if ('isGroupHeader' in record) return null;
+        return dayjs(record.createTimestamp).format('MM/DD/YYYY');
+      },
     },
   ];
 
@@ -531,6 +574,15 @@ const BoardView: React.FC = () => {
         title={board.name}
         actions={
           <Space>
+            <Button
+              size="small"
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={handleCreateTask}
+              disabled={board.columns.length === 0}
+            >
+              Add Task
+            </Button>
             <Segmented
               size="small"
               value={viewMode}
@@ -576,7 +628,7 @@ const BoardView: React.FC = () => {
                 icon={<EditOutlined />}
                 disabled={selectedRowKeys.length !== 1}
                 onClick={() => {
-                  const task = tasks.find(t => t.sysId === selectedRowKeys[0]);
+                  const task = tasks.find(t => t.sysId === Number(selectedRowKeys[0]));
                   if (task) handleEditTask(task);
                 }}
               />
@@ -629,9 +681,9 @@ const BoardView: React.FC = () => {
 
           {/* Grid table */}
           <div className="condensed-table" style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
-            <ProTable
+            <ProTable<GridRow>
               columns={gridColumns}
-              dataSource={tasks}
+              dataSource={groupedTasks}
               rowKey={(record) => record.sysId.toString()}
               loading={loading}
               search={false}
@@ -642,20 +694,34 @@ const BoardView: React.FC = () => {
               rowSelection={{
                 selectedRowKeys,
                 onChange: (keys) => setSelectedRowKeys(keys),
+                getCheckboxProps: (record) => ({
+                  disabled: 'isGroupHeader' in record,
+                  style: 'isGroupHeader' in record ? { display: 'none' } : undefined,
+                }),
+              }}
+              expandable={{
+                expandedRowKeys: expandedGroups,
+                onExpandedRowsChange: (keys) => setExpandedGroups(keys as React.Key[]),
+                childrenColumnName: 'children',
               }}
               onRow={(record) => {
                 let clickTimer: ReturnType<typeof setTimeout> | null = null;
                 return {
                   onClick: () => {
+                    if ('isGroupHeader' in record) return;
                     clickTimer = setTimeout(() => {
                       setSelectedRowKeys([record.sysId.toString()]);
                     }, 200);
                   },
                   onDoubleClick: () => {
                     if (clickTimer) clearTimeout(clickTimer);
-                    handleEditTask(record);
+                    if (!('isGroupHeader' in record)) handleEditTask(record);
                   },
-                  style: { cursor: 'pointer' },
+                  style: {
+                    cursor: 'isGroupHeader' in record ? 'default' : 'pointer',
+                    background: 'isGroupHeader' in record ? '#f5f5f5' : undefined,
+                    fontWeight: 'isGroupHeader' in record ? 600 : undefined,
+                  },
                 };
               }}
             />
