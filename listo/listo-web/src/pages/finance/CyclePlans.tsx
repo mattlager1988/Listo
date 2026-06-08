@@ -87,7 +87,7 @@ const CyclePlans: React.FC = () => {
   const [discontinuedPlans, setDiscontinuedPlans] = useState<CyclePlan[]>([]);
   const [discontinuedLoading, setDiscontinuedLoading] = useState(false);
   const [editingCell, setEditingCell] = useState<EditingCell | null>(null);
-  const [expandedGroups, setExpandedGroups] = useState<string[]>(['group-active', 'group-completed']);
+  const [expandedGroups, setExpandedGroups] = useState<string[]>(['group-active']);
   const [form] = Form.useForm();
   const actionRef = useRef<ActionType>(null);
 

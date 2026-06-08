@@ -10,7 +10,7 @@ import {
   ErrorBlock,
   Button,
 } from 'antd-mobile';
-import { UnorderedListOutline } from 'antd-mobile-icons';
+import { UnorderedListOutline, DownOutline, RightOutline } from 'antd-mobile-icons';
 import { parseDate } from '@shared/utils/format';
 import api from '@shared/services/api';
 import type { CyclePlan } from '@shared/types';
@@ -28,6 +28,7 @@ const CyclePlans: React.FC = () => {
   const [cyclePlans, setCyclePlans] = useState<CyclePlan[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [completedExpanded, setCompletedExpanded] = useState(false);
 
   const fetchData = useCallback(async () => {
     setError(false);
@@ -128,14 +129,26 @@ const CyclePlans: React.FC = () => {
         {/* Completed Plans */}
         {completedPlans.length > 0 && (
           <Card
-            title="Completed"
+            title={
+              <span
+                onClick={() => setCompletedExpanded(prev => !prev)}
+                style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', userSelect: 'none' }}
+              >
+                {completedExpanded ? <DownOutline /> : <RightOutline />}
+                Completed
+              </span>
+            }
             style={{ borderRadius: 8 }}
             extra={
-              <span style={{ fontSize: 12, color: '#8c8c8c' }}>
+              <span
+                onClick={() => setCompletedExpanded(prev => !prev)}
+                style={{ fontSize: 12, color: '#8c8c8c', cursor: 'pointer', userSelect: 'none' }}
+              >
                 {completedPlans.length} plan{completedPlans.length !== 1 ? 's' : ''}
               </span>
             }
           >
+            {completedExpanded && (
             <List style={{ '--border-top': 'none', '--border-bottom': 'none' }}>
               {completedPlans.slice(0, 10).map(plan => (
                 <List.Item
@@ -169,6 +182,7 @@ const CyclePlans: React.FC = () => {
                 </List.Item>
               )}
             </List>
+            )}
           </Card>
         )}
       </div>

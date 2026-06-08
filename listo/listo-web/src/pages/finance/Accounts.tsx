@@ -26,6 +26,7 @@ import {
   StopOutlined,
   SaveOutlined,
   DownOutlined,
+  RightOutlined,
   StarOutlined,
   StarFilled,
   ReloadOutlined,
@@ -324,6 +325,7 @@ const Accounts: React.FC = () => {
   // Payment-related state
   const [pendingPayments, setPendingPayments] = useState<Payment[]>([]);
   const [pendingLoading, setPendingLoading] = useState(false);
+  const [pendingExpanded, setPendingExpanded] = useState(false);
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
   const [editingPayment, setEditingPayment] = useState<Payment | null>(null);
   const [paymentModalVisible, setPaymentModalVisible] = useState(false);
@@ -1453,32 +1455,40 @@ const Accounts: React.FC = () => {
           }}
         >
           <div
+            onClick={() => setPendingExpanded((prev) => !prev)}
             style={{
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
-              marginBottom: 8,
+              marginBottom: pendingExpanded ? 8 : 0,
+              cursor: 'pointer',
+              userSelect: 'none',
             }}
           >
             <span style={{ fontWeight: 600 }}>
-              Pending Payments ({pendingPayments.length})
+              {pendingExpanded ? <DownOutlined /> : <RightOutlined />}
+              <span style={{ marginLeft: 8 }}>
+                Pending Payments ({pendingPayments.length})
+              </span>
             </span>
             <Tag color="gold" style={{ fontSize: 14 }}>
               Total: ${pendingTotal.toFixed(2)}
             </Tag>
           </div>
-          <div className="condensed-table">
-            <ProTable<Payment>
-              rowKey="sysId"
-              columns={pendingColumns}
-              dataSource={pendingPayments}
-              loading={pendingLoading}
-              search={false}
-              options={false}
-              pagination={false}
-              size="small"
-            />
-          </div>
+          {pendingExpanded && (
+            <div className="condensed-table">
+              <ProTable<Payment>
+                rowKey="sysId"
+                columns={pendingColumns}
+                dataSource={pendingPayments}
+                loading={pendingLoading}
+                search={false}
+                options={false}
+                pagination={false}
+                size="small"
+              />
+            </div>
+          )}
         </div>
       )}
 
