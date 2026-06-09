@@ -8,6 +8,7 @@ namespace Listo.Api.Controllers;
 [ApiController]
 [Route("api/tasks/boards")]
 [Authorize]
+[Listo.Api.Authorization.ModuleAccess(Listo.Api.Models.ModuleKeys.Tasks)]
 public class TaskBoardsController : ControllerBase
 {
     private readonly ITaskBoardService _boardService;

@@ -40,6 +40,7 @@ public class AuthService : IAuthService
     public async Task<LoginResponse> LoginAsync(LoginRequest request)
     {
         var user = await _context.Users
+            .Include(u => u.Modules)
             .FirstOrDefaultAsync(u => u.Email == request.Email && u.IsActive);
 
         if (user == null || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
@@ -63,7 +64,9 @@ public class AuthService : IAuthService
     public async Task<TokenResponse> VerifyMfaAsync(MfaVerifyRequest request)
     {
         var userId = ValidateMfaToken(request.MfaToken);
-        var user = await _context.Users.FindAsync(userId)
+        var user = await _context.Users
+            .Include(u => u.Modules)
+            .FirstOrDefaultAsync(u => u.SysId == userId)
             ?? throw new UnauthorizedAccessException("Invalid MFA token");
 
         if (string.IsNullOrEmpty(user.MfaSecret))
@@ -86,6 +89,7 @@ public class AuthService : IAuthService
     {
         var token = await _context.RefreshTokens
             .Include(t => t.User)
+                .ThenInclude(u => u.Modules)
             .FirstOrDefaultAsync(t => t.Token == refreshToken && !t.Revoked);
 
         if (token == null || token.ExpiresAt < DateTime.UtcNow || !token.User.IsActive)
@@ -187,14 +191,22 @@ public class AuthService : IAuthService
             Encoding.UTF8.GetBytes(_config["Jwt:Secret"]!));
         var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
-        var claims = new[]
+        var claims = new List<Claim>
         {
-            new Claim(JwtRegisteredClaimNames.Sub, user.SysId.ToString()),
-            new Claim(JwtRegisteredClaimNames.Email, user.Email),
-            new Claim(ClaimTypes.Role, user.Role),
-            new Claim("firstName", user.FirstName),
-            new Claim("lastName", user.LastName)
+            new(JwtRegisteredClaimNames.Sub, user.SysId.ToString()),
+            new(JwtRegisteredClaimNames.Email, user.Email),
+            new(ClaimTypes.Role, user.Role),
+            new("firstName", user.FirstName),
+            new("lastName", user.LastName)
         };
+
+        // Embed module-access claims so [ModuleAccess] authorizes without a DB hit.
+        // Admins bypass the check entirely, so claims are only needed for non-admins.
+        if (user.Role != "admin" && user.Modules != null)
+        {
+            foreach (var module in user.Modules.Select(m => m.ModuleKey).Distinct())
+                claims.Add(new Claim("module", module));
+        }
 
         var token = new JwtSecurityToken(
             issuer: _config["Jwt:Issuer"],

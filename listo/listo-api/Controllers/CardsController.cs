@@ -10,6 +10,7 @@ namespace Listo.Api.Controllers;
 [ApiController]
 [Route("api/finance/cards")]
 [Authorize]
+[Listo.Api.Authorization.ModuleAccess(Listo.Api.Models.ModuleKeys.Finance)]
 public class CardsController : ControllerBase
 {
     private readonly ListoDbContext _context;

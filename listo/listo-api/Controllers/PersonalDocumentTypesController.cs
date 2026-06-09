@@ -8,6 +8,7 @@ namespace Listo.Api.Controllers;
 [ApiController]
 [Route("api/finance/personaldocumenttypes")]
 [Authorize]
+[Listo.Api.Authorization.ModuleAccess(Listo.Api.Models.ModuleKeys.Finance)]
 public class PersonalDocumentTypesController : ControllerBase
 {
     private readonly IDocumentTypeService _service;

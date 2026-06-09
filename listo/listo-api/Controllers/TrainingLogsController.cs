@@ -9,6 +9,7 @@ namespace Listo.Api.Controllers;
 [ApiController]
 [Route("api/aviation/[controller]")]
 [Authorize]
+[Listo.Api.Authorization.ModuleAccess(Listo.Api.Models.ModuleKeys.Aviation)]
 public class TrainingLogsController : ControllerBase
 {
     private readonly ITrainingLogService _service;

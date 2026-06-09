@@ -9,6 +9,7 @@ namespace Listo.Api.Controllers;
 [ApiController]
 [Route("api/passwords/[controller]")]
 [Authorize]
+[Listo.Api.Authorization.ModuleAccess(Listo.Api.Models.ModuleKeys.Passwords)]
 public class PasswordEntriesController : ControllerBase
 {
     private readonly IPasswordEntryService _service;

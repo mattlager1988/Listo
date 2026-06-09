@@ -5,9 +5,10 @@ import { ProConfigProvider } from '@ant-design/pro-components';
 import { AuthProvider } from './contexts/AuthContext';
 import { listoTheme } from './theme/theme';
 import ProtectedRoute from './components/ProtectedRoute';
+import { MODULE_KEYS } from './utils/modules';
 import MainLayout from './layouts/MainLayout';
 import Login from './pages/Login';
-import Dashboard from './pages/Dashboard';
+import Home from './pages/Home';
 import Profile from './pages/Profile';
 import Settings from './pages/Settings';
 import UserManagement from './pages/UserManagement';
@@ -31,6 +32,8 @@ import TasksLayout from './pages/tasks';
 import Boards from './pages/tasks/Boards';
 import Backlog from './pages/tasks/Backlog';
 import BoardView from './pages/tasks/BoardView';
+import MessagingLayout from './pages/messaging';
+import Messaging from './pages/messaging/Messaging';
 
 function App() {
   return (
@@ -48,17 +51,31 @@ function App() {
                 </ProtectedRoute>
               }
             >
-              <Route index element={<Dashboard />} />
+              <Route index element={<Home />} />
               <Route path="profile" element={<Profile />} />
               <Route path="settings" element={<Settings />} />
-              <Route path="finance" element={<FinanceLayout />}>
+              <Route
+                path="finance"
+                element={
+                  <ProtectedRoute requiredModule={MODULE_KEYS.finance}>
+                    <FinanceLayout />
+                  </ProtectedRoute>
+                }
+              >
                 <Route index element={<Accounts />} />
                 <Route path="accounts" element={<Accounts />} />
                 <Route path="cycleplans" element={<CyclePlans />} />
                 <Route path="cycleplans/:id" element={<CyclePlanWork />} />
                 <Route path="documents" element={<FinanceDocuments />} />
               </Route>
-              <Route path="aviation" element={<AviationLayout />}>
+              <Route
+                path="aviation"
+                element={
+                  <ProtectedRoute requiredModule={MODULE_KEYS.aviation}>
+                    <AviationLayout />
+                  </ProtectedRoute>
+                }
+              >
                 <Route index element={<TrainingTracker />} />
                 <Route path="training" element={<TrainingTracker />} />
                 <Route path="documents" element={<AviationDocuments />} />
@@ -66,14 +83,38 @@ function App() {
                 <Route path="listen" element={<Listen />} />
                 <Route path="listen/player" element={<ListenPlayer />} />
               </Route>
-              <Route path="passwords" element={<PasswordsLayout />}>
+              <Route
+                path="passwords"
+                element={
+                  <ProtectedRoute requiredModule={MODULE_KEYS.passwords}>
+                    <PasswordsLayout />
+                  </ProtectedRoute>
+                }
+              >
                 <Route index element={<Passwords />} />
               </Route>
-              <Route path="tasks" element={<TasksLayout />}>
+              <Route
+                path="tasks"
+                element={
+                  <ProtectedRoute requiredModule={MODULE_KEYS.tasks}>
+                    <TasksLayout />
+                  </ProtectedRoute>
+                }
+              >
                 <Route index element={<Boards />} />
                 <Route path="boards" element={<Boards />} />
                 <Route path="boards/:id" element={<BoardView />} />
                 <Route path="backlog" element={<Backlog />} />
+              </Route>
+              <Route
+                path="messaging"
+                element={
+                  <ProtectedRoute requiredModule={MODULE_KEYS.messaging}>
+                    <MessagingLayout />
+                  </ProtectedRoute>
+                }
+              >
+                <Route index element={<Messaging />} />
               </Route>
               <Route
                 path="admin"

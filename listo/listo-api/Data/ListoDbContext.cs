@@ -15,6 +15,7 @@ public class ListoDbContext : DbContext
     }
 
     public DbSet<User> Users => Set<User>();
+    public DbSet<UserModule> UserModules => Set<UserModule>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<AccountType> AccountTypes => Set<AccountType>();
     public DbSet<AccountOwner> AccountOwners => Set<AccountOwner>();
@@ -44,6 +45,11 @@ public class ListoDbContext : DbContext
     public DbSet<TaskItem> TaskItems => Set<TaskItem>();
     public DbSet<AudioStream> AudioStreams => Set<AudioStream>();
     public DbSet<AudioStreamCategory> AudioStreamCategories => Set<AudioStreamCategory>();
+    public DbSet<Conversation> Conversations => Set<Conversation>();
+    public DbSet<ConversationParticipant> ConversationParticipants => Set<ConversationParticipant>();
+    public DbSet<Message> Messages => Set<Message>();
+    public DbSet<MessageAttachment> MessageAttachments => Set<MessageAttachment>();
+    public DbSet<MessageReaction> MessageReactions => Set<MessageReaction>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -67,6 +73,131 @@ public class ListoDbContext : DbContext
             entity.Property(e => e.CreateUser).HasColumnName("create_user");
             entity.Property(e => e.ModifyUser).HasColumnName("modify_user");
             entity.HasIndex(e => e.Email).IsUnique();
+        });
+
+        modelBuilder.Entity<UserModule>(entity =>
+        {
+            entity.ToTable("user_modules");
+            entity.HasKey(e => e.SysId);
+            entity.Property(e => e.SysId).HasColumnName("sys_id");
+            entity.Property(e => e.UserSysId).HasColumnName("user_sys_id");
+            entity.Property(e => e.ModuleKey).HasColumnName("module_key").IsRequired();
+            entity.Property(e => e.CreateTimestamp).HasColumnName("create_timestamp");
+            entity.Property(e => e.ModifyTimestamp).HasColumnName("modify_timestamp");
+            entity.Property(e => e.CreateUser).HasColumnName("create_user");
+            entity.Property(e => e.ModifyUser).HasColumnName("modify_user");
+            entity.HasOne(e => e.User)
+                .WithMany(u => u.Modules)
+                .HasForeignKey(e => e.UserSysId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasIndex(e => new { e.UserSysId, e.ModuleKey }).IsUnique();
+        });
+
+        modelBuilder.Entity<Conversation>(entity =>
+        {
+            entity.ToTable("conversations");
+            entity.HasKey(e => e.SysId);
+            entity.Property(e => e.SysId).HasColumnName("sys_id");
+            entity.Property(e => e.Type).HasColumnName("type").IsRequired();
+            entity.Property(e => e.Name).HasColumnName("name");
+            entity.Property(e => e.CreatedBySysId).HasColumnName("created_by_sys_id");
+            entity.Property(e => e.CreateTimestamp).HasColumnName("create_timestamp");
+            entity.Property(e => e.ModifyTimestamp).HasColumnName("modify_timestamp");
+            entity.Property(e => e.CreateUser).HasColumnName("create_user");
+            entity.Property(e => e.ModifyUser).HasColumnName("modify_user");
+        });
+
+        modelBuilder.Entity<ConversationParticipant>(entity =>
+        {
+            entity.ToTable("conversation_participants");
+            entity.HasKey(e => e.SysId);
+            entity.Property(e => e.SysId).HasColumnName("sys_id");
+            entity.Property(e => e.ConversationSysId).HasColumnName("conversation_sys_id");
+            entity.Property(e => e.UserSysId).HasColumnName("user_sys_id");
+            entity.Property(e => e.LastReadMessageSysId).HasColumnName("last_read_message_sys_id");
+            entity.Property(e => e.ClearedAt).HasColumnName("cleared_at");
+            entity.Property(e => e.CreateTimestamp).HasColumnName("create_timestamp");
+            entity.Property(e => e.ModifyTimestamp).HasColumnName("modify_timestamp");
+            entity.Property(e => e.CreateUser).HasColumnName("create_user");
+            entity.Property(e => e.ModifyUser).HasColumnName("modify_user");
+            entity.HasOne(e => e.Conversation)
+                .WithMany(c => c.Participants)
+                .HasForeignKey(e => e.ConversationSysId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserSysId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.HasIndex(e => e.UserSysId);
+            entity.HasIndex(e => new { e.ConversationSysId, e.UserSysId }).IsUnique();
+        });
+
+        modelBuilder.Entity<Message>(entity =>
+        {
+            entity.ToTable("messages");
+            entity.HasKey(e => e.SysId);
+            entity.Property(e => e.SysId).HasColumnName("sys_id");
+            entity.Property(e => e.ConversationSysId).HasColumnName("conversation_sys_id");
+            entity.Property(e => e.SenderSysId).HasColumnName("sender_sys_id");
+            entity.Property(e => e.Body).HasColumnName("body").HasColumnType("text");
+            entity.Property(e => e.CreateTimestamp).HasColumnName("create_timestamp");
+            entity.Property(e => e.ModifyTimestamp).HasColumnName("modify_timestamp");
+            entity.Property(e => e.CreateUser).HasColumnName("create_user");
+            entity.Property(e => e.ModifyUser).HasColumnName("modify_user");
+            entity.HasOne(e => e.Conversation)
+                .WithMany(c => c.Messages)
+                .HasForeignKey(e => e.ConversationSysId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.Sender)
+                .WithMany()
+                .HasForeignKey(e => e.SenderSysId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.HasIndex(e => new { e.ConversationSysId, e.SysId });
+        });
+
+        modelBuilder.Entity<MessageAttachment>(entity =>
+        {
+            entity.ToTable("message_attachments");
+            entity.HasKey(e => e.SysId);
+            entity.Property(e => e.SysId).HasColumnName("sys_id");
+            entity.Property(e => e.MessageSysId).HasColumnName("message_sys_id");
+            entity.Property(e => e.FileName).HasColumnName("file_name").IsRequired();
+            entity.Property(e => e.OriginalFileName).HasColumnName("original_file_name").IsRequired();
+            entity.Property(e => e.MimeType).HasColumnName("mime_type").IsRequired();
+            entity.Property(e => e.FileSize).HasColumnName("file_size");
+            entity.Property(e => e.StoragePath).HasColumnName("storage_path").IsRequired();
+            entity.Property(e => e.Kind).HasColumnName("kind").IsRequired();
+            entity.Property(e => e.CreateTimestamp).HasColumnName("create_timestamp");
+            entity.Property(e => e.ModifyTimestamp).HasColumnName("modify_timestamp");
+            entity.Property(e => e.CreateUser).HasColumnName("create_user");
+            entity.Property(e => e.ModifyUser).HasColumnName("modify_user");
+            entity.HasOne(e => e.Message)
+                .WithMany(m => m.Attachments)
+                .HasForeignKey(e => e.MessageSysId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<MessageReaction>(entity =>
+        {
+            entity.ToTable("message_reactions");
+            entity.HasKey(e => e.SysId);
+            entity.Property(e => e.SysId).HasColumnName("sys_id");
+            entity.Property(e => e.MessageSysId).HasColumnName("message_sys_id");
+            entity.Property(e => e.UserSysId).HasColumnName("user_sys_id");
+            entity.Property(e => e.Emoji).HasColumnName("emoji").IsRequired();
+            entity.Property(e => e.CreateTimestamp).HasColumnName("create_timestamp");
+            entity.Property(e => e.ModifyTimestamp).HasColumnName("modify_timestamp");
+            entity.Property(e => e.CreateUser).HasColumnName("create_user");
+            entity.Property(e => e.ModifyUser).HasColumnName("modify_user");
+            entity.HasOne(e => e.Message)
+                .WithMany(m => m.Reactions)
+                .HasForeignKey(e => e.MessageSysId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserSysId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.HasIndex(e => new { e.MessageSysId, e.UserSysId, e.Emoji }).IsUnique();
         });
 
         modelBuilder.Entity<RefreshToken>(entity =>

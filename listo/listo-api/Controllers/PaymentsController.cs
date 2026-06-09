@@ -8,6 +8,7 @@ namespace Listo.Api.Controllers;
 [ApiController]
 [Route("api/finance/[controller]")]
 [Authorize]
+[Listo.Api.Authorization.ModuleAccess(Listo.Api.Models.ModuleKeys.Finance)]
 public class PaymentsController : ControllerBase
 {
     private readonly IPaymentService _service;

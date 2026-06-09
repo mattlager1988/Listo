@@ -4,14 +4,15 @@ using Microsoft.AspNetCore.Http.Features;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Listo.Api.Data;
+using Listo.Api.Hubs;
 using Listo.Api.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Configure Kestrel for large file uploads (250MB)
+// Configure Kestrel for large file uploads (512MB to accommodate video attachments)
 builder.WebHost.ConfigureKestrel(options =>
 {
-    options.Limits.MaxRequestBodySize = 262_144_000; // 250MB
+    options.Limits.MaxRequestBodySize = 536_870_912; // 512MB
     options.Limits.KeepAliveTimeout = TimeSpan.FromMinutes(10);
     options.Limits.RequestHeadersTimeout = TimeSpan.FromMinutes(10);
 });
@@ -19,11 +20,12 @@ builder.WebHost.ConfigureKestrel(options =>
 // Add services to the container.
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSignalR();
 
 // Configure form options for large file uploads
 builder.Services.Configure<FormOptions>(options =>
 {
-    options.MultipartBodyLengthLimit = 262_144_000; // 250MB
+    options.MultipartBodyLengthLimit = 536_870_912; // 512MB
 });
 builder.Services.AddSwaggerGen();
 builder.Services.AddHttpContextAccessor();
@@ -51,6 +53,22 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidIssuer = jwtIssuer,
             ValidAudience = jwtAudience,
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret))
+        };
+
+        // Browsers can't set Authorization headers on the WebSocket handshake,
+        // so SignalR passes the token via the access_token query string.
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                var accessToken = context.Request.Query["access_token"];
+                var path = context.HttpContext.Request.Path;
+                if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hubs"))
+                {
+                    context.Token = accessToken;
+                }
+                return Task.CompletedTask;
+            }
         };
     });
 
@@ -89,6 +107,8 @@ builder.Services.AddScoped<IAudioStreamService, AudioStreamService>();
 builder.Services.AddScoped<IAudioStreamCategoryService, AudioStreamCategoryService>();
 builder.Services.AddScoped<ITranscriptionService, TranscriptionService>();
 builder.Services.AddSingleton<ITranscriptionSessionManager, TranscriptionSessionManager>();
+builder.Services.AddScoped<IMessagingService, MessagingService>();
+builder.Services.AddSingleton<IPresenceTracker, PresenceTracker>();
 
 // CORS
 builder.Services.AddCors(options =>
@@ -116,6 +136,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapHub<MessagingHub>("/hubs/messaging");
 
 // Seed initial admin user
 using (var scope = app.Services.CreateScope())

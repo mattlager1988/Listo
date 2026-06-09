@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Popup, List, Dialog } from 'antd-mobile';
+import { Popup, List, Dialog, Badge } from 'antd-mobile';
 import {
   AppOutline,
   BankcardOutline,
@@ -9,8 +9,11 @@ import {
   SetOutline,
   UserOutline,
   UnorderedListOutline,
+  MessageOutline,
 } from 'antd-mobile-icons';
 import { useAuth } from '@shared/contexts/AuthContext';
+import { hasModule, MODULE_KEYS } from '@shared/utils/modules';
+import { messagingApi } from '@shared/services/messagingApi';
 import { useMenu } from '../contexts/MenuContext';
 
 declare const __APP_VERSION__: string;
@@ -20,15 +23,17 @@ interface MenuEntry {
   path: string;
   icon: React.ReactNode;
   matchPrefix?: string;
+  moduleKey?: string;
   adminOnly?: boolean;
 }
 
 const menuItems: MenuEntry[] = [
-  { label: 'Dashboard', path: '/', icon: <AppOutline /> },
-  { label: 'Tasks', path: '/tasks/backlog', icon: <UnorderedListOutline />, matchPrefix: '/tasks' },
-  { label: 'Finance & Bills', path: '/bills', icon: <BankcardOutline />, matchPrefix: '/bills,/cards,/cycle,/docs' },
-  { label: 'Aviation', path: '/aviation/training', icon: <GlobalOutline />, matchPrefix: '/aviation' },
-  { label: 'Passwords', path: '/passwords', icon: <LockOutline />, matchPrefix: '/passwords' },
+  { label: 'Dashboard', path: '/', icon: <AppOutline />, moduleKey: MODULE_KEYS.dashboard },
+  { label: 'Tasks', path: '/tasks/backlog', icon: <UnorderedListOutline />, matchPrefix: '/tasks', moduleKey: MODULE_KEYS.tasks },
+  { label: 'Finance & Bills', path: '/bills', icon: <BankcardOutline />, matchPrefix: '/bills,/cards,/cycle,/docs', moduleKey: MODULE_KEYS.finance },
+  { label: 'Aviation', path: '/aviation/training', icon: <GlobalOutline />, matchPrefix: '/aviation', moduleKey: MODULE_KEYS.aviation },
+  { label: 'Messaging', path: '/messaging', icon: <MessageOutline />, matchPrefix: '/messaging', moduleKey: MODULE_KEYS.messaging },
+  { label: 'Passwords', path: '/passwords', icon: <LockOutline />, matchPrefix: '/passwords', moduleKey: MODULE_KEYS.passwords },
   { label: 'Admin', path: '/admin/users', icon: <SetOutline />, matchPrefix: '/admin', adminOnly: true },
 ];
 
@@ -38,6 +43,7 @@ const HamburgerDrawer: React.FC = () => {
   const { user, logout } = useAuth();
   const { menuOpen, closeMenu } = useMenu();
   const [apiVersion, setApiVersion] = useState('');
+  const [messagingUnread, setMessagingUnread] = useState(0);
 
   useEffect(() => {
     fetch('/api/system/version')
@@ -45,6 +51,14 @@ const HamburgerDrawer: React.FC = () => {
       .then(data => setApiVersion(data.apiVersion))
       .catch(() => {});
   }, []);
+
+  // Refresh the messaging unread count whenever the drawer opens.
+  useEffect(() => {
+    if (!menuOpen || !hasModule(user, MODULE_KEYS.messaging)) return;
+    messagingApi.getConversations()
+      .then(convs => setMessagingUnread(convs.reduce((sum, c) => sum + c.unreadCount, 0)))
+      .catch(() => {});
+  }, [menuOpen, user]);
 
   const handleNavigate = (path: string) => {
     closeMenu();
@@ -111,7 +125,9 @@ const HamburgerDrawer: React.FC = () => {
         <div style={{ flex: 1, overflowY: 'auto' }}>
           <List style={{ '--border-top': 'none', '--border-bottom': 'none' }}>
             {menuItems
-              .filter(item => !item.adminOnly || user?.role === 'Admin')
+              .filter(item => item.adminOnly
+                ? user?.role === 'admin'
+                : hasModule(user, item.moduleKey ?? ''))
               .map(item => {
                 const active = isActive(item);
                 return (
@@ -119,6 +135,9 @@ const HamburgerDrawer: React.FC = () => {
                     key={item.label}
                     prefix={item.icon}
                     onClick={() => handleNavigate(item.path)}
+                    extra={item.moduleKey === MODULE_KEYS.messaging && messagingUnread > 0
+                      ? <Badge content={messagingUnread} />
+                      : undefined}
                     style={{
                       background: active ? '#e6f7ff' : undefined,
                       '--prefix-width': '24px',

@@ -8,6 +8,7 @@ namespace Listo.Api.Controllers;
 [ApiController]
 [Route("api/tasks/items")]
 [Authorize]
+[Listo.Api.Authorization.ModuleAccess(Listo.Api.Models.ModuleKeys.Tasks)]
 public class TaskItemsController : ControllerBase
 {
     private readonly ITaskItemService _taskService;

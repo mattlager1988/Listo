@@ -3,6 +3,7 @@
   "private": true,
   "version": "1.0.0",
   "dependencies": {
+    "@microsoft/signalr": "^8.0.7",
     "axios": "^1.16.1"
   },
   "peerDependencies": {

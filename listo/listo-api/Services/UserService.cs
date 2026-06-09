@@ -31,23 +31,27 @@ public class UserService : IUserService
 
     public async Task<IEnumerable<UserResponse>> GetAllUsersAsync()
     {
-        return await _context.Users
+        var users = await _context.Users
             .Where(u => u.IsActive)
-            .Select(u => MapToResponse(u))
+            .Include(u => u.Modules)
             .ToListAsync();
+        return users.Select(MapToResponse);
     }
 
     public async Task<IEnumerable<UserResponse>> GetInactiveUsersAsync()
     {
-        return await _context.Users
+        var users = await _context.Users
             .Where(u => !u.IsActive)
-            .Select(u => MapToResponse(u))
+            .Include(u => u.Modules)
             .ToListAsync();
+        return users.Select(MapToResponse);
     }
 
     public async Task<UserResponse?> GetUserByIdAsync(long id)
     {
-        var user = await _context.Users.FindAsync(id);
+        var user = await _context.Users
+            .Include(u => u.Modules)
+            .FirstOrDefaultAsync(u => u.SysId == id);
         return user == null ? null : MapToResponse(user);
     }
 
@@ -71,12 +75,19 @@ public class UserService : IUserService
         _context.Users.Add(user);
         await _context.SaveChangesAsync();
 
+        // Non-admin users get exactly the modules requested; admins implicitly have all.
+        if (user.Role != "admin")
+            SyncModules(user, request.Modules ?? Array.Empty<string>());
+        await _context.SaveChangesAsync();
+
         return MapToResponse(user);
     }
 
     public async Task<UserResponse?> UpdateUserAsync(long id, UpdateUserRequest request)
     {
-        var user = await _context.Users.FindAsync(id);
+        var user = await _context.Users
+            .Include(u => u.Modules)
+            .FirstOrDefaultAsync(u => u.SysId == id);
         if (user == null) return null;
 
         if (request.Email != null)
@@ -92,8 +103,41 @@ public class UserService : IUserService
         if (request.Role != null) user.Role = request.Role;
         if (request.IsActive.HasValue) user.IsActive = request.IsActive.Value;
 
+        // Module changes only apply to non-admins; admins implicitly have all modules.
+        if (user.Role == "admin")
+        {
+            if (user.Modules.Count > 0)
+                _context.UserModules.RemoveRange(user.Modules);
+        }
+        else if (request.Modules != null)
+        {
+            SyncModules(user, request.Modules);
+        }
+
         await _context.SaveChangesAsync();
         return MapToResponse(user);
+    }
+
+    private void SyncModules(User user, IReadOnlyList<string> requested)
+    {
+        var desired = requested
+            .Where(ModuleKeys.IsAssignable)
+            .Select(k => k.ToLowerInvariant())
+            .Distinct()
+            .ToHashSet();
+
+        var invalid = requested.Where(k => !ModuleKeys.IsAssignable(k)).ToList();
+        if (invalid.Count > 0)
+            throw new ArgumentException($"Invalid module key(s): {string.Join(", ", invalid)}");
+
+        var current = user.Modules.ToList();
+
+        foreach (var existing in current.Where(m => !desired.Contains(m.ModuleKey.ToLowerInvariant())))
+            _context.UserModules.Remove(existing);
+
+        var currentKeys = current.Select(m => m.ModuleKey.ToLowerInvariant()).ToHashSet();
+        foreach (var key in desired.Where(k => !currentKeys.Contains(k)))
+            user.Modules.Add(new UserModule { UserSysId = user.SysId, ModuleKey = key });
     }
 
     public async Task<bool> DeactivateUserAsync(long id)
@@ -108,7 +152,9 @@ public class UserService : IUserService
 
     public async Task<UserResponse?> ReactivateUserAsync(long id)
     {
-        var user = await _context.Users.FindAsync(id);
+        var user = await _context.Users
+            .Include(u => u.Modules)
+            .FirstOrDefaultAsync(u => u.SysId == id);
         if (user == null) return null;
 
         user.IsActive = true;
@@ -118,7 +164,9 @@ public class UserService : IUserService
 
     public async Task<UserResponse?> UpdateProfileAsync(long id, UpdateProfileRequest request)
     {
-        var user = await _context.Users.FindAsync(id);
+        var user = await _context.Users
+            .Include(u => u.Modules)
+            .FirstOrDefaultAsync(u => u.SysId == id);
         if (user == null) return null;
 
         if (request.FirstName != null) user.FirstName = request.FirstName;
@@ -162,16 +210,25 @@ public class UserService : IUserService
             throw new ArgumentException($"Password must be at least {MinPasswordLength} characters");
     }
 
-    private static UserResponse MapToResponse(User user) => new(
-        user.SysId,
-        user.Email,
-        user.FirstName,
-        user.LastName,
-        user.PhoneNumber,
-        user.Role,
-        user.MfaEnabled,
-        user.IsActive,
-        user.LastLoginAt,
-        user.SidebarCollapsed
-    );
+    private static UserResponse MapToResponse(User user)
+    {
+        // Admins implicitly have all assignable modules; everyone else gets their grants.
+        var modules = user.Role == "admin"
+            ? ModuleKeys.Assignable.ToList()
+            : user.Modules.Select(m => m.ModuleKey).ToList();
+
+        return new(
+            user.SysId,
+            user.Email,
+            user.FirstName,
+            user.LastName,
+            user.PhoneNumber,
+            user.Role,
+            user.MfaEnabled,
+            user.IsActive,
+            user.LastLoginAt,
+            user.SidebarCollapsed,
+            modules
+        );
+    }
 }

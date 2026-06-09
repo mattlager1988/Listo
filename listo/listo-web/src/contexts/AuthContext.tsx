@@ -10,6 +10,7 @@ interface User {
   role: string;
   mfaEnabled: boolean;
   sidebarCollapsed: boolean;
+  modules: string[];
 }
 
 interface AuthContextType {

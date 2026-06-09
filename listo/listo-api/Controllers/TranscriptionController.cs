@@ -9,6 +9,7 @@ public record StartTranscriptionRequest(string Url);
 [ApiController]
 [Route("api/aviation/[controller]")]
 [Authorize]
+[Listo.Api.Authorization.ModuleAccess(Listo.Api.Models.ModuleKeys.Aviation)]
 public class TranscriptionController : ControllerBase
 {
     private readonly ITranscriptionSessionManager _sessionManager;
