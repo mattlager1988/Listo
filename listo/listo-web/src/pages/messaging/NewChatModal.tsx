@@ -63,7 +63,7 @@ const NewChatModal: React.FC<Props> = ({ open, onClose, onCreated }) => {
               value={selected}
               onChange={setSelected}
               placeholder="Select people"
-              optionFilterProp="label"
+              showSearch={false}
               options={users.map((u) => ({
                 value: u.sysId,
                 label: `${u.firstName} ${u.lastName} (${u.email})`,
