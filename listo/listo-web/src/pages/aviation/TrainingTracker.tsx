@@ -37,7 +37,7 @@ import DOMPurify from 'dompurify';
 // The UTC value converter adds a "Z" suffix to all DateTimes, but TrainingLog.Date
 // is a calendar date - interpreting it as UTC shifts it by the local timezone offset.
 const parseDate = (date: string) => dayjs(date.substring(0, 10));
-import { Column, Pie } from '@ant-design/charts';
+import { Column } from '@ant-design/charts';
 import api from '../../services/api';
 import PageHeader from '../../components/PageHeader';
 import RichTextEditor from '../../components/RichTextEditor';
@@ -462,14 +462,13 @@ const TrainingTracker: React.FC = () => {
     ? logs.find(l => l.sysId === selectedRowKeys[0])
     : null;
 
-  // Hours grouped by aircraft, counting only logs tied to an aircraft.
+  // Hours grouped by aircraft (labelled by plane ID only, e.g. N805AA),
+  // counting only logs tied to an aircraft.
   const hoursByAircraft = useMemo(() => {
     const map = new Map<string, number>();
     for (const log of logs) {
       if (log.aircraftSysId == null) continue;
-      const label = log.aircraftPlaneId
-        ? `${log.aircraftPlaneId} - ${log.aircraftName ?? ''}`.trim().replace(/ -$/, '')
-        : (log.aircraftName ?? 'Unknown');
+      const label = log.aircraftPlaneId ?? log.aircraftName ?? 'Unknown';
       map.set(label, (map.get(label) ?? 0) + log.hoursFlown);
     }
     return Array.from(map.entries()).map(([aircraft, hours]) => ({ aircraft, hours }));
@@ -593,16 +592,18 @@ const TrainingTracker: React.FC = () => {
         <Col xs={24} lg={10}>
           <Card title="Hours by Aircraft" size="small">
             {hoursByAircraft.length > 0 ? (
-              <Pie
+              <Column
                 data={hoursByAircraft}
-                angleField="hours"
-                colorField="aircraft"
-                innerRadius={0.6}
+                xField="aircraft"
+                yField="hours"
                 height={200}
                 label={{
                   text: (d: { hours: number }) => `${d.hours.toFixed(1)}h`,
+                  position: 'inside',
                 }}
-                legend={{ color: { position: 'bottom' } }}
+                axis={{
+                  y: { title: 'Hours' },
+                }}
               />
             ) : (
               <div style={{ height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#999' }}>
