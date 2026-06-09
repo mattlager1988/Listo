@@ -26,10 +26,17 @@ const Messaging: React.FC = () => {
   const activeIdRef = useRef<number | null>(null);
   useEffect(() => { activeIdRef.current = activeId; }, [activeId]);
 
+  // Conversations deleted (hidden) by this user. Filtered out of every load so a
+  // stale in-flight fetch can't re-add a just-deleted conversation. An entry is
+  // cleared when the conversation legitimately reappears (new message) or is
+  // explicitly reopened.
+  const deletedIdsRef = useRef<Set<number>>(new Set());
+
   const loadConversations = useCallback(async () => {
     const data = await messagingApi.getConversations();
-    setConversations(data);
-    return data;
+    const filtered = data.filter((c) => !deletedIdsRef.current.has(c.sysId));
+    setConversations(filtered);
+    return filtered;
   }, []);
 
   const appendMessage = useCallback((msg: MessageDto) => {
@@ -39,6 +46,8 @@ const Messaging: React.FC = () => {
   const openConversation = useCallback(async (id: number) => {
     setActiveId(id);
     setTypingByUser({});
+    // Explicitly opening a conversation un-hides it (e.g. re-opening a deleted chat).
+    deletedIdsRef.current.delete(id);
     // Fetch the conversation directly so it opens even when it's hidden from the
     // list (e.g. a previously deleted chat being re-opened); it starts fresh,
     // showing only messages after the user's clear point.
@@ -61,6 +70,8 @@ const Messaging: React.FC = () => {
     startMessagingHub({
       onMessageReceived: (msg) => {
         if (!mounted) return;
+        // A new message means a previously deleted conversation should reappear.
+        deletedIdsRef.current.delete(msg.conversationSysId);
         if (msg.conversationSysId === activeIdRef.current) {
           appendMessage(msg);
           messagingApi.markRead(msg.conversationSysId, msg.sysId).catch(() => {});
@@ -131,7 +142,9 @@ const Messaging: React.FC = () => {
   // filter it out (e.g. a just-started chat that was previously deleted and has
   // no new messages yet). Once a message is sent it appears normally.
   const displayedConversations = useMemo(() => {
-    if (activeConversation && !conversations.some((c) => c.sysId === activeConversation.sysId)) {
+    if (activeConversation
+        && !deletedIdsRef.current.has(activeConversation.sysId)
+        && !conversations.some((c) => c.sysId === activeConversation.sysId)) {
       return [activeConversation, ...conversations];
     }
     return conversations;
@@ -179,13 +192,21 @@ const Messaging: React.FC = () => {
   };
 
   const handleDelete = async (id: number) => {
-    await messagingApi.deleteConversation(id);
+    // Optimistically hide it and guard against stale loads re-adding it.
+    deletedIdsRef.current.add(id);
     if (activeId === id) {
       setActiveId(null);
       setActiveConversation(null);
       setMessages([]);
     }
     setConversations((prev) => prev.filter((c) => c.sysId !== id));
+    try {
+      await messagingApi.deleteConversation(id);
+    } catch {
+      // Revert on failure so it isn't silently lost.
+      deletedIdsRef.current.delete(id);
+      loadConversations().catch(() => {});
+    }
   };
 
   return (
