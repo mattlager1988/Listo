@@ -1,6 +1,6 @@
 import React from 'react';
 import { Routes, Route, Navigate, Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { TabBar, SafeArea } from 'antd-mobile';
+import { TabBar } from 'antd-mobile';
 import {
   BillOutline,
   BankcardOutline,
@@ -172,7 +172,7 @@ const AppLayout: React.FC = () => {
 
   return (
     <MenuProvider>
-      <SafeArea position="top" />
+      {/* Top safe-area inset is handled globally via .adm-nav-bar padding (index.css). */}
       <div className={showTabs ? 'app-content' : 'app-content app-content-no-tabs'}>
         <ErrorBoundary>
           <Outlet />

@@ -11,6 +11,18 @@
   -webkit-tap-highlight-color: transparent;
 }
 
+/*
+ * iOS safe area: as an installed PWA the web view extends under the status bar
+ * (clock / Dynamic Island). Pad every NavBar by the top inset so its content
+ * (back arrows, titles, action buttons) stays below the status bar and tappable.
+ * env(safe-area-inset-top) is 0 when no inset is needed, so this is a no-op on
+ * devices/contexts that don't require it.
+ */
+.adm-nav-bar {
+  padding-top: env(safe-area-inset-top);
+  height: calc(var(--height, 45px) + env(safe-area-inset-top));
+}
+
 body {
   margin: 0;
   padding: 0;
