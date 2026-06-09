@@ -127,6 +127,16 @@ const Messaging: React.FC = () => {
   }, [appendMessage, loadConversations]);
 
 
+  // Always show the active conversation in the list, even if the server would
+  // filter it out (e.g. a just-started chat that was previously deleted and has
+  // no new messages yet). Once a message is sent it appears normally.
+  const displayedConversations = useMemo(() => {
+    if (activeConversation && !conversations.some((c) => c.sysId === activeConversation.sysId)) {
+      return [activeConversation, ...conversations];
+    }
+    return conversations;
+  }, [conversations, activeConversation]);
+
   const typingNames = useMemo(() => {
     if (!activeConversation) return [];
     return Object.entries(typingByUser)
@@ -190,7 +200,7 @@ const Messaging: React.FC = () => {
       />
       <div className="msg-container">
         <ConversationList
-          conversations={conversations}
+          conversations={displayedConversations}
           currentUserId={currentUserId}
           activeId={activeId}
           onlineUserIds={onlineUserIds}
