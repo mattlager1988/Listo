@@ -151,10 +151,21 @@ public class MessagingService : IMessagingService
                 && c.Participants.Count == 2
                 && c.Participants.Any(p => p.UserSysId == currentUserId)
                 && c.Participants.Any(p => p.UserSysId == otherUserId))
+            .Include(c => c.Participants)
             .FirstOrDefaultAsync();
 
         if (existing != null)
+        {
+            // Explicitly starting a chat un-hides it if the user had deleted it
+            // for themselves, so it shows in their list again.
+            var mine = existing.Participants.FirstOrDefault(p => p.UserSysId == currentUserId);
+            if (mine != null && mine.ClearedAt != null)
+            {
+                mine.ClearedAt = null;
+                await _context.SaveChangesAsync();
+            }
             return (await GetConversationAsync(existing.SysId, currentUserId))!;
+        }
 
         var conv = new Conversation
         {
