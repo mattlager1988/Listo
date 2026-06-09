@@ -30,8 +30,10 @@
  * NavBar to its normal height so the inset isn't applied twice.
  */
 .msg-fullscreen {
-  height: 100vh;
+  position: fixed;
+  inset: 0;
   padding-top: env(safe-area-inset-top);
+  background: #fff;
 }
 .msg-fullscreen .adm-nav-bar {
   padding-top: 0;

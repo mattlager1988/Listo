@@ -111,7 +111,7 @@ const MessageThread: React.FC<Props> = ({
         <Input.TextArea
           value={draft}
           onChange={(e) => handleDraftChange(e.target.value)}
-          placeholder="iMessage"
+          placeholder=""
           autoSize={{ minRows: 1, maxRows: 4 }}
           onPressEnter={(e) => {
             if (!e.shiftKey) {

@@ -217,7 +217,7 @@ const Thread: React.FC = () => {
           <TextArea
             value={draft}
             onChange={handleDraftChange}
-            placeholder="iMessage"
+            placeholder=""
             autoSize={{ minRows: 1, maxRows: 4 }}
             style={{ background: '#f5f5f5', borderRadius: 16, padding: '6px 12px' }}
           />
