@@ -46,8 +46,6 @@ const Messaging: React.FC = () => {
   const openConversation = useCallback(async (id: number) => {
     setActiveId(id);
     setTypingByUser({});
-    // Explicitly opening a conversation un-hides it (e.g. re-opening a deleted chat).
-    deletedIdsRef.current.delete(id);
     // Fetch the conversation directly so it opens even when it's hidden from the
     // list (e.g. a previously deleted chat being re-opened); it starts fresh,
     // showing only messages after the user's clear point.
@@ -142,12 +140,13 @@ const Messaging: React.FC = () => {
   // filter it out (e.g. a just-started chat that was previously deleted and has
   // no new messages yet). Once a message is sent it appears normally.
   const displayedConversations = useMemo(() => {
+    const list = conversations.filter((c) => !deletedIdsRef.current.has(c.sysId));
     if (activeConversation
         && !deletedIdsRef.current.has(activeConversation.sysId)
-        && !conversations.some((c) => c.sysId === activeConversation.sysId)) {
-      return [activeConversation, ...conversations];
+        && !list.some((c) => c.sysId === activeConversation.sysId)) {
+      return [activeConversation, ...list];
     }
-    return conversations;
+    return list;
   }, [conversations, activeConversation]);
 
   const typingNames = useMemo(() => {
@@ -251,6 +250,8 @@ const Messaging: React.FC = () => {
         open={newChatOpen}
         onClose={() => setNewChatOpen(false)}
         onCreated={async (conv) => {
+          // Explicitly starting a chat un-hides it if it was previously deleted.
+          deletedIdsRef.current.delete(conv.sysId);
           await loadConversations();
           openConversation(conv.sysId);
         }}
