@@ -6,29 +6,35 @@ interface Props {
   attachment: AttachmentDto;
 }
 
+// Uses a base64 data URL (not a blob: URL) because installed iOS PWAs (WKWebView)
+// frequently fail to render blob: URLs in <img>/<video>.
 const MessageAttachment: React.FC<Props> = ({ attachment }) => {
   const [url, setUrl] = useState<string | null>(null);
-  const [viewerVisible, setViewerVisible] = useState(false);
+  const [failed, setFailed] = useState(false);
 
   useEffect(() => {
     let active = true;
-    let created: string | null = null;
-    messagingApi
-      .fetchAttachmentUrl(attachment.sysId)
-      .then((u) => {
-        if (active) {
-          created = u;
-          setUrl(u);
-        } else {
-          URL.revokeObjectURL(u);
-        }
-      })
-      .catch(() => {});
-    return () => {
-      active = false;
-      if (created) URL.revokeObjectURL(created);
-    };
-  }, [attachment.sysId]);
+    let blobUrl: string | null = null;
+    setUrl(null);
+    setFailed(false);
+    // Images: base64 data URL (reliable in iOS WKWebView). Videos: blob URL, since
+    // base64-encoding a large video in memory is impractical.
+    const load = attachment.kind === 'video'
+      ? messagingApi.fetchAttachmentUrl(attachment.sysId).then((u) => { blobUrl = u; return u; })
+      : messagingApi.fetchAttachmentDataUrl(attachment.sysId);
+    load
+      .then((u) => { if (active) setUrl(u); else if (blobUrl) URL.revokeObjectURL(blobUrl); })
+      .catch(() => { if (active) setFailed(true); });
+    return () => { active = false; if (blobUrl) URL.revokeObjectURL(blobUrl); };
+  }, [attachment.sysId, attachment.kind]);
+
+  if (failed) {
+    return (
+      <div style={{ padding: '8px 12px', fontSize: 13, color: '#fff', opacity: 0.85 }}>
+        📎 {attachment.originalFileName}
+      </div>
+    );
+  }
 
   if (!url) {
     return (
@@ -50,15 +56,12 @@ const MessageAttachment: React.FC<Props> = ({ attachment }) => {
   }
 
   return (
-    <>
-      <img
-        src={url}
-        alt={attachment.originalFileName}
-        onClick={() => setViewerVisible(true)}
-        style={{ maxWidth: 220, maxHeight: 280, borderRadius: 12, display: 'block' }}
-      />
-      <ImageViewer image={url} visible={viewerVisible} onClose={() => setViewerVisible(false)} />
-    </>
+    <img
+      src={url}
+      alt={attachment.originalFileName}
+      onClick={() => ImageViewer.show({ image: url })}
+      style={{ maxWidth: 220, maxHeight: 280, borderRadius: 12, display: 'block' }}
+    />
   );
 };
 

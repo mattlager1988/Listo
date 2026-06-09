@@ -99,6 +99,18 @@ export const messagingApi = {
     const { data } = await api.get(`/messaging/attachments/${attachmentId}`, { responseType: 'blob' });
     return URL.createObjectURL(data);
   },
+
+  // Returns the attachment as a base64 data URL. Used on mobile because installed
+  // iOS PWAs (WKWebView) frequently fail to render blob: URLs in <img>/<video>.
+  async fetchAttachmentDataUrl(attachmentId: number): Promise<string> {
+    const { data } = await api.get(`/messaging/attachments/${attachmentId}`, { responseType: 'blob' });
+    return await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(data);
+    });
+  },
 };
 
 export function conversationTitle(conv: Conversation, currentUserId: number): string {
