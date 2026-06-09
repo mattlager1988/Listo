@@ -142,7 +142,7 @@ const Thread: React.FC = () => {
     : [];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', width: '100%', maxWidth: '100vw', overflow: 'hidden' }}>
+    <div className="msg-fullscreen" style={{ display: 'flex', flexDirection: 'column', width: '100%', maxWidth: '100vw', overflow: 'hidden' }}>
       <NavBar onBack={() => navigate('/messaging')} style={{ '--height': '48px', flexShrink: 0 }}>
         {conversation ? conversationTitle(conversation, currentUserId) : 'Conversation'}
       </NavBar>

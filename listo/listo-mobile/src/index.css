@@ -23,6 +23,21 @@
   height: calc(var(--height, 45px) + env(safe-area-inset-top));
 }
 
+/*
+ * Full-screen messaging pages (Thread, NewChat) use a height:100vh flex column
+ * where the NavBar is a flex child; the per-NavBar padding above doesn't reliably
+ * reserve the inset there. Instead reserve it on the container and reset the
+ * NavBar to its normal height so the inset isn't applied twice.
+ */
+.msg-fullscreen {
+  height: 100vh;
+  padding-top: env(safe-area-inset-top);
+}
+.msg-fullscreen .adm-nav-bar {
+  padding-top: 0;
+  height: var(--height, 45px);
+}
+
 body {
   margin: 0;
   padding: 0;

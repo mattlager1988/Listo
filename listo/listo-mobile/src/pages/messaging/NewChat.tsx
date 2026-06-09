@@ -39,7 +39,7 @@ const NewChat: React.FC = () => {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
+    <div className="msg-fullscreen" style={{ display: 'flex', flexDirection: 'column' }}>
       <NavBar
         onBack={() => navigate('/messaging')}
         right={<a onClick={handleStart} style={{ pointerEvents: submitting ? 'none' : 'auto' }}>Start</a>}
