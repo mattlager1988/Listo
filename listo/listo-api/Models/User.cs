@@ -15,4 +15,5 @@ public class User : BaseEntity
     public bool SidebarCollapsed { get; set; } = true;
 
     public ICollection<RefreshToken> RefreshTokens { get; set; } = new List<RefreshToken>();
+    public ICollection<UserModule> Modules { get; set; } = new List<UserModule>();
 }

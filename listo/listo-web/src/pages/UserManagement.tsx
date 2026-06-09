@@ -7,6 +7,7 @@ import {
   Form,
   Input,
   Select,
+  Checkbox,
   message,
   Popconfirm,
   Tag,
@@ -24,6 +25,7 @@ import {
 } from '@ant-design/icons';
 import api from '../services/api';
 import PageHeader from '../components/PageHeader';
+import { ASSIGNABLE_MODULES } from '../utils/modules';
 
 interface User {
   sysId: number;
@@ -35,6 +37,7 @@ interface User {
   mfaEnabled: boolean;
   isActive: boolean;
   lastLoginAt?: string;
+  modules: string[];
 }
 
 const UserManagement: React.FC = () => {
@@ -47,6 +50,7 @@ const UserManagement: React.FC = () => {
   const [inactiveUsers, setInactiveUsers] = useState<User[]>([]);
   const [inactiveLoading, setInactiveLoading] = useState(false);
   const [form] = Form.useForm();
+  const watchedRole = Form.useWatch('role', form);
 
   const fetchUsers = useCallback(async () => {
     setLoading(true);
@@ -79,6 +83,7 @@ const UserManagement: React.FC = () => {
       phoneNumber: user.phoneNumber,
       role: user.role,
       isActive: user.isActive,
+      modules: user.modules ?? [],
     });
     setModalVisible(true);
     setSelectedRowKeys([]);
@@ -92,6 +97,7 @@ const UserManagement: React.FC = () => {
     phoneNumber?: string;
     role: string;
     isActive?: boolean;
+    modules?: string[];
   }) => {
     try {
       if (editingUser) {
@@ -432,6 +438,19 @@ const UserManagement: React.FC = () => {
                   <Select.Option value={true}>Active</Select.Option>
                   <Select.Option value={false}>Inactive</Select.Option>
                 </Select>
+              </Form.Item>
+            )}
+
+            {watchedRole === 'admin' ? (
+              <Form.Item label="Module Access" style={{ marginBottom: 0 }}>
+                <Tag color="blue">Admins have access to all modules</Tag>
+              </Form.Item>
+            ) : (
+              <Form.Item name="modules" label="Module Access" style={{ marginBottom: 0 }}>
+                <Checkbox.Group
+                  options={ASSIGNABLE_MODULES.map(m => ({ label: m.label, value: m.key }))}
+                  style={{ display: 'flex', flexDirection: 'column', gap: 4 }}
+                />
               </Form.Item>
             )}
 

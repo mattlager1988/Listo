@@ -2,13 +2,15 @@ import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { Spin } from 'antd';
 import { useAuth } from '../contexts/AuthContext';
+import { hasModule } from '../utils/modules';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
   requiredRole?: string;
+  requiredModule?: string;
 }
 
-const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requiredRole }) => {
+const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requiredRole, requiredModule }) => {
   const { isAuthenticated, isLoading, user } = useAuth();
   const location = useLocation();
 
@@ -30,6 +32,10 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requiredRole 
   }
 
   if (requiredRole && user?.role !== requiredRole) {
+    return <Navigate to="/" replace />;
+  }
+
+  if (requiredModule && !hasModule(user, requiredModule)) {
     return <Navigate to="/" replace />;
   }
 

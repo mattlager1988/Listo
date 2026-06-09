@@ -7,6 +7,7 @@ export interface User {
   role: string;
   mfaEnabled: boolean;
   sidebarCollapsed: boolean;
+  modules: string[];
 }
 
 export interface AuthContextType {

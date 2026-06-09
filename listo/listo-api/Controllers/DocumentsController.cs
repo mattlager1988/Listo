@@ -27,12 +27,24 @@ public class DocumentsController : ControllerBase
         return long.TryParse(userIdClaim, out var userId) ? userId : null;
     }
 
+    // Documents are owned by a module ("finance"/"aviation"). Since this controller
+    // is shared, enforce module access per-request rather than with [ModuleAccess].
+    private bool HasModuleAccess(string? module)
+    {
+        if (string.IsNullOrEmpty(module)) return true;
+        if (User.IsInRole("admin")) return true;
+        return User.Claims.Any(c => c.Type == "module" &&
+            string.Equals(c.Value, module, StringComparison.OrdinalIgnoreCase));
+    }
+
     [HttpGet]
     public async Task<IActionResult> GetDocuments(
         [FromQuery] string? module,
         [FromQuery] string? entityType,
         [FromQuery] long? entitySysId)
     {
+        if (!HasModuleAccess(module)) return Forbid();
+
         var documents = await _documentService.GetDocumentsAsync(
             module ?? "", entityType ?? "", entitySysId);
         return Ok(documents);
@@ -43,12 +55,17 @@ public class DocumentsController : ControllerBase
     {
         var document = await _documentService.GetByIdAsync(id);
         if (document == null) return NotFound();
+        if (!HasModuleAccess(document.Module)) return Forbid();
         return Ok(document);
     }
 
     [HttpGet("{id}/download")]
     public async Task<IActionResult> Download(long id)
     {
+        var document = await _documentService.GetByIdAsync(id);
+        if (document == null) return NotFound();
+        if (!HasModuleAccess(document.Module)) return Forbid();
+
         var result = await _documentService.DownloadAsync(id);
         if (result == null) return NotFound();
 
@@ -69,6 +86,8 @@ public class DocumentsController : ControllerBase
     {
         var userId = GetCurrentUserId();
         if (!userId.HasValue) return Unauthorized();
+
+        if (!HasModuleAccess(module)) return Forbid();
 
         // Validate file size
         var maxSizeMB = await _settingsService.GetIntValueAsync("DocumentStorage:MaxFileSizeMB", 250);
@@ -104,6 +123,10 @@ public class DocumentsController : ControllerBase
         [FromForm] long? documentTypeSysId,
         IFormFile? file)
     {
+        var existing = await _documentService.GetByIdAsync(id);
+        if (existing == null) return NotFound();
+        if (!HasModuleAccess(existing.Module)) return Forbid();
+
         // Validate file if provided
         if (file != null)
         {
@@ -143,6 +166,10 @@ public class DocumentsController : ControllerBase
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(long id)
     {
+        var existing = await _documentService.GetByIdAsync(id);
+        if (existing == null) return NotFound();
+        if (!HasModuleAccess(existing.Module)) return Forbid();
+
         var success = await _documentService.DeleteAsync(id);
         if (!success) return NotFound();
         return NoContent();

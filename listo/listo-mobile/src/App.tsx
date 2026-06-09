@@ -17,11 +17,12 @@ import {
   AppstoreOutline,
 } from 'antd-mobile-icons';
 import { useAuth } from '@shared/contexts/AuthContext';
+import { hasModule, MODULE_KEYS } from '@shared/utils/modules';
 import { MenuProvider } from './contexts/MenuContext';
 import ErrorBoundary from './components/ErrorBoundary';
 import HamburgerDrawer from './components/HamburgerDrawer';
 import Login from './pages/Login';
-import Dashboard from './pages/Dashboard';
+import Home from './pages/Home';
 import Accounts from './pages/finance/Accounts';
 import AccountDetail from './pages/finance/AccountDetail';
 import AccountForm from './pages/finance/AccountForm';
@@ -53,6 +54,9 @@ import TaskBoardDetail from './pages/tasks/BoardDetail';
 import TaskBoardForm from './pages/tasks/BoardForm';
 import TaskForm from './pages/tasks/TaskForm';
 import TaskColumnSettings from './pages/tasks/ColumnSettings';
+import Conversations from './pages/messaging/Conversations';
+import Thread from './pages/messaging/Thread';
+import NewChat from './pages/messaging/NewChat';
 
 const ProtectedRoute: React.FC = () => {
   const { isAuthenticated, isLoading } = useAuth();
@@ -70,6 +74,15 @@ const ProtectedRoute: React.FC = () => {
   }
 
   return <Outlet />;
+};
+
+// Redirects to home if the current user lacks access to the given module.
+const ModuleGuard: React.FC<{ module: string; children: React.ReactNode }> = ({ module, children }) => {
+  const { user } = useAuth();
+  if (!hasModule(user, module)) {
+    return <Navigate to="/" replace />;
+  }
+  return <>{children}</>;
 };
 
 interface TabConfig {
@@ -185,45 +198,60 @@ const App: React.FC = () => {
       <Route path="/login" element={<Login />} />
       <Route element={<ProtectedRoute />}>
         <Route element={<AppLayout />}>
-          <Route index element={<Dashboard />} />
-          <Route path="bills" element={<Accounts />} />
-          <Route path="bills/new" element={<AccountForm />} />
-          <Route path="bills/:id" element={<AccountDetail />} />
-          <Route path="bills/:id/edit" element={<AccountForm />} />
-          <Route path="bills/:id/pay" element={<PostPayment />} />
-          <Route path="cards" element={<Cards />} />
-          <Route path="docs" element={<Docs />} />
-          <Route path="pending" element={<PendingPayments />} />
-          <Route path="pending/:paymentId/edit" element={<EditPayment />} />
-          <Route path="cycle" element={<CyclePlans />} />
-          <Route path="cycle/new" element={<CyclePlanForm />} />
-          <Route path="cycle/:id" element={<CyclePlanDetail />} />
-          <Route path="cycle/:id/edit" element={<CyclePlanForm />} />
-          <Route path="cycle/:id/transaction/new" element={<TransactionForm />} />
-          <Route path="cycle/:id/transaction/:txnId/edit" element={<TransactionForm />} />
-          <Route path="tasks/backlog" element={<TaskBacklog />} />
-          <Route path="tasks/boards" element={<TaskBoards />} />
-          <Route path="tasks/boards/new" element={<TaskBoardForm />} />
-          <Route path="tasks/boards/:id" element={<TaskBoardDetail />} />
-          <Route path="tasks/boards/:id/edit" element={<TaskBoardForm />} />
-          <Route path="tasks/boards/:id/columns" element={<TaskColumnSettings />} />
-          <Route path="tasks/new" element={<TaskForm />} />
-          <Route path="tasks/:id/edit" element={<TaskForm />} />
-          <Route path="aviation/training" element={<Training />} />
-          <Route path="aviation/training/new" element={<TrainingForm />} />
-          <Route path="aviation/training/:id" element={<TrainingDetail />} />
-          <Route path="aviation/training/:id/edit" element={<TrainingForm />} />
-          <Route path="aviation/documents" element={<AviationDocuments />} />
-          <Route path="aviation/notes" element={<AviationNotes />} />
-          <Route path="aviation/notes/new" element={<NoteForm />} />
-          <Route path="aviation/notes/:id" element={<NoteDetail />} />
-          <Route path="aviation/notes/:id/edit" element={<NoteForm />} />
-          <Route path="passwords" element={<Passwords />} />
-          <Route path="passwords/new" element={<PasswordForm />} />
-          <Route path="passwords/:id/edit" element={<PasswordForm />} />
-          <Route path="admin/users" element={<AdminUsers />} />
-          <Route path="admin/lists" element={<AdminLists />} />
-          <Route path="admin/settings" element={<AdminSettings />} />
+          <Route index element={<Home />} />
+          <Route element={<ModuleGuard module={MODULE_KEYS.finance}><Outlet /></ModuleGuard>}>
+            <Route path="bills" element={<Accounts />} />
+            <Route path="bills/new" element={<AccountForm />} />
+            <Route path="bills/:id" element={<AccountDetail />} />
+            <Route path="bills/:id/edit" element={<AccountForm />} />
+            <Route path="bills/:id/pay" element={<PostPayment />} />
+            <Route path="cards" element={<Cards />} />
+            <Route path="docs" element={<Docs />} />
+            <Route path="pending" element={<PendingPayments />} />
+            <Route path="pending/:paymentId/edit" element={<EditPayment />} />
+            <Route path="cycle" element={<CyclePlans />} />
+            <Route path="cycle/new" element={<CyclePlanForm />} />
+            <Route path="cycle/:id" element={<CyclePlanDetail />} />
+            <Route path="cycle/:id/edit" element={<CyclePlanForm />} />
+            <Route path="cycle/:id/transaction/new" element={<TransactionForm />} />
+            <Route path="cycle/:id/transaction/:txnId/edit" element={<TransactionForm />} />
+          </Route>
+          <Route element={<ModuleGuard module={MODULE_KEYS.tasks}><Outlet /></ModuleGuard>}>
+            <Route path="tasks/backlog" element={<TaskBacklog />} />
+            <Route path="tasks/boards" element={<TaskBoards />} />
+            <Route path="tasks/boards/new" element={<TaskBoardForm />} />
+            <Route path="tasks/boards/:id" element={<TaskBoardDetail />} />
+            <Route path="tasks/boards/:id/edit" element={<TaskBoardForm />} />
+            <Route path="tasks/boards/:id/columns" element={<TaskColumnSettings />} />
+            <Route path="tasks/new" element={<TaskForm />} />
+            <Route path="tasks/:id/edit" element={<TaskForm />} />
+          </Route>
+          <Route element={<ModuleGuard module={MODULE_KEYS.aviation}><Outlet /></ModuleGuard>}>
+            <Route path="aviation/training" element={<Training />} />
+            <Route path="aviation/training/new" element={<TrainingForm />} />
+            <Route path="aviation/training/:id" element={<TrainingDetail />} />
+            <Route path="aviation/training/:id/edit" element={<TrainingForm />} />
+            <Route path="aviation/documents" element={<AviationDocuments />} />
+            <Route path="aviation/notes" element={<AviationNotes />} />
+            <Route path="aviation/notes/new" element={<NoteForm />} />
+            <Route path="aviation/notes/:id" element={<NoteDetail />} />
+            <Route path="aviation/notes/:id/edit" element={<NoteForm />} />
+          </Route>
+          <Route element={<ModuleGuard module={MODULE_KEYS.passwords}><Outlet /></ModuleGuard>}>
+            <Route path="passwords" element={<Passwords />} />
+            <Route path="passwords/new" element={<PasswordForm />} />
+            <Route path="passwords/:id/edit" element={<PasswordForm />} />
+          </Route>
+          <Route element={<ModuleGuard module={MODULE_KEYS.messaging}><Outlet /></ModuleGuard>}>
+            <Route path="messaging" element={<Conversations />} />
+            <Route path="messaging/new" element={<NewChat />} />
+            <Route path="messaging/:id" element={<Thread />} />
+          </Route>
+          <Route element={<ModuleGuard module={MODULE_KEYS.admin}><Outlet /></ModuleGuard>}>
+            <Route path="admin/users" element={<AdminUsers />} />
+            <Route path="admin/lists" element={<AdminLists />} />
+            <Route path="admin/settings" element={<AdminSettings />} />
+          </Route>
           <Route path="profile" element={<Profile />} />
           <Route path="*" element={
             <div style={{ padding: 48, textAlign: 'center' }}>

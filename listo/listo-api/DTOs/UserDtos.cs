@@ -10,7 +10,8 @@ public record UserResponse(
     bool MfaEnabled,
     bool IsActive,
     DateTime? LastLoginAt,
-    bool SidebarCollapsed
+    bool SidebarCollapsed,
+    IReadOnlyList<string> Modules
 );
 
 public record CreateUserRequest(
@@ -19,7 +20,8 @@ public record CreateUserRequest(
     string FirstName,
     string LastName,
     string? PhoneNumber,
-    string Role
+    string Role,
+    IReadOnlyList<string>? Modules
 );
 
 public record UpdateUserRequest(
@@ -28,7 +30,8 @@ public record UpdateUserRequest(
     string? LastName,
     string? PhoneNumber,
     string? Role,
-    bool? IsActive
+    bool? IsActive,
+    IReadOnlyList<string>? Modules
 );
 
 public record UpdateProfileRequest(

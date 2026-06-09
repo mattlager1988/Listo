@@ -544,6 +544,100 @@ namespace Listo.Api.Migrations
                     b.ToTable("bank_accounts", (string)null);
                 });
 
+            modelBuilder.Entity("Listo.Api.Models.Conversation", b =>
+                {
+                    b.Property<long>("SysId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("sys_id");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("SysId"));
+
+                    b.Property<DateTime>("CreateTimestamp")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("create_timestamp");
+
+                    b.Property<long?>("CreateUser")
+                        .HasColumnType("bigint")
+                        .HasColumnName("create_user");
+
+                    b.Property<long>("CreatedBySysId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("created_by_sys_id");
+
+                    b.Property<DateTime>("ModifyTimestamp")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("modify_timestamp");
+
+                    b.Property<long?>("ModifyUser")
+                        .HasColumnType("bigint")
+                        .HasColumnName("modify_user");
+
+                    b.Property<string>("Name")
+                        .HasColumnType("longtext")
+                        .HasColumnName("name");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasColumnType("longtext")
+                        .HasColumnName("type");
+
+                    b.HasKey("SysId");
+
+                    b.ToTable("conversations", (string)null);
+                });
+
+            modelBuilder.Entity("Listo.Api.Models.ConversationParticipant", b =>
+                {
+                    b.Property<long>("SysId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("sys_id");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("SysId"));
+
+                    b.Property<DateTime?>("ClearedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("cleared_at");
+
+                    b.Property<long>("ConversationSysId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("conversation_sys_id");
+
+                    b.Property<DateTime>("CreateTimestamp")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("create_timestamp");
+
+                    b.Property<long?>("CreateUser")
+                        .HasColumnType("bigint")
+                        .HasColumnName("create_user");
+
+                    b.Property<long?>("LastReadMessageSysId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("last_read_message_sys_id");
+
+                    b.Property<DateTime>("ModifyTimestamp")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("modify_timestamp");
+
+                    b.Property<long?>("ModifyUser")
+                        .HasColumnType("bigint")
+                        .HasColumnName("modify_user");
+
+                    b.Property<long>("UserSysId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("user_sys_id");
+
+                    b.HasKey("SysId");
+
+                    b.HasIndex("UserSysId");
+
+                    b.HasIndex("ConversationSysId", "UserSysId")
+                        .IsUnique();
+
+                    b.ToTable("conversation_participants", (string)null);
+                });
+
             modelBuilder.Entity("Listo.Api.Models.CycleGoal", b =>
                 {
                     b.Property<long>("SysId")
@@ -952,6 +1046,165 @@ namespace Listo.Api.Migrations
                         .IsUnique();
 
                     b.ToTable("ledger_transactions", (string)null);
+                });
+
+            modelBuilder.Entity("Listo.Api.Models.Message", b =>
+                {
+                    b.Property<long>("SysId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("sys_id");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("SysId"));
+
+                    b.Property<string>("Body")
+                        .HasColumnType("text")
+                        .HasColumnName("body");
+
+                    b.Property<long>("ConversationSysId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("conversation_sys_id");
+
+                    b.Property<DateTime>("CreateTimestamp")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("create_timestamp");
+
+                    b.Property<long?>("CreateUser")
+                        .HasColumnType("bigint")
+                        .HasColumnName("create_user");
+
+                    b.Property<DateTime>("ModifyTimestamp")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("modify_timestamp");
+
+                    b.Property<long?>("ModifyUser")
+                        .HasColumnType("bigint")
+                        .HasColumnName("modify_user");
+
+                    b.Property<long>("SenderSysId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("sender_sys_id");
+
+                    b.HasKey("SysId");
+
+                    b.HasIndex("SenderSysId");
+
+                    b.HasIndex("ConversationSysId", "SysId");
+
+                    b.ToTable("messages", (string)null);
+                });
+
+            modelBuilder.Entity("Listo.Api.Models.MessageAttachment", b =>
+                {
+                    b.Property<long>("SysId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("sys_id");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("SysId"));
+
+                    b.Property<DateTime>("CreateTimestamp")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("create_timestamp");
+
+                    b.Property<long?>("CreateUser")
+                        .HasColumnType("bigint")
+                        .HasColumnName("create_user");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasColumnType("longtext")
+                        .HasColumnName("file_name");
+
+                    b.Property<long>("FileSize")
+                        .HasColumnType("bigint")
+                        .HasColumnName("file_size");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasColumnType("longtext")
+                        .HasColumnName("kind");
+
+                    b.Property<long>("MessageSysId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("message_sys_id");
+
+                    b.Property<string>("MimeType")
+                        .IsRequired()
+                        .HasColumnType("longtext")
+                        .HasColumnName("mime_type");
+
+                    b.Property<DateTime>("ModifyTimestamp")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("modify_timestamp");
+
+                    b.Property<long?>("ModifyUser")
+                        .HasColumnType("bigint")
+                        .HasColumnName("modify_user");
+
+                    b.Property<string>("OriginalFileName")
+                        .IsRequired()
+                        .HasColumnType("longtext")
+                        .HasColumnName("original_file_name");
+
+                    b.Property<string>("StoragePath")
+                        .IsRequired()
+                        .HasColumnType("longtext")
+                        .HasColumnName("storage_path");
+
+                    b.HasKey("SysId");
+
+                    b.HasIndex("MessageSysId");
+
+                    b.ToTable("message_attachments", (string)null);
+                });
+
+            modelBuilder.Entity("Listo.Api.Models.MessageReaction", b =>
+                {
+                    b.Property<long>("SysId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("sys_id");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("SysId"));
+
+                    b.Property<DateTime>("CreateTimestamp")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("create_timestamp");
+
+                    b.Property<long?>("CreateUser")
+                        .HasColumnType("bigint")
+                        .HasColumnName("create_user");
+
+                    b.Property<string>("Emoji")
+                        .IsRequired()
+                        .HasColumnType("varchar(255)")
+                        .HasColumnName("emoji");
+
+                    b.Property<long>("MessageSysId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("message_sys_id");
+
+                    b.Property<DateTime>("ModifyTimestamp")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("modify_timestamp");
+
+                    b.Property<long?>("ModifyUser")
+                        .HasColumnType("bigint")
+                        .HasColumnName("modify_user");
+
+                    b.Property<long>("UserSysId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("user_sys_id");
+
+                    b.HasKey("SysId");
+
+                    b.HasIndex("UserSysId");
+
+                    b.HasIndex("MessageSysId", "UserSysId", "Emoji")
+                        .IsUnique();
+
+                    b.ToTable("message_reactions", (string)null);
                 });
 
             modelBuilder.Entity("Listo.Api.Models.Note", b =>
@@ -1747,6 +2000,48 @@ namespace Listo.Api.Migrations
                     b.ToTable("users", (string)null);
                 });
 
+            modelBuilder.Entity("Listo.Api.Models.UserModule", b =>
+                {
+                    b.Property<long>("SysId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("sys_id");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("SysId"));
+
+                    b.Property<DateTime>("CreateTimestamp")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("create_timestamp");
+
+                    b.Property<long?>("CreateUser")
+                        .HasColumnType("bigint")
+                        .HasColumnName("create_user");
+
+                    b.Property<DateTime>("ModifyTimestamp")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("modify_timestamp");
+
+                    b.Property<long?>("ModifyUser")
+                        .HasColumnType("bigint")
+                        .HasColumnName("modify_user");
+
+                    b.Property<string>("ModuleKey")
+                        .IsRequired()
+                        .HasColumnType("varchar(255)")
+                        .HasColumnName("module_key");
+
+                    b.Property<long>("UserSysId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("user_sys_id");
+
+                    b.HasKey("SysId");
+
+                    b.HasIndex("UserSysId", "ModuleKey")
+                        .IsUnique();
+
+                    b.ToTable("user_modules", (string)null);
+                });
+
             modelBuilder.Entity("Listo.Api.Models.Account", b =>
                 {
                     b.HasOne("Listo.Api.Models.AccountOwner", "AccountOwner")
@@ -1796,6 +2091,25 @@ namespace Listo.Api.Migrations
                         .HasForeignKey("UserSysId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Listo.Api.Models.ConversationParticipant", b =>
+                {
+                    b.HasOne("Listo.Api.Models.Conversation", "Conversation")
+                        .WithMany("Participants")
+                        .HasForeignKey("ConversationSysId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Listo.Api.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserSysId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Conversation");
 
                     b.Navigation("User");
                 });
@@ -1865,6 +2179,55 @@ namespace Listo.Api.Migrations
                     b.Navigation("BankAccount");
 
                     b.Navigation("Payment");
+                });
+
+            modelBuilder.Entity("Listo.Api.Models.Message", b =>
+                {
+                    b.HasOne("Listo.Api.Models.Conversation", "Conversation")
+                        .WithMany("Messages")
+                        .HasForeignKey("ConversationSysId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Listo.Api.Models.User", "Sender")
+                        .WithMany()
+                        .HasForeignKey("SenderSysId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Conversation");
+
+                    b.Navigation("Sender");
+                });
+
+            modelBuilder.Entity("Listo.Api.Models.MessageAttachment", b =>
+                {
+                    b.HasOne("Listo.Api.Models.Message", "Message")
+                        .WithMany("Attachments")
+                        .HasForeignKey("MessageSysId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Message");
+                });
+
+            modelBuilder.Entity("Listo.Api.Models.MessageReaction", b =>
+                {
+                    b.HasOne("Listo.Api.Models.Message", "Message")
+                        .WithMany("Reactions")
+                        .HasForeignKey("MessageSysId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Listo.Api.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserSysId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Message");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("Listo.Api.Models.Note", b =>
@@ -1996,6 +2359,17 @@ namespace Listo.Api.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("Listo.Api.Models.UserModule", b =>
+                {
+                    b.HasOne("Listo.Api.Models.User", "User")
+                        .WithMany("Modules")
+                        .HasForeignKey("UserSysId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("Listo.Api.Models.Account", b =>
                 {
                     b.Navigation("Cards");
@@ -2023,6 +2397,13 @@ namespace Listo.Api.Migrations
                     b.Navigation("LedgerTransactions");
                 });
 
+            modelBuilder.Entity("Listo.Api.Models.Conversation", b =>
+                {
+                    b.Navigation("Messages");
+
+                    b.Navigation("Participants");
+                });
+
             modelBuilder.Entity("Listo.Api.Models.CycleGoal", b =>
                 {
                     b.Navigation("CyclePlans");
@@ -2036,6 +2417,13 @@ namespace Listo.Api.Migrations
             modelBuilder.Entity("Listo.Api.Models.DocumentType", b =>
                 {
                     b.Navigation("Documents");
+                });
+
+            modelBuilder.Entity("Listo.Api.Models.Message", b =>
+                {
+                    b.Navigation("Attachments");
+
+                    b.Navigation("Reactions");
                 });
 
             modelBuilder.Entity("Listo.Api.Models.PasswordCategory", b =>
@@ -2072,6 +2460,8 @@ namespace Listo.Api.Migrations
 
             modelBuilder.Entity("Listo.Api.Models.User", b =>
                 {
+                    b.Navigation("Modules");
+
                     b.Navigation("RefreshTokens");
                 });
 #pragma warning restore 612, 618

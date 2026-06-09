@@ -1,7 +1,7 @@
 {
   "name": "listo-web",
   "private": true,
-  "version": "7.2.3",
+  "version": "7.3.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -13,6 +13,7 @@
     "@ant-design/charts": "^2.6.7",
     "@ant-design/icons": "^6.1.0",
     "@ant-design/pro-components": "^2.8.10",
+    "@microsoft/signalr": "^8.0.7",
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",

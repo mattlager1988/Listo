@@ -8,6 +8,7 @@ namespace Listo.Api.Controllers;
 [ApiController]
 [Route("api/aviation/[controller]")]
 [Authorize]
+[Listo.Api.Authorization.ModuleAccess(Listo.Api.Models.ModuleKeys.Aviation)]
 public class AiPromptsController : ControllerBase
 {
     private readonly IAiPromptService _service;

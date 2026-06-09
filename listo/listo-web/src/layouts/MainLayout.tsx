@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Layout, Menu, Dropdown, Avatar, Space, Typography } from 'antd';
+import { Layout, Menu, Dropdown, Avatar, Space, Typography, Badge } from 'antd';
 import {
   MenuFoldOutlined,
   MenuUnfoldOutlined,
@@ -12,9 +12,12 @@ import {
   RocketOutlined,
   LockOutlined,
   ProjectOutlined,
+  MessageOutlined,
 } from '@ant-design/icons';
 import { Outlet, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { hasModule, MODULE_KEYS } from '../utils/modules';
+import { messagingApi } from '../services/messagingApi';
 import type { MenuProps } from 'antd';
 
 const { Header, Sider, Content } = Layout;
@@ -59,6 +62,22 @@ const MainLayout: React.FC = () => {
       .catch(() => {});
   }, []);
 
+  // Total unread messages for the sidebar badge. Refreshed on navigation and
+  // on a light interval (the Messaging page itself uses SignalR for live updates).
+  const [messagingUnread, setMessagingUnread] = useState(0);
+  React.useEffect(() => {
+    if (!hasModule(user, MODULE_KEYS.messaging)) return;
+    let active = true;
+    const refresh = () => {
+      messagingApi.getConversations()
+        .then(convs => { if (active) setMessagingUnread(convs.reduce((sum, c) => sum + c.unreadCount, 0)); })
+        .catch(() => {});
+    };
+    refresh();
+    const interval = setInterval(refresh, 30000);
+    return () => { active = false; clearInterval(interval); };
+  }, [user, location.pathname]);
+
   // Sync collapsed state when user preference loads/changes
   const initialLoadRef = useRef(true);
   useEffect(() => {
@@ -69,12 +88,12 @@ const MainLayout: React.FC = () => {
   }, [user]);
 
   const menuItems = [
-    {
+    ...(hasModule(user, MODULE_KEYS.dashboard) ? [{
       key: '/',
       icon: <HomeOutlined />,
       label: 'Dashboard',
-    },
-    {
+    }] : []),
+    ...(hasModule(user, MODULE_KEYS.finance) ? [{
       key: '/finance',
       icon: <BankOutlined />,
       label: 'Finance & Bills',
@@ -92,8 +111,8 @@ const MainLayout: React.FC = () => {
           label: 'Documents',
         },
       ],
-    },
-    {
+    }] : []),
+    ...(hasModule(user, MODULE_KEYS.aviation) ? [{
       key: '/aviation',
       icon: <RocketOutlined />,
       label: 'Aviation',
@@ -115,13 +134,23 @@ const MainLayout: React.FC = () => {
           label: 'Listen',
         },
       ],
-    },
-    {
+    }] : []),
+    ...(hasModule(user, MODULE_KEYS.messaging) ? [{
+      key: '/messaging',
+      icon: <MessageOutlined />,
+      label: (
+        <Space>
+          Messaging
+          {messagingUnread > 0 && <Badge count={messagingUnread} size="small" />}
+        </Space>
+      ),
+    }] : []),
+    ...(hasModule(user, MODULE_KEYS.passwords) ? [{
       key: '/passwords',
       icon: <LockOutlined />,
       label: 'Passwords',
-    },
-    {
+    }] : []),
+    ...(hasModule(user, MODULE_KEYS.tasks) ? [{
       key: '/tasks',
       icon: <ProjectOutlined />,
       label: 'Tasks',
@@ -135,7 +164,7 @@ const MainLayout: React.FC = () => {
           label: 'Boards',
         },
       ],
-    },
+    }] : []),
     ...(user?.role === 'admin' ? [{
       key: '/admin',
       icon: <ToolOutlined />,
