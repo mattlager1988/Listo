@@ -17,6 +17,7 @@ const Messaging: React.FC = () => {
 
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeId, setActiveId] = useState<number | null>(null);
+  const [activeConversation, setActiveConversation] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<MessageDto[]>([]);
   const [onlineUserIds, setOnlineUserIds] = useState<Set<number>>(new Set());
   const [typingByUser, setTypingByUser] = useState<Record<number, boolean>>({});
@@ -38,7 +39,14 @@ const Messaging: React.FC = () => {
   const openConversation = useCallback(async (id: number) => {
     setActiveId(id);
     setTypingByUser({});
-    const msgs = await messagingApi.getMessages(id);
+    // Fetch the conversation directly so it opens even when it's hidden from the
+    // list (e.g. a previously deleted chat being re-opened); it starts fresh,
+    // showing only messages after the user's clear point.
+    const [conv, msgs] = await Promise.all([
+      messagingApi.getConversation(id),
+      messagingApi.getMessages(id),
+    ]);
+    setActiveConversation(conv);
     setMessages(msgs);
     const last = msgs[msgs.length - 1];
     if (last) {
@@ -76,11 +84,13 @@ const Messaging: React.FC = () => {
       },
       onReadReceiptUpdated: ({ conversationSysId, userSysId, lastReadMessageSysId }) => {
         if (!mounted) return;
-        setConversations((prev) => prev.map((c) =>
-          c.sysId === conversationSysId
-            ? { ...c, participants: c.participants.map((p) =>
-                p.userSysId === userSysId ? { ...p, lastReadMessageSysId } : p) }
-            : c));
+        const applyReceipt = (c: Conversation): Conversation => ({
+          ...c,
+          participants: c.participants.map((p) =>
+            p.userSysId === userSysId ? { ...p, lastReadMessageSysId } : p),
+        });
+        setConversations((prev) => prev.map((c) => (c.sysId === conversationSysId ? applyReceipt(c) : c)));
+        setActiveConversation((ac) => (ac && ac.sysId === conversationSysId ? applyReceipt(ac) : ac));
       },
       onConversationChanged: () => {
         if (mounted) loadConversations().catch(() => {});
@@ -116,10 +126,6 @@ const Messaging: React.FC = () => {
     };
   }, [appendMessage, loadConversations]);
 
-  const activeConversation = useMemo(
-    () => conversations.find((c) => c.sysId === activeId) ?? null,
-    [conversations, activeId],
-  );
 
   const typingNames = useMemo(() => {
     if (!activeConversation) return [];
@@ -166,6 +172,7 @@ const Messaging: React.FC = () => {
     await messagingApi.deleteConversation(id);
     if (activeId === id) {
       setActiveId(null);
+      setActiveConversation(null);
       setMessages([]);
     }
     setConversations((prev) => prev.filter((c) => c.sysId !== id));
