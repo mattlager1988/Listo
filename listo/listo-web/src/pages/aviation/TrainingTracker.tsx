@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Table,
   Button,
@@ -37,7 +37,7 @@ import DOMPurify from 'dompurify';
 // The UTC value converter adds a "Z" suffix to all DateTimes, but TrainingLog.Date
 // is a calendar date - interpreting it as UTC shifts it by the local timezone offset.
 const parseDate = (date: string) => dayjs(date.substring(0, 10));
-import { Column } from '@ant-design/charts';
+import { Column, Pie } from '@ant-design/charts';
 import api from '../../services/api';
 import PageHeader from '../../components/PageHeader';
 import RichTextEditor from '../../components/RichTextEditor';
@@ -462,6 +462,19 @@ const TrainingTracker: React.FC = () => {
     ? logs.find(l => l.sysId === selectedRowKeys[0])
     : null;
 
+  // Hours grouped by aircraft, counting only logs tied to an aircraft.
+  const hoursByAircraft = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const log of logs) {
+      if (log.aircraftSysId == null) continue;
+      const label = log.aircraftPlaneId
+        ? `${log.aircraftPlaneId} - ${log.aircraftName ?? ''}`.trim().replace(/ -$/, '')
+        : (log.aircraftName ?? 'Unknown');
+      map.set(label, (map.get(label) ?? 0) + log.hoursFlown);
+    }
+    return Array.from(map.entries()).map(([aircraft, hours]) => ({ aircraft, hours }));
+  }, [logs]);
+
   return (
     <div
       style={{
@@ -549,33 +562,56 @@ const TrainingTracker: React.FC = () => {
         )}
       </div>
 
-      {/* Hours by Type Chart */}
-      {summary && (
-        <Card title="Hours by Type" size="small" style={{ marginBottom: 16, flexShrink: 0 }}>
-          {Object.keys(summary.hoursByType).length > 0 ? (
-            <Column
-              data={Object.entries(summary.hoursByType).map(([type, hours]) => ({
-                type,
-                hours,
-              }))}
-              xField="type"
-              yField="hours"
-              height={200}
-              label={{
-                text: (d: { hours: number }) => `${d.hours.toFixed(1)}h`,
-                position: 'inside',
-              }}
-              axis={{
-                y: { title: 'Hours' },
-              }}
-            />
-          ) : (
-            <div style={{ height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#999' }}>
-              No training logged yet
-            </div>
-          )}
-        </Card>
-      )}
+      {/* Charts */}
+      <Row gutter={16} style={{ marginBottom: 16, flexShrink: 0 }}>
+        <Col xs={24} lg={14}>
+          <Card title="Hours by Type" size="small">
+            {summary && Object.keys(summary.hoursByType).length > 0 ? (
+              <Column
+                data={Object.entries(summary.hoursByType).map(([type, hours]) => ({
+                  type,
+                  hours,
+                }))}
+                xField="type"
+                yField="hours"
+                height={200}
+                label={{
+                  text: (d: { hours: number }) => `${d.hours.toFixed(1)}h`,
+                  position: 'inside',
+                }}
+                axis={{
+                  y: { title: 'Hours' },
+                }}
+              />
+            ) : (
+              <div style={{ height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#999' }}>
+                No training logged yet
+              </div>
+            )}
+          </Card>
+        </Col>
+        <Col xs={24} lg={10}>
+          <Card title="Hours by Aircraft" size="small">
+            {hoursByAircraft.length > 0 ? (
+              <Pie
+                data={hoursByAircraft}
+                angleField="hours"
+                colorField="aircraft"
+                innerRadius={0.6}
+                height={200}
+                label={{
+                  text: (d: { hours: number }) => `${d.hours.toFixed(1)}h`,
+                }}
+                legend={{ color: { position: 'bottom' } }}
+              />
+            ) : (
+              <div style={{ height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#999' }}>
+                No aircraft hours logged yet
+              </div>
+            )}
+          </Card>
+        </Col>
+      </Row>
 
       {/* Table Container */}
       <div className="condensed-table" style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
