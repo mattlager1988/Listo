@@ -67,12 +67,22 @@ const MessageAttachment: React.FC<Props> = ({ attachment }) => {
     );
   }
 
+  // iOS WKWebView often won't lay out / paint media that's added after the page
+  // has already painted (the bubble stays collapsed) until a reflow. Toggling
+  // display on load forces that reflow.
+  const forceReflow = (el: HTMLElement) => {
+    el.style.display = 'none';
+    void el.offsetHeight;
+    el.style.display = 'block';
+  };
+
   if (attachment.kind === 'video') {
     return (
       <video
         src={url}
         controls
         preload="metadata"
+        onLoadedData={(e) => forceReflow(e.currentTarget)}
         style={{ maxWidth: 220, maxHeight: 280, borderRadius: 12, display: 'block' }}
       />
     );
@@ -82,6 +92,7 @@ const MessageAttachment: React.FC<Props> = ({ attachment }) => {
     <img
       src={url}
       alt={attachment.originalFileName}
+      onLoad={(e) => forceReflow(e.currentTarget)}
       onClick={() => ImageViewer.show({ image: url })}
       style={{ maxWidth: 220, maxHeight: 280, borderRadius: 12, display: 'block' }}
     />
