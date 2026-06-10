@@ -123,6 +123,29 @@ export function conversationTitle(conv: Conversation, currentUserId: number): st
   return other ? `${other.firstName} ${other.lastName}`.trim() : 'Conversation';
 }
 
+export function formatTime(ts: string): string {
+  return new Date(ts).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+}
+
+export function formatDayLabel(ts: string): string {
+  const d = new Date(ts);
+  const today = new Date().toDateString();
+  const yesterday = new Date(Date.now() - 86400000).toDateString();
+  if (d.toDateString() === today) return 'Today';
+  if (d.toDateString() === yesterday) return 'Yesterday';
+  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+export function timeSeparator(ts: string): string {
+  return `${formatDayLabel(ts)} · ${formatTime(ts)}`;
+}
+
+export function shouldShowSeparator(prevTs: string | undefined, ts: string): boolean {
+  if (!prevTs) return true;
+  if (new Date(prevTs).toDateString() !== new Date(ts).toDateString()) return true;
+  return new Date(ts).getTime() - new Date(prevTs).getTime() > 30 * 60 * 1000;
+}
+
 export function lastMessagePreview(conv: Conversation): string {
   const m = conv.lastMessage;
   if (!m) return 'No messages yet';

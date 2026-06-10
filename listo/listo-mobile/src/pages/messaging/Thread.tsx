@@ -4,7 +4,8 @@ import { NavBar, TextArea, Button, Toast, Popover } from 'antd-mobile';
 import { SmileOutline } from 'antd-mobile-icons';
 import { useAuth } from '@shared/contexts/AuthContext';
 import {
-  messagingApi, conversationTitle, type Conversation, type MessageDto, type ReactionDto,
+  messagingApi, conversationTitle, shouldShowSeparator, timeSeparator,
+  type Conversation, type MessageDto, type ReactionDto,
 } from '@shared/services/messagingApi';
 import { startMessagingHub, stopMessagingHub, sendTyping } from '@shared/services/messagingHub';
 import MessageAttachment from './MessageAttachment';
@@ -27,7 +28,18 @@ const Thread: React.FC = () => {
   const typingTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const appendMessage = useCallback((msg: MessageDto) => {
-    setMessages((prev) => (prev.some((m) => m.sysId === msg.sysId) ? prev : [...prev, msg]));
+    setMessages((prev) => {
+      const idx = prev.findIndex((m) => m.sysId === msg.sysId);
+      if (idx === -1) return [...prev, msg];
+      // Replace an existing copy if the incoming one is more complete (e.g. a
+      // realtime push arrived before attachments were attached).
+      if (msg.attachments.length > prev[idx].attachments.length) {
+        const copy = [...prev];
+        copy[idx] = msg;
+        return copy;
+      }
+      return prev;
+    });
   }, []);
 
   useEffect(() => {
@@ -152,10 +164,17 @@ const Thread: React.FC = () => {
           const isMe = m.senderSysId === currentUserId;
           const prev = messages[i - 1];
           const showSender = isGroup && !isMe && (!prev || prev.senderSysId !== m.senderSysId);
+          const showSep = shouldShowSeparator(prev?.createTimestamp, m.createTimestamp);
           const grouped = new Map<string, number>();
           m.reactions.forEach((r) => grouped.set(r.emoji, (grouped.get(r.emoji) ?? 0) + 1));
           return (
-            <div key={m.sysId} style={{ display: 'flex', flexDirection: 'column', alignItems: isMe ? 'flex-end' : 'flex-start', marginTop: 4 }}>
+            <React.Fragment key={m.sysId}>
+            {showSep && (
+              <div style={{ alignSelf: 'center', margin: '12px 0 4px', fontSize: 11, color: '#999', fontWeight: 500 }}>
+                {timeSeparator(m.createTimestamp)}
+              </div>
+            )}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: isMe ? 'flex-end' : 'flex-start', marginTop: 4 }}>
               {showSender && <div style={{ fontSize: 11, color: '#999', margin: '4px 0 2px 8px' }}>{m.senderName}</div>}
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexDirection: isMe ? 'row' : 'row-reverse', maxWidth: '80%', minWidth: 0 }}>
                 <Popover.Menu
@@ -200,6 +219,7 @@ const Thread: React.FC = () => {
                 </div>
               </div>
             </div>
+            </React.Fragment>
           );
         })}
         {typingNames.length > 0 && (

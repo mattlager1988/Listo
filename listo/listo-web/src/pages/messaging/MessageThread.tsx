@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Button, Input, Modal, Tooltip } from 'antd';
 import { PaperClipOutlined, SendOutlined } from '@ant-design/icons';
 import MessageBubble from './MessageBubble';
+import { shouldShowSeparator, timeSeparator } from './util';
 import type { Conversation, MessageDto } from '../../services/messagingApi';
 
 interface Props {
@@ -74,16 +75,19 @@ const MessageThread: React.FC<Props> = ({
         {messages.map((m, i) => {
           const prev = messages[i - 1];
           const showSender = isGroup && (!prev || prev.senderSysId !== m.senderSysId);
+          const showSep = shouldShowSeparator(prev?.createTimestamp, m.createTimestamp);
           return (
-            <MessageBubble
-              key={m.sysId}
-              message={m}
-              isMe={m.senderSysId === currentUserId}
-              showSender={showSender}
-              currentUserId={currentUserId}
-              onToggleReaction={onToggleReaction}
-              onOpenImage={(url) => setLightbox(url)}
-            />
+            <React.Fragment key={m.sysId}>
+              {showSep && <div className="msg-day-sep">{timeSeparator(m.createTimestamp)}</div>}
+              <MessageBubble
+                message={m}
+                isMe={m.senderSysId === currentUserId}
+                showSender={showSender}
+                currentUserId={currentUserId}
+                onToggleReaction={onToggleReaction}
+                onOpenImage={(url) => setLightbox(url)}
+              />
+            </React.Fragment>
           );
         })}
         {receipt && <div className="msg-receipt">{receipt}</div>}

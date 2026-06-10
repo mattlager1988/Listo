@@ -15,16 +15,28 @@ const MessageAttachment: React.FC<Props> = ({ attachment }) => {
   useEffect(() => {
     let active = true;
     let blobUrl: string | null = null;
+    let attempts = 0;
     setUrl(null);
     setFailed(false);
-    // Images: base64 data URL (reliable in iOS WKWebView). Videos: blob URL, since
-    // base64-encoding a large video in memory is impractical.
-    const load = attachment.kind === 'video'
-      ? messagingApi.fetchAttachmentUrl(attachment.sysId).then((u) => { blobUrl = u; return u; })
-      : messagingApi.fetchAttachmentDataUrl(attachment.sysId);
-    load
-      .then((u) => { if (active) setUrl(u); else if (blobUrl) URL.revokeObjectURL(blobUrl); })
-      .catch(() => { if (active) setFailed(true); });
+
+    const tryLoad = () => {
+      // Images: base64 data URL (reliable in iOS WKWebView). Videos: blob URL,
+      // since base64-encoding a large video in memory is impractical.
+      const load = attachment.kind === 'video'
+        ? messagingApi.fetchAttachmentUrl(attachment.sysId).then((u) => { blobUrl = u; return u; })
+        : messagingApi.fetchAttachmentDataUrl(attachment.sysId);
+      load
+        .then((u) => { if (active) setUrl(u); else if (blobUrl) URL.revokeObjectURL(blobUrl); })
+        .catch(() => {
+          if (!active) return;
+          attempts += 1;
+          // Retry a few times — a just-sent attachment can briefly 404 right after upload.
+          if (attempts < 4) setTimeout(tryLoad, 700);
+          else setFailed(true);
+        });
+    };
+    tryLoad();
+
     return () => { active = false; if (blobUrl) URL.revokeObjectURL(blobUrl); };
   }, [attachment.sysId, attachment.kind]);
 

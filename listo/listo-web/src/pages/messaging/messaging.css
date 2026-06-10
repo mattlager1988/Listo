@@ -95,6 +95,15 @@
   background: #fff;
 }
 
+/* Date/time separator */
+.msg-day-sep {
+  align-self: center;
+  margin: 12px 0 4px;
+  font-size: 11px;
+  color: #8c8c8c;
+  font-weight: 500;
+}
+
 /* Bubbles */
 .msg-bubble-row { display: flex; flex-direction: column; margin-top: 4px; }
 .msg-bubble-row.me { align-items: flex-end; }
