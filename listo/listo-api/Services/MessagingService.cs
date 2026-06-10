@@ -401,17 +401,22 @@ public class MessagingService : IMessagingService
 
     private async Task<ConversationResponse> MapConversationAsync(Conversation conv, long currentUserId)
     {
-        var lastMessage = await _context.Messages
-            .Where(m => m.ConversationSysId == conv.SysId)
+        var myParticipant = conv.Participants.FirstOrDefault(p => p.UserSysId == currentUserId);
+        var lastRead = myParticipant?.LastReadMessageSysId;
+        var cleared = myParticipant?.ClearedAt;
+
+        // Last message preview must respect "delete for me": only consider messages
+        // newer than the user's clear point so a deleted-then-restarted chat doesn't
+        // show the old preview.
+        var lastMessageQuery = _context.Messages.Where(m => m.ConversationSysId == conv.SysId);
+        if (cleared != null)
+            lastMessageQuery = lastMessageQuery.Where(m => m.CreateTimestamp > cleared.Value);
+        var lastMessage = await lastMessageQuery
             .OrderByDescending(m => m.SysId)
             .Include(m => m.Sender)
             .Include(m => m.Attachments)
             .Include(m => m.Reactions)
             .FirstOrDefaultAsync();
-
-        var myParticipant = conv.Participants.FirstOrDefault(p => p.UserSysId == currentUserId);
-        var lastRead = myParticipant?.LastReadMessageSysId;
-        var cleared = myParticipant?.ClearedAt;
 
         var unread = await _context.Messages.CountAsync(m =>
             m.ConversationSysId == conv.SysId &&
