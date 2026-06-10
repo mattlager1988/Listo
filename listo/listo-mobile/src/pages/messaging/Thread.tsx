@@ -8,6 +8,7 @@ import {
   type Conversation, type MessageDto, type ReactionDto,
 } from '@shared/services/messagingApi';
 import { startMessagingHub, stopMessagingHub, sendTyping } from '@shared/services/messagingHub';
+import { rememberAttachmentPreview } from '@shared/services/attachmentCache';
 import MessageAttachment from './MessageAttachment';
 
 const TAPBACKS = ['❤️', '👍', '👎', '😂', '‼️', '❓'];
@@ -119,10 +120,13 @@ const Thread: React.FC = () => {
     if (files.length === 0) return;
     Toast.show({ icon: 'loading', content: 'Uploading…', duration: 0 });
     try {
-      await messagingApi.sendMedia(conversationId, draft.trim(), files);
-      // Reload from the server so the sent attachment renders via the data-URL
-      // path (iOS WKWebView won't show blob: URLs from a local preview).
-      setMessages(await messagingApi.getMessages(conversationId));
+      const msg = await messagingApi.sendMedia(conversationId, draft.trim(), files);
+      // Cache each sent file as a data URL keyed by its attachment id so it
+      // renders instantly (data URLs work in iOS WKWebView; blob: URLs do not).
+      await Promise.all(
+        msg.attachments.map((a, i) => (files[i] ? rememberAttachmentPreview(a.sysId, files[i]) : Promise.resolve())),
+      );
+      appendMessage(msg);
       setDraft('');
       Toast.clear();
     } catch {

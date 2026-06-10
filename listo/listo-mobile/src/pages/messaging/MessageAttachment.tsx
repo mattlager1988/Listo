@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { SpinLoading, ImageViewer } from 'antd-mobile';
 import { messagingApi, type AttachmentDto } from '@shared/services/messagingApi';
+import { getAttachmentPreview } from '@shared/services/attachmentCache';
 
 interface Props {
   attachment: AttachmentDto;
@@ -17,6 +18,13 @@ const MessageAttachment: React.FC<Props> = ({ attachment }) => {
     let blobUrl: string | null = null;
     let attempts = 0;
     setFailed(false);
+
+    // If this attachment was just uploaded by us, show the cached local data URL.
+    const local = getAttachmentPreview(attachment.sysId);
+    if (local) {
+      setUrl(local);
+      return;
+    }
     setUrl(null);
 
     const tryLoad = () => {
