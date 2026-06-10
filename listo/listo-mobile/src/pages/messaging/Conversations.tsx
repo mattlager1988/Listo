@@ -39,52 +39,54 @@ const Conversations: React.FC = () => {
   };
 
   return (
-    <>
+    <div className="msg-fullscreen" style={{ display: 'flex', flexDirection: 'column' }}>
       <NavBar
         back={null}
         left={<UnorderedListOutline fontSize={20} onClick={openMenu} style={{ cursor: 'pointer' }} />}
         right={<AddOutline fontSize={22} onClick={() => navigate('/messaging/new')} style={{ cursor: 'pointer' }} />}
-        style={{ '--height': '48px' }}
+        style={{ '--height': '48px', flexShrink: 0 }}
       >
         Messaging
       </NavBar>
 
-      {loading ? (
-        <div style={{ padding: 16 }}>
-          <Skeleton.Title animated />
-          <Skeleton.Paragraph lineCount={5} animated />
-        </div>
-      ) : conversations.length === 0 ? (
-        <ErrorBlock status="empty" title="No conversations" description="Tap + to start a new chat" />
-      ) : (
-        <PullToRefresh onRefresh={load}>
-          <List>
-            {conversations.map((conv) => {
-              const title = conversationTitle(conv, currentUserId);
-              return (
-                <SwipeAction
-                  key={conv.sysId}
-                  rightActions={[{
-                    key: 'delete',
-                    text: 'Delete',
-                    color: 'danger',
-                    onClick: () => handleDelete(conv.sysId),
-                  }]}
-                >
-                  <List.Item
-                    onClick={() => navigate(`/messaging/${conv.sysId}`)}
-                    description={lastMessagePreview(conv)}
-                    extra={conv.unreadCount > 0 ? <Badge content={conv.unreadCount} /> : undefined}
+      <div style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
+        {loading ? (
+          <div style={{ padding: 16 }}>
+            <Skeleton.Title animated />
+            <Skeleton.Paragraph lineCount={5} animated />
+          </div>
+        ) : conversations.length === 0 ? (
+          <ErrorBlock status="empty" title="No conversations" description="Tap + to start a new chat" />
+        ) : (
+          <PullToRefresh onRefresh={load}>
+            <List>
+              {conversations.map((conv) => {
+                const title = conversationTitle(conv, currentUserId);
+                return (
+                  <SwipeAction
+                    key={conv.sysId}
+                    rightActions={[{
+                      key: 'delete',
+                      text: 'Delete',
+                      color: 'danger',
+                      onClick: () => handleDelete(conv.sysId),
+                    }]}
                   >
-                    {title}
-                  </List.Item>
-                </SwipeAction>
-              );
-            })}
-          </List>
-        </PullToRefresh>
-      )}
-    </>
+                    <List.Item
+                      onClick={() => navigate(`/messaging/${conv.sysId}`)}
+                      description={lastMessagePreview(conv)}
+                      extra={conv.unreadCount > 0 ? <Badge content={conv.unreadCount} /> : undefined}
+                    >
+                      {title}
+                    </List.Item>
+                  </SwipeAction>
+                );
+              })}
+            </List>
+          </PullToRefresh>
+        )}
+      </div>
+    </div>
   );
 };
 
