@@ -109,6 +109,8 @@ builder.Services.AddScoped<ITranscriptionService, TranscriptionService>();
 builder.Services.AddSingleton<ITranscriptionSessionManager, TranscriptionSessionManager>();
 builder.Services.AddScoped<IMessagingService, MessagingService>();
 builder.Services.AddSingleton<IPresenceTracker, PresenceTracker>();
+builder.Services.AddHttpClient<IPushoverService, PushoverService>();
+builder.Services.AddHostedService<UnreadNotificationService>();
 
 // CORS
 builder.Services.AddCors(options =>
