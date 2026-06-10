@@ -53,6 +53,8 @@ const Messaging: React.FC = () => {
       messagingApi.getConversation(id),
       messagingApi.getMessages(id),
     ]);
+    // If it was deleted while we were fetching, don't show it.
+    if (deletedIdsRef.current.has(id)) return;
     setActiveConversation(conv);
     setMessages(msgs);
     const last = msgs[msgs.length - 1];
@@ -193,7 +195,9 @@ const Messaging: React.FC = () => {
   const handleDelete = async (id: number) => {
     // Optimistically hide it and guard against stale loads re-adding it.
     deletedIdsRef.current.add(id);
-    if (activeId === id) {
+    // Clear the open thread if the deleted conversation is the active one
+    // (use the live ref + current value to avoid stale-closure misses).
+    if (activeIdRef.current === id || activeConversation?.sysId === id) {
       setActiveId(null);
       setActiveConversation(null);
       setMessages([]);
