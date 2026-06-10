@@ -38,6 +38,7 @@ interface User {
   isActive: boolean;
   lastLoginAt?: string;
   modules: string[];
+  pushoverKey?: string;
 }
 
 const UserManagement: React.FC = () => {
@@ -82,6 +83,7 @@ const UserManagement: React.FC = () => {
       lastName: user.lastName,
       phoneNumber: user.phoneNumber,
       role: user.role,
+      pushoverKey: user.pushoverKey,
       isActive: user.isActive,
       modules: user.modules ?? [],
     });
@@ -98,6 +100,7 @@ const UserManagement: React.FC = () => {
     role: string;
     isActive?: boolean;
     modules?: string[];
+    pushoverKey?: string;
   }) => {
     try {
       if (editingUser) {
@@ -413,6 +416,15 @@ const UserManagement: React.FC = () => {
 
             <Form.Item name="phoneNumber" label="Phone Number" style={{ marginBottom: 0 }}>
               <Input />
+            </Form.Item>
+
+            <Form.Item
+              name="pushoverKey"
+              label="Pushover Key"
+              tooltip="Pushover user or group key for unread-message notifications"
+              style={{ marginBottom: 0 }}
+            >
+              <Input placeholder="Pushover user/group key (optional)" />
             </Form.Item>
 
             <Form.Item
