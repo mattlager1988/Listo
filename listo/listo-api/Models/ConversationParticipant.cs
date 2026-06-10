@@ -13,6 +13,10 @@ public class ConversationParticipant : BaseEntity
     // message arrives. Does not affect other participants.
     public DateTime? ClearedAt { get; set; }
 
+    // Highest message SysId this user was already notified about (Pushover), to
+    // avoid re-notifying for the same unread batch.
+    public long? LastNotifiedMessageSysId { get; set; }
+
     public Conversation Conversation { get; set; } = null!;
     public User User { get; set; } = null!;
 }

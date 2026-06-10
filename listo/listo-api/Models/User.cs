@@ -13,6 +13,7 @@ public class User : BaseEntity
     public bool IsActive { get; set; } = true;
     public DateTime? LastLoginAt { get; set; }
     public bool SidebarCollapsed { get; set; } = true;
+    public string? PushoverKey { get; set; }
 
     public ICollection<RefreshToken> RefreshTokens { get; set; } = new List<RefreshToken>();
     public ICollection<UserModule> Modules { get; set; } = new List<UserModule>();

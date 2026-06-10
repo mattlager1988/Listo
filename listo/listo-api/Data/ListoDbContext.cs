@@ -68,6 +68,7 @@ public class ListoDbContext : DbContext
             entity.Property(e => e.MfaSecret).HasColumnName("mfa_secret");
             entity.Property(e => e.IsActive).HasColumnName("is_active");
             entity.Property(e => e.LastLoginAt).HasColumnName("last_login_at");
+            entity.Property(e => e.PushoverKey).HasColumnName("pushover_key");
             entity.Property(e => e.CreateTimestamp).HasColumnName("create_timestamp");
             entity.Property(e => e.ModifyTimestamp).HasColumnName("modify_timestamp");
             entity.Property(e => e.CreateUser).HasColumnName("create_user");
@@ -116,6 +117,7 @@ public class ListoDbContext : DbContext
             entity.Property(e => e.UserSysId).HasColumnName("user_sys_id");
             entity.Property(e => e.LastReadMessageSysId).HasColumnName("last_read_message_sys_id");
             entity.Property(e => e.ClearedAt).HasColumnName("cleared_at");
+            entity.Property(e => e.LastNotifiedMessageSysId).HasColumnName("last_notified_message_sys_id");
             entity.Property(e => e.CreateTimestamp).HasColumnName("create_timestamp");
             entity.Property(e => e.ModifyTimestamp).HasColumnName("modify_timestamp");
             entity.Property(e => e.CreateUser).HasColumnName("create_user");

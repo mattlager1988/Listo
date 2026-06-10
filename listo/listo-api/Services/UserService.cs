@@ -69,7 +69,8 @@ public class UserService : IUserService
             FirstName = request.FirstName,
             LastName = request.LastName,
             PhoneNumber = request.PhoneNumber,
-            Role = request.Role
+            Role = request.Role,
+            PushoverKey = request.PushoverKey
         };
 
         _context.Users.Add(user);
@@ -102,6 +103,7 @@ public class UserService : IUserService
         if (request.PhoneNumber != null) user.PhoneNumber = request.PhoneNumber;
         if (request.Role != null) user.Role = request.Role;
         if (request.IsActive.HasValue) user.IsActive = request.IsActive.Value;
+        if (request.PushoverKey != null) user.PushoverKey = request.PushoverKey.Length == 0 ? null : request.PushoverKey;
 
         // Module changes only apply to non-admins; admins implicitly have all modules.
         if (user.Role == "admin")
@@ -228,7 +230,8 @@ public class UserService : IUserService
             user.IsActive,
             user.LastLoginAt,
             user.SidebarCollapsed,
-            modules
+            modules,
+            user.PushoverKey
         );
     }
 }

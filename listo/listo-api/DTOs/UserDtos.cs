@@ -11,7 +11,8 @@ public record UserResponse(
     bool IsActive,
     DateTime? LastLoginAt,
     bool SidebarCollapsed,
-    IReadOnlyList<string> Modules
+    IReadOnlyList<string> Modules,
+    string? PushoverKey
 );
 
 public record CreateUserRequest(
@@ -21,7 +22,8 @@ public record CreateUserRequest(
     string LastName,
     string? PhoneNumber,
     string Role,
-    IReadOnlyList<string>? Modules
+    IReadOnlyList<string>? Modules,
+    string? PushoverKey
 );
 
 public record UpdateUserRequest(
@@ -31,7 +33,8 @@ public record UpdateUserRequest(
     string? PhoneNumber,
     string? Role,
     bool? IsActive,
-    IReadOnlyList<string>? Modules
+    IReadOnlyList<string>? Modules,
+    string? PushoverKey
 );
 
 public record UpdateProfileRequest(
