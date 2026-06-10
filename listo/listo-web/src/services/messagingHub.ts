@@ -51,11 +51,10 @@ export function getConnection(): HubConnection | null {
 }
 
 export async function startMessagingHub(handlers: MessagingHubHandlers): Promise<HubConnection> {
-  if (connection && connection.state === HubConnectionState.Connected) {
-    return connection;
-  }
+  // Tear down any previous connection so the handlers below are always the live ones.
+  await stopMessagingHub();
 
-  connection = new HubConnectionBuilder()
+  const conn = new HubConnectionBuilder()
     .withUrl('/hubs/messaging', {
       accessTokenFactory: () => localStorage.getItem('accessToken') ?? '',
     })
@@ -63,26 +62,36 @@ export async function startMessagingHub(handlers: MessagingHubHandlers): Promise
     .configureLogging(LogLevel.Warning)
     .build();
 
-  if (handlers.onMessageReceived) connection.on('MessageReceived', handlers.onMessageReceived);
-  if (handlers.onReactionAdded) connection.on('ReactionAdded', handlers.onReactionAdded);
-  if (handlers.onReactionRemoved) connection.on('ReactionRemoved', handlers.onReactionRemoved);
-  if (handlers.onReadReceiptUpdated) connection.on('ReadReceiptUpdated', handlers.onReadReceiptUpdated);
-  if (handlers.onConversationChanged) connection.on('ConversationChanged', handlers.onConversationChanged);
-  if (handlers.onTypingChanged) connection.on('TypingChanged', handlers.onTypingChanged);
-  if (handlers.onPresenceChanged) connection.on('PresenceChanged', handlers.onPresenceChanged);
+  if (handlers.onMessageReceived) conn.on('MessageReceived', handlers.onMessageReceived);
+  if (handlers.onReactionAdded) conn.on('ReactionAdded', handlers.onReactionAdded);
+  if (handlers.onReactionRemoved) conn.on('ReactionRemoved', handlers.onReactionRemoved);
+  if (handlers.onReadReceiptUpdated) conn.on('ReadReceiptUpdated', handlers.onReadReceiptUpdated);
+  if (handlers.onConversationChanged) conn.on('ConversationChanged', handlers.onConversationChanged);
+  if (handlers.onTypingChanged) conn.on('TypingChanged', handlers.onTypingChanged);
+  if (handlers.onPresenceChanged) conn.on('PresenceChanged', handlers.onPresenceChanged);
 
-  await connection.start();
-  return connection;
+  conn.onreconnecting((err) => console.warn('[messaging] reconnecting', err));
+  conn.onreconnected(() => console.info('[messaging] reconnected'));
+  conn.onclose((err) => { if (err) console.warn('[messaging] connection closed', err); });
+
+  connection = conn;
+  try {
+    await conn.start();
+  } catch (err) {
+    console.error('[messaging] hub failed to connect (real-time disabled):', err);
+  }
+  return conn;
 }
 
 export async function stopMessagingHub(): Promise<void> {
-  if (connection) {
+  const old = connection;
+  connection = null; // null first so a concurrent start() doesn't get clobbered
+  if (old) {
     try {
-      await connection.stop();
+      await old.stop();
     } catch {
       // ignore
     }
-    connection = null;
   }
 }
 
