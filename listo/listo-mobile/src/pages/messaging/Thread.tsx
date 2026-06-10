@@ -69,6 +69,10 @@ const Thread: React.FC = () => {
     startMessagingHub({
       onMessageReceived: (msg) => {
         if (!mounted || msg.conversationSysId !== conversationId) return;
+        // Ignore the realtime echo of our own messages — we already add them from
+        // the send call (with the local data-URL preview ready), so this avoids a
+        // race that would re-add the message before its preview is cached.
+        if (msg.senderSysId === currentUserId) return;
         appendMessage(msg);
         messagingApi.markRead(conversationId, msg.sysId).catch(() => {});
       },

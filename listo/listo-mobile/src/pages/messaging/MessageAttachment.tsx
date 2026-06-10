@@ -10,7 +10,10 @@ interface Props {
 // Uses a base64 data URL (not a blob: URL) because installed iOS PWAs (WKWebView)
 // frequently fail to render blob: URLs in <img>/<video>.
 const MessageAttachment: React.FC<Props> = ({ attachment }) => {
-  const [url, setUrl] = useState<string | null>(null);
+  // Initialize from the local cache synchronously so a just-sent image is painted
+  // on the FIRST render — iOS WKWebView often won't repaint an <img> whose src is
+  // set asynchronously after mount until a reflow (e.g. leaving and returning).
+  const [url, setUrl] = useState<string | null>(() => getAttachmentPreview(attachment.sysId) ?? null);
   const [failed, setFailed] = useState(false);
 
   useEffect(() => {
