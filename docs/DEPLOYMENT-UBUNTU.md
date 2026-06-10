@@ -246,6 +246,13 @@ sudo nano /etc/nginx/sites-available/listo
 Add the following configuration:
 
 ```nginx
+# Maps the Upgrade header so WebSocket (SignalR) connections are proxied
+# correctly while normal requests/long-polling are not forced to "upgrade".
+map $http_upgrade $connection_upgrade {
+    default upgrade;
+    ''      "";
+}
+
 server {
     listen 80;
     server_name your-domain.com;  # Replace with your domain or server IP
@@ -271,11 +278,26 @@ server {
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_cache_bypass $http_upgrade;
 
-        # Large file upload support (250MB)
-        client_max_body_size 260M;
+        # Large file upload support (messaging video attachments up to 512MB)
+        client_max_body_size 520M;
         proxy_read_timeout 600;
         proxy_send_timeout 600;
         proxy_connect_timeout 60;
+    }
+
+    # SignalR real-time messaging hub (WebSocket). Without this, /hubs/* falls
+    # through to the SPA and nginx returns 405 on the negotiate POST.
+    location /hubs {
+        proxy_pass http://localhost:5286;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection $connection_upgrade;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_buffering off;
+        proxy_read_timeout 100s;
     }
 
     # Swagger UI (optional - consider disabling in production)
