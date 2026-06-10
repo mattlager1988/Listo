@@ -69,10 +69,9 @@ const Thread: React.FC = () => {
     startMessagingHub({
       onMessageReceived: (msg) => {
         if (!mounted || msg.conversationSysId !== conversationId) return;
-        // Ignore the realtime echo of our own messages — we already add them from
-        // the send call (with the local data-URL preview ready), so this avoids a
-        // race that would re-add the message before its preview is cached.
-        if (msg.senderSysId === currentUserId) return;
+        // Append own messages too (dedup handles the sending device) so the same
+        // user's other devices stay in sync; media still renders via the onLoad
+        // reflow regardless of how the message was added.
         appendMessage(msg);
         messagingApi.markRead(conversationId, msg.sysId).catch(() => {});
       },
@@ -185,7 +184,7 @@ const Thread: React.FC = () => {
                 {timeSeparator(m.createTimestamp)}
               </div>
             )}
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: isMe ? 'flex-end' : 'flex-start', marginTop: 4 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: isMe ? 'flex-end' : 'flex-start', marginTop: 4, marginBottom: grouped.size > 0 ? 12 : 0 }}>
               {showSender && <div style={{ fontSize: 11, color: '#999', margin: '4px 0 2px 8px' }}>{m.senderName}</div>}
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexDirection: isMe ? 'row' : 'row-reverse', maxWidth: '80%', minWidth: 0 }}>
                 <Popover.Menu

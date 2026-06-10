@@ -45,7 +45,10 @@ const MessageBubble: React.FC<Props> = ({ message, isMe, showSender, currentUser
   );
 
   return (
-    <div className={`msg-bubble-row ${isMe ? 'me' : 'them'}`}>
+    <div
+      className={`msg-bubble-row ${isMe ? 'me' : 'them'}`}
+      style={grouped.size > 0 ? { marginBottom: 14 } : undefined}
+    >
       {showSender && !isMe && <div className="msg-sender">{message.senderName}</div>}
       <div className="msg-bubble-wrap">
         <div className={`msg-bubble ${isMe ? 'me' : 'them'}`} title={time}>
