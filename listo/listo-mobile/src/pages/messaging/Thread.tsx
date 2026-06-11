@@ -156,6 +156,12 @@ const Thread: React.FC = () => {
   };
 
   const isGroup = conversation?.type === 'group';
+  const headerTitle = conversation ? conversationTitle(conversation, currentUserId) : 'Conversation';
+  const headerOther = conversation?.type === 'direct'
+    ? conversation.participants.find((p) => p.userSysId !== currentUserId)
+    : undefined;
+  const headerPhoto = headerOther?.profilePhoto;
+  const headerInitials = headerTitle.split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase();
   const typingNames = conversation
     ? Object.entries(typingUsers).filter(([, v]) => v)
         .map(([uid]) => conversation.participants.find((p) => p.userSysId === Number(uid)))
@@ -166,7 +172,20 @@ const Thread: React.FC = () => {
   return (
     <div className="msg-fullscreen" style={{ display: 'flex', flexDirection: 'column', width: '100%', maxWidth: '100vw', overflow: 'hidden' }}>
       <NavBar onBack={() => navigate('/messaging')} style={{ '--height': '48px', flexShrink: 0 }}>
-        {conversation ? conversationTitle(conversation, currentUserId) : 'Conversation'}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, minWidth: 0 }}>
+          {headerPhoto ? (
+            <img
+              src={headerPhoto}
+              alt=""
+              style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover', display: 'block', flexShrink: 0 }}
+            />
+          ) : (
+            <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#1890ff', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 600, flexShrink: 0 }}>
+              {headerInitials}
+            </div>
+          )}
+          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{headerTitle}</span>
+        </div>
       </NavBar>
 
       <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden', padding: '12px', background: '#fff', display: 'flex', flexDirection: 'column', gap: 2 }}>
