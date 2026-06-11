@@ -10,6 +10,20 @@ export default defineConfig({
   define: {
     __APP_VERSION__: JSON.stringify(packageJson.version),
   },
+  build: {
+    // Large single-page bundle is expected for this app (served on a LAN).
+    chunkSizeWarningLimit: 6000,
+    rollupOptions: {
+      onwarn(warning, warn) {
+        // Suppress harmless noise from dependencies:
+        // - @microsoft/signalr's misplaced /*#__PURE__*/ annotations
+        // - pdfjs-dist's use of eval
+        if (warning.code === 'INVALID_ANNOTATION' && warning.message.includes('#__PURE__')) return;
+        if (warning.code === 'EVAL') return;
+        warn(warning);
+      },
+    },
+  },
   server: {
     host: '0.0.0.0',
     port: 5173,

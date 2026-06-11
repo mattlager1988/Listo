@@ -8,6 +8,20 @@ export default defineConfig({
   define: {
     __APP_VERSION__: JSON.stringify(packageJson.version),
   },
+  build: {
+    // Large single-page bundle is expected for this app (served on a LAN).
+    chunkSizeWarningLimit: 3000,
+    rollupOptions: {
+      onwarn(warning, warn) {
+        // Suppress harmless noise from dependencies:
+        // - @microsoft/signalr's misplaced /*#__PURE__*/ annotations
+        // - pdfjs-dist's use of eval
+        if (warning.code === 'INVALID_ANNOTATION' && warning.message.includes('#__PURE__')) return;
+        if (warning.code === 'EVAL') return;
+        warn(warning);
+      },
+    },
+  },
   resolve: {
     dedupe: ['react', 'react-dom'],
     alias: {
