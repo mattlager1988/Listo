@@ -11,6 +11,7 @@ interface User {
   mfaEnabled: boolean;
   sidebarCollapsed: boolean;
   modules: string[];
+  profilePhoto?: string;
 }
 
 interface AuthContextType {

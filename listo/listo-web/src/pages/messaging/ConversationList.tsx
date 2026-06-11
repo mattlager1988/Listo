@@ -22,6 +22,8 @@ const ConversationList: React.FC<Props> = ({ conversations, currentUserId, activ
       {conversations.map((conv) => {
         const title = conversationTitle(conv, currentUserId);
         const initials = title.split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase();
+        const other = conv.participants.find((p) => p.userSysId !== currentUserId);
+        const photo = conv.type === 'direct' ? other?.profilePhoto : null;
         const otherOnline = conv.type === 'direct'
           && conv.participants.some((p) => p.userSysId !== currentUserId && onlineUserIds.has(p.userSysId));
         return (
@@ -31,7 +33,11 @@ const ConversationList: React.FC<Props> = ({ conversations, currentUserId, activ
             onClick={() => onSelect(conv.sysId)}
           >
             <Badge dot={otherOnline} color="green" offset={[-4, 34]}>
-              <div className="msg-conv-avatar">{initials}</div>
+              {photo ? (
+                <img className="msg-conv-avatar msg-conv-avatar-img" src={photo} alt={title} />
+              ) : (
+                <div className="msg-conv-avatar">{initials}</div>
+              )}
             </Badge>
             <div className="msg-conv-main">
               <div className="msg-conv-title">{title}</div>

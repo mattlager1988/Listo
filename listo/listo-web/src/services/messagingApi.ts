@@ -8,6 +8,7 @@ export interface Participant {
   firstName: string;
   lastName: string;
   lastReadMessageSysId: number | null;
+  profilePhoto?: string | null;
 }
 
 export interface Conversation {

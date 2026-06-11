@@ -53,6 +53,10 @@
   font-weight: 600;
   flex-shrink: 0;
 }
+.msg-conv-avatar-img {
+  object-fit: cover;
+  display: block;
+}
 .msg-conv-main { flex: 1; min-width: 0; }
 .msg-conv-title {
   font-weight: 600;

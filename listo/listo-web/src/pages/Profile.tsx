@@ -1,15 +1,48 @@
-import React, { useState } from 'react';
-import { Card, Form, Input, Button, message } from 'antd';
+import React, { useState, useRef } from 'react';
+import { Card, Form, Input, Button, message, Avatar, Space } from 'antd';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../services/api';
 import PageHeader from '../components/PageHeader';
+import { resizeImageToSquareDataUrl } from '../utils/image';
 
 const Profile: React.FC = () => {
   const { user, refreshUser } = useAuth();
   const [profileLoading, setProfileLoading] = useState(false);
   const [passwordLoading, setPasswordLoading] = useState(false);
+  const [photoLoading, setPhotoLoading] = useState(false);
+  const photoInputRef = useRef<HTMLInputElement>(null);
   const [profileForm] = Form.useForm();
   const [passwordForm] = Form.useForm();
+
+  const handlePhotoSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (photoInputRef.current) photoInputRef.current.value = '';
+    if (!file) return;
+    setPhotoLoading(true);
+    try {
+      const dataUrl = await resizeImageToSquareDataUrl(file);
+      await api.put('/users/me', { profilePhoto: dataUrl });
+      await refreshUser();
+      message.success('Profile photo updated');
+    } catch {
+      message.error('Failed to update photo');
+    } finally {
+      setPhotoLoading(false);
+    }
+  };
+
+  const handleRemovePhoto = async () => {
+    setPhotoLoading(true);
+    try {
+      await api.put('/users/me', { profilePhoto: '' });
+      await refreshUser();
+      message.success('Profile photo removed');
+    } catch {
+      message.error('Failed to remove photo');
+    } finally {
+      setPhotoLoading(false);
+    }
+  };
 
   const handleProfileUpdate = async (values: { firstName: string; lastName: string; phoneNumber?: string }) => {
     setProfileLoading(true);
@@ -45,6 +78,34 @@ const Profile: React.FC = () => {
   return (
     <div>
       <PageHeader title="Edit Profile" />
+
+      <Card title="Profile Photo" style={{ marginBottom: 24 }}>
+        <Space size="large" align="center">
+          <Avatar size={72} src={user?.profilePhoto || undefined} style={{ backgroundColor: '#1890ff', fontSize: 24 }}>
+            {user?.firstName?.charAt(0)}{user?.lastName?.charAt(0)}
+          </Avatar>
+          <Space direction="vertical" size="small">
+            <input
+              ref={photoInputRef}
+              type="file"
+              accept="image/*"
+              style={{ display: 'none' }}
+              onChange={handlePhotoSelected}
+            />
+            <Space>
+              <Button size="small" loading={photoLoading} onClick={() => photoInputRef.current?.click()}>
+                {user?.profilePhoto ? 'Change Photo' : 'Upload Photo'}
+              </Button>
+              {user?.profilePhoto && (
+                <Button size="small" danger onClick={handleRemovePhoto} disabled={photoLoading}>
+                  Remove
+                </Button>
+              )}
+            </Space>
+            <span style={{ fontSize: 12, color: '#8c8c8c' }}>Square images work best; it’s resized automatically.</span>
+          </Space>
+        </Space>
+      </Card>
 
       <Card title="Personal Information" style={{ marginBottom: 24 }}>
         <Form

@@ -289,7 +289,7 @@ const MainLayout: React.FC = () => {
           </div>
           <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
             <Space style={{ cursor: 'pointer' }}>
-              <Avatar style={{ backgroundColor: '#1890ff' }}>
+              <Avatar src={user?.profilePhoto || undefined} style={{ backgroundColor: '#1890ff' }}>
                 {user?.firstName?.charAt(0)}{user?.lastName?.charAt(0)}
               </Avatar>
               <Text>{user?.firstName} {user?.lastName}</Text>
