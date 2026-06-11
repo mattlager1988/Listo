@@ -8,6 +8,7 @@ export interface User {
   mfaEnabled: boolean;
   sidebarCollapsed: boolean;
   modules: string[];
+  profilePhoto?: string;
 }
 
 export interface AuthContextType {

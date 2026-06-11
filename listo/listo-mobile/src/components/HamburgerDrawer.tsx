@@ -100,21 +100,29 @@ const HamburgerDrawer: React.FC = () => {
             cursor: 'pointer',
           }}
         >
-          <div style={{
-            width: 48,
-            height: 48,
-            borderRadius: '50%',
-            background: '#1890ff',
-            color: '#fff',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: 18,
-            fontWeight: 600,
-            marginBottom: 8,
-          }}>
-            {user?.firstName?.[0]}{user?.lastName?.[0]}
-          </div>
+          {user?.profilePhoto ? (
+            <img
+              src={user.profilePhoto}
+              alt="Profile"
+              style={{ width: 48, height: 48, borderRadius: '50%', objectFit: 'cover', display: 'block', marginBottom: 8 }}
+            />
+          ) : (
+            <div style={{
+              width: 48,
+              height: 48,
+              borderRadius: '50%',
+              background: '#1890ff',
+              color: '#fff',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: 18,
+              fontWeight: 600,
+              marginBottom: 8,
+            }}>
+              {user?.firstName?.[0]}{user?.lastName?.[0]}
+            </div>
+          )}
           <div style={{ fontSize: 16, fontWeight: 600 }}>
             {user?.firstName} {user?.lastName}
           </div>

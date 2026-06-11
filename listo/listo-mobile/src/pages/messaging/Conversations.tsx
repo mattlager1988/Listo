@@ -62,6 +62,20 @@ const Conversations: React.FC = () => {
             <List>
               {conversations.map((conv) => {
                 const title = conversationTitle(conv, currentUserId);
+                const initials = title.split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase();
+                const other = conv.participants.find((p) => p.userSysId !== currentUserId);
+                const photo = conv.type === 'direct' ? other?.profilePhoto : null;
+                const avatar = photo ? (
+                  <img
+                    src={photo}
+                    alt={title}
+                    style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover', display: 'block' }}
+                  />
+                ) : (
+                  <div style={{ width: 40, height: 40, borderRadius: '50%', background: '#1890ff', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, fontWeight: 600 }}>
+                    {initials}
+                  </div>
+                );
                 return (
                   <SwipeAction
                     key={conv.sysId}
@@ -73,6 +87,7 @@ const Conversations: React.FC = () => {
                     }]}
                   >
                     <List.Item
+                      prefix={avatar}
                       onClick={() => navigate(`/messaging/${conv.sysId}`)}
                       description={lastMessagePreview(conv)}
                       extra={conv.unreadCount > 0 ? <Badge content={conv.unreadCount} /> : undefined}

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   NavBar,
   List,
@@ -16,6 +16,7 @@ import { UnorderedListOutline } from 'antd-mobile-icons';
 import { useAuth } from '@shared/contexts/AuthContext';
 import { useMenu } from '../contexts/MenuContext';
 import api from '@shared/services/api';
+import { resizeImageToSquareDataUrl } from '@shared/utils/image';
 
 const Profile: React.FC = () => {
   const { user, logout, refreshUser } = useAuth();
@@ -30,6 +31,24 @@ const Profile: React.FC = () => {
 
   const [profileForm] = Form.useForm();
   const [passwordForm] = Form.useForm();
+  const photoInputRef = useRef<HTMLInputElement>(null);
+
+  const handlePhotoSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (photoInputRef.current) photoInputRef.current.value = '';
+    if (!file) return;
+    Toast.show({ icon: 'loading', content: 'Uploading…', duration: 0 });
+    try {
+      const dataUrl = await resizeImageToSquareDataUrl(file);
+      await api.put('/users/me', { profilePhoto: dataUrl });
+      await refreshUser();
+      Toast.clear();
+      Toast.show({ icon: 'success', content: 'Photo updated' });
+    } catch {
+      Toast.clear();
+      Toast.show({ icon: 'fail', content: 'Failed to update photo' });
+    }
+  };
 
   const handleEditProfile = () => {
     profileForm.setFieldsValue({
@@ -136,20 +155,45 @@ const Profile: React.FC = () => {
         {/* User Info Card */}
         <Card style={{ borderRadius: 8 }}>
           <div style={{ textAlign: 'center', padding: '8px 0' }}>
-            <div style={{
-              width: 64,
-              height: 64,
-              borderRadius: '50%',
-              background: '#1890ff',
-              color: '#fff',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: 24,
-              fontWeight: 600,
-              margin: '0 auto 8px',
-            }}>
-              {user?.firstName?.[0]}{user?.lastName?.[0]}
+            <input
+              ref={photoInputRef}
+              type="file"
+              accept="image/*"
+              style={{ display: 'none' }}
+              onChange={handlePhotoSelected}
+            />
+            {user?.profilePhoto ? (
+              <img
+                src={user.profilePhoto}
+                alt="Profile"
+                onClick={() => photoInputRef.current?.click()}
+                style={{ width: 64, height: 64, borderRadius: '50%', objectFit: 'cover', display: 'block', margin: '0 auto 8px' }}
+              />
+            ) : (
+              <div
+                onClick={() => photoInputRef.current?.click()}
+                style={{
+                  width: 64,
+                  height: 64,
+                  borderRadius: '50%',
+                  background: '#1890ff',
+                  color: '#fff',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: 24,
+                  fontWeight: 600,
+                  margin: '0 auto 8px',
+                }}
+              >
+                {user?.firstName?.[0]}{user?.lastName?.[0]}
+              </div>
+            )}
+            <div
+              onClick={() => photoInputRef.current?.click()}
+              style={{ fontSize: 12, color: '#1890ff', marginBottom: 4, cursor: 'pointer' }}
+            >
+              Tap to change photo
             </div>
             <div style={{ fontSize: 18, fontWeight: 600 }}>
               {user?.firstName} {user?.lastName}
