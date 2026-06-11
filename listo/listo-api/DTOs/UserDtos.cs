@@ -48,3 +48,5 @@ public record ChangePasswordRequest(
     string CurrentPassword,
     string NewPassword
 );
+
+public record TestPushoverRequest(string? PushoverKey);

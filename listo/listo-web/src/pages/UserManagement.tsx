@@ -119,6 +119,18 @@ const UserManagement: React.FC = () => {
     }
   };
 
+  const handleTestPushover = async () => {
+    if (!editingUser) return;
+    const key = form.getFieldValue('pushoverKey');
+    try {
+      const res = await api.post(`/users/${editingUser.sysId}/test-pushover`, { pushoverKey: key });
+      message.success(res.data?.message || 'Test notification sent');
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } } };
+      message.error(error.response?.data?.message || 'Failed to send test notification');
+    }
+  };
+
   const handleBulkDeactivate = async () => {
     try {
       await Promise.all(selectedRowKeys.map(id => api.post(`/users/${id}/deactivate`)));
@@ -426,6 +438,14 @@ const UserManagement: React.FC = () => {
             >
               <Input placeholder="Pushover user/group key (optional)" />
             </Form.Item>
+
+            {editingUser && (
+              <Form.Item style={{ marginBottom: 0 }}>
+                <Button size="small" onClick={handleTestPushover}>
+                  Send Test Notification
+                </Button>
+              </Form.Item>
+            )}
 
             <Form.Item
               name="role"

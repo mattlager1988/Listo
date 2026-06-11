@@ -13,11 +13,13 @@ public class UsersController : ControllerBase
 {
     private readonly IUserService _userService;
     private readonly IAuthService _authService;
+    private readonly IPushoverService _pushover;
 
-    public UsersController(IUserService userService, IAuthService authService)
+    public UsersController(IUserService userService, IAuthService authService, IPushoverService pushover)
     {
         _userService = userService;
         _authService = authService;
+        _pushover = pushover;
     }
 
     [HttpGet]
@@ -105,6 +107,29 @@ public class UsersController : ControllerBase
         var success = await _authService.DisableMfaAsync(id);
         if (!success) return NotFound();
         return Ok(new { message = "MFA has been reset" });
+    }
+
+    // Sends a test Pushover notification to the given user. Uses the key in the
+    // request body if provided (so an admin can test before saving), else the
+    // user's stored key.
+    [HttpPost("{id}/test-pushover")]
+    [Authorize(Roles = "admin")]
+    public async Task<IActionResult> TestPushover(long id, [FromBody] TestPushoverRequest? request)
+    {
+        var user = await _userService.GetUserByIdAsync(id);
+        if (user == null) return NotFound();
+
+        var key = !string.IsNullOrWhiteSpace(request?.PushoverKey)
+            ? request!.PushoverKey!.Trim()
+            : user.PushoverKey;
+        if (string.IsNullOrWhiteSpace(key))
+            return BadRequest(new { message = "No Pushover key configured for this user." });
+
+        var ok = await _pushover.SendAsync(key, "Test notification from Listo.", "Listo");
+        if (!ok)
+            return BadRequest(new { message = "Failed to send. Check the Pushover application token (Admin → Settings) and the key." });
+
+        return Ok(new { message = "Test notification sent." });
     }
 
     // Profile endpoints (for current user)
