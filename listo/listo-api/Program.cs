@@ -109,7 +109,7 @@ builder.Services.AddScoped<ITranscriptionService, TranscriptionService>();
 builder.Services.AddSingleton<ITranscriptionSessionManager, TranscriptionSessionManager>();
 builder.Services.AddScoped<IMessagingService, MessagingService>();
 builder.Services.AddSingleton<IPresenceTracker, PresenceTracker>();
-builder.Services.AddHttpClient<IPushoverService, PushoverService>();
+builder.Services.AddHttpClient<IPushoverService, PushoverService>(c => c.Timeout = TimeSpan.FromSeconds(10));
 builder.Services.AddHostedService<UnreadNotificationService>();
 
 // CORS

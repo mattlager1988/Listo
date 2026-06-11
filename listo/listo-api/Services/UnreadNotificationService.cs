@@ -5,21 +5,24 @@ using Listo.Api.Models;
 namespace Listo.Api.Services;
 
 /// <summary>
-/// Periodically sends a Pushover notification to users who have a messaging
-/// message that has been unread past the configured threshold (default 15 min)
-/// and haven't already been notified for that unread batch. One generic
-/// notification per user per batch.
+/// Safety-net for Pushover notifications. Most notifications are sent immediately
+/// on send (MessagingService) to recipients who aren't connected. This sweep
+/// catches messages that arrived while the recipient was online but then went
+/// offline without reading them: it notifies offline recipients who have unread
+/// messages they haven't been notified about. One generic notification per user.
 /// </summary>
 public class UnreadNotificationService : BackgroundService
 {
-    private static readonly TimeSpan Interval = TimeSpan.FromMinutes(3);
+    private static readonly TimeSpan Interval = TimeSpan.FromMinutes(1);
 
     private readonly IServiceScopeFactory _scopeFactory;
+    private readonly IPresenceTracker _presence;
     private readonly ILogger<UnreadNotificationService> _logger;
 
-    public UnreadNotificationService(IServiceScopeFactory scopeFactory, ILogger<UnreadNotificationService> logger)
+    public UnreadNotificationService(IServiceScopeFactory scopeFactory, IPresenceTracker presence, ILogger<UnreadNotificationService> logger)
     {
         _scopeFactory = scopeFactory;
+        _presence = presence;
         _logger = logger;
     }
 
@@ -54,15 +57,13 @@ public class UnreadNotificationService : BackgroundService
         if (string.IsNullOrWhiteSpace(token))
             return;
 
-        var minutes = await settings.GetIntValueAsync("Pushover:UnreadMinutes", 15);
-        var threshold = DateTime.UtcNow.AddMinutes(-minutes);
-
         var participants = await db.ConversationParticipants
             .Include(p => p.User).ThenInclude(u => u.Modules)
             .Where(p => p.User.IsActive && p.User.PushoverKey != null && p.User.PushoverKey != "")
             .ToListAsync(ct);
 
-        // (participant, highest unread sysId) for conversations that qualify.
+        // (participant, highest unread sysId) for recipients who are offline and
+        // have unread messages we haven't notified them about yet.
         var candidates = new List<(ConversationParticipant Participant, long MaxUnread)>();
 
         foreach (var p in participants)
@@ -70,6 +71,7 @@ public class UnreadNotificationService : BackgroundService
             var hasMessaging = p.User.Role == "admin"
                 || p.User.Modules.Any(m => m.ModuleKey == ModuleKeys.Messaging);
             if (!hasMessaging) continue;
+            if (_presence.IsOnline(p.UserSysId)) continue; // in the app → no push
 
             var lastRead = p.LastReadMessageSysId ?? 0;
             var lastNotified = p.LastNotifiedMessageSysId ?? 0;
@@ -84,9 +86,6 @@ public class UnreadNotificationService : BackgroundService
             var maxUnread = await unread.MaxAsync(m => (long?)m.SysId, ct) ?? 0;
             if (maxUnread <= lastNotified) continue; // already notified for everything unread
 
-            var oldestUnread = await unread.MinAsync(m => (DateTime?)m.CreateTimestamp, ct);
-            if (oldestUnread == null || oldestUnread.Value > threshold) continue; // not aged past threshold
-
             candidates.Add((p, maxUnread));
         }
 
@@ -97,7 +96,7 @@ public class UnreadNotificationService : BackgroundService
         foreach (var group in candidates.GroupBy(c => c.Participant.UserSysId))
         {
             var key = group.First().Participant.User.PushoverKey!;
-            var ok = await pushover.SendAsync(key, "You have unread messages in Listo.", "Listo", ct);
+            var ok = await pushover.SendAsync(key, "You have a new message in Listo.", "Listo", ct);
             if (!ok) continue;
 
             foreach (var (participant, maxUnread) in group)

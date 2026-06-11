@@ -38,11 +38,47 @@ public class MessagingService : IMessagingService
 {
     private readonly ListoDbContext _context;
     private readonly IHubContext<MessagingHub> _hub;
+    private readonly IPresenceTracker _presence;
+    private readonly IPushoverService _pushover;
 
-    public MessagingService(ListoDbContext context, IHubContext<MessagingHub> hub)
+    public MessagingService(ListoDbContext context, IHubContext<MessagingHub> hub, IPresenceTracker presence, IPushoverService pushover)
     {
         _context = context;
         _hub = hub;
+        _presence = presence;
+        _pushover = pushover;
+    }
+
+    // Push a notification to participants who aren't currently connected to Listo
+    // ("not in the app"), so they hear about a new message right away. Online
+    // users get the in-app realtime update instead.
+    private async Task NotifyOfflineRecipientsAsync(long conversationId, long senderUserId, long messageSysId)
+    {
+        var recipients = await _context.ConversationParticipants
+            .Include(p => p.User).ThenInclude(u => u.Modules)
+            .Where(p => p.ConversationSysId == conversationId
+                && p.UserSysId != senderUserId
+                && p.User.IsActive
+                && p.User.PushoverKey != null && p.User.PushoverKey != "")
+            .ToListAsync();
+
+        var targets = recipients
+            .Where(p => (p.User.Role == "admin" || p.User.Modules.Any(m => m.ModuleKey == ModuleKeys.Messaging))
+                && !_presence.IsOnline(p.UserSysId))
+            .ToList();
+        if (targets.Count == 0) return;
+
+        var results = await Task.WhenAll(targets.Select(async p =>
+            (p, ok: await _pushover.SendAsync(p.User.PushoverKey!, "You have a new message in Listo.", "Listo"))));
+
+        var any = false;
+        foreach (var (p, ok) in results)
+        {
+            if (!ok) continue; // leave the marker so the sweep can retry
+            p.LastNotifiedMessageSysId = messageSysId;
+            any = true;
+        }
+        if (any) await _context.SaveChangesAsync();
     }
 
     private async Task PushToParticipantsAsync(long conversationId, string method, object payload)
@@ -243,6 +279,7 @@ public class MessagingService : IMessagingService
         var response = MapMessage(message);
 
         await PushToParticipantsAsync(conversationId, "MessageReceived", response);
+        await NotifyOfflineRecipientsAsync(conversationId, currentUserId, message.SysId);
         return response;
     }
 
