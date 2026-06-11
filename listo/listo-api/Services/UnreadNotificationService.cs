@@ -92,11 +92,25 @@ public class UnreadNotificationService : BackgroundService
         if (candidates.Count == 0)
             return;
 
-        // One notification per user; stamp the markers only on a successful send.
+        // One notification per user, built from their most recent unread message;
+        // stamp the markers only on a successful send.
         foreach (var group in candidates.GroupBy(c => c.Participant.UserSysId))
         {
+            var latest = group.OrderByDescending(c => c.MaxUnread).First();
+            var msg = await db.Messages
+                .Include(m => m.Sender)
+                .Include(m => m.Attachments)
+                .FirstOrDefaultAsync(m => m.SysId == latest.MaxUnread, ct);
+            var conv = await db.Conversations.FirstOrDefaultAsync(c => c.SysId == latest.Participant.ConversationSysId, ct);
+            var senderName = msg?.Sender != null
+                ? $"{msg.Sender.FirstName} {msg.Sender.LastName}".Trim()
+                : "Listo";
+            var (title, body) = NotificationContent.Build(
+                senderName, msg?.Body, msg?.Attachments.FirstOrDefault()?.Kind,
+                conv?.Type ?? "direct", conv?.Name);
+
             var key = group.First().Participant.User.PushoverKey!;
-            var ok = await pushover.SendAsync(key, "You have a new message in Listo.", "Listo", ct);
+            var ok = await pushover.SendAsync(key, body, title, ct);
             if (!ok) continue;
 
             foreach (var (participant, maxUnread) in group)

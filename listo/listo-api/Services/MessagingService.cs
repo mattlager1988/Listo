@@ -52,8 +52,11 @@ public class MessagingService : IMessagingService
     // Push a notification to participants who aren't currently connected to Listo
     // ("not in the app"), so they hear about a new message right away. Online
     // users get the in-app realtime update instead.
-    private async Task NotifyOfflineRecipientsAsync(long conversationId, long senderUserId, long messageSysId)
+    private async Task NotifyOfflineRecipientsAsync(Message message)
     {
+        var conversationId = message.ConversationSysId;
+        var senderUserId = message.SenderSysId;
+
         var recipients = await _context.ConversationParticipants
             .Include(p => p.User).ThenInclude(u => u.Modules)
             .Where(p => p.ConversationSysId == conversationId
@@ -68,14 +71,22 @@ public class MessagingService : IMessagingService
             .ToList();
         if (targets.Count == 0) return;
 
+        var conv = await _context.Conversations.FirstOrDefaultAsync(c => c.SysId == conversationId);
+        var senderName = message.Sender != null
+            ? $"{message.Sender.FirstName} {message.Sender.LastName}".Trim()
+            : "Listo";
+        var (title, body) = NotificationContent.Build(
+            senderName, message.Body, message.Attachments.FirstOrDefault()?.Kind,
+            conv?.Type ?? "direct", conv?.Name);
+
         var results = await Task.WhenAll(targets.Select(async p =>
-            (p, ok: await _pushover.SendAsync(p.User.PushoverKey!, "You have a new message in Listo.", "Listo"))));
+            (p, ok: await _pushover.SendAsync(p.User.PushoverKey!, body, title))));
 
         var any = false;
         foreach (var (p, ok) in results)
         {
             if (!ok) continue; // leave the marker so the sweep can retry
-            p.LastNotifiedMessageSysId = messageSysId;
+            p.LastNotifiedMessageSysId = message.SysId;
             any = true;
         }
         if (any) await _context.SaveChangesAsync();
@@ -279,7 +290,7 @@ public class MessagingService : IMessagingService
         var response = MapMessage(message);
 
         await PushToParticipantsAsync(conversationId, "MessageReceived", response);
-        await NotifyOfflineRecipientsAsync(conversationId, currentUserId, message.SysId);
+        await NotifyOfflineRecipientsAsync(message);
         return response;
     }
 
