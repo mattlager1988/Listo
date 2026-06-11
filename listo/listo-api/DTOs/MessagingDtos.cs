@@ -4,7 +4,8 @@ public record ParticipantResponse(
     long UserSysId,
     string FirstName,
     string LastName,
-    long? LastReadMessageSysId
+    long? LastReadMessageSysId,
+    string? ProfilePhoto
 );
 
 public record AttachmentResponse(

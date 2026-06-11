@@ -69,6 +69,7 @@ public class ListoDbContext : DbContext
             entity.Property(e => e.IsActive).HasColumnName("is_active");
             entity.Property(e => e.LastLoginAt).HasColumnName("last_login_at");
             entity.Property(e => e.PushoverKey).HasColumnName("pushover_key");
+            entity.Property(e => e.ProfilePhoto).HasColumnName("profile_photo").HasColumnType("mediumtext");
             entity.Property(e => e.CreateTimestamp).HasColumnName("create_timestamp");
             entity.Property(e => e.ModifyTimestamp).HasColumnName("modify_timestamp");
             entity.Property(e => e.CreateUser).HasColumnName("create_user");

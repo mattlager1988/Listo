@@ -12,7 +12,8 @@ public record UserResponse(
     DateTime? LastLoginAt,
     bool SidebarCollapsed,
     IReadOnlyList<string> Modules,
-    string? PushoverKey
+    string? PushoverKey,
+    string? ProfilePhoto
 );
 
 public record CreateUserRequest(
@@ -41,7 +42,8 @@ public record UpdateProfileRequest(
     string? FirstName,
     string? LastName,
     string? PhoneNumber,
-    bool? SidebarCollapsed
+    bool? SidebarCollapsed,
+    string? ProfilePhoto
 );
 
 public record ChangePasswordRequest(

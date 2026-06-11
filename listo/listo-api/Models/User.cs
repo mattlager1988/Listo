@@ -14,6 +14,8 @@ public class User : BaseEntity
     public DateTime? LastLoginAt { get; set; }
     public bool SidebarCollapsed { get; set; } = true;
     public string? PushoverKey { get; set; }
+    // Small square avatar stored as a base64 data URL (e.g. data:image/jpeg;base64,...).
+    public string? ProfilePhoto { get; set; }
 
     public ICollection<RefreshToken> RefreshTokens { get; set; } = new List<RefreshToken>();
     public ICollection<UserModule> Modules { get; set; } = new List<UserModule>();

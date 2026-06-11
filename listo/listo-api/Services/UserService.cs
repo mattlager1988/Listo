@@ -175,6 +175,7 @@ public class UserService : IUserService
         if (request.LastName != null) user.LastName = request.LastName;
         if (request.PhoneNumber != null) user.PhoneNumber = request.PhoneNumber;
         if (request.SidebarCollapsed.HasValue) user.SidebarCollapsed = request.SidebarCollapsed.Value;
+        if (request.ProfilePhoto != null) user.ProfilePhoto = request.ProfilePhoto.Length == 0 ? null : request.ProfilePhoto;
 
         await _context.SaveChangesAsync();
         return MapToResponse(user);
@@ -231,7 +232,8 @@ public class UserService : IUserService
             user.LastLoginAt,
             user.SidebarCollapsed,
             modules,
-            user.PushoverKey
+            user.PushoverKey,
+            user.ProfilePhoto
         );
     }
 }

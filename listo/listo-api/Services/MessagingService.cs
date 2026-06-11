@@ -429,7 +429,8 @@ public class MessagingService : IMessagingService
                 p.UserSysId,
                 p.User?.FirstName ?? "",
                 p.User?.LastName ?? "",
-                p.LastReadMessageSysId))
+                p.LastReadMessageSysId,
+                p.User?.ProfilePhoto))
             .ToList();
 
         return new ConversationResponse(
