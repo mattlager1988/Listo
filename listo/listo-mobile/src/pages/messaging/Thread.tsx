@@ -44,7 +44,13 @@ const Thread: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    // Jump to the latest message; re-scroll a couple times to catch async media
+    // layout so entering a conversation always lands at the bottom.
+    const scroll = () => bottomRef.current?.scrollIntoView({ block: 'end' });
+    scroll();
+    const t1 = setTimeout(scroll, 150);
+    const t2 = setTimeout(scroll, 450);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
   }, [messages, typingUsers]);
 
   useEffect(() => {
@@ -267,8 +273,9 @@ const Thread: React.FC = () => {
             value={draft}
             onChange={handleDraftChange}
             placeholder=""
+            rows={1}
             autoSize={{ minRows: 1, maxRows: 4 }}
-            style={{ background: '#f5f5f5', borderRadius: 16, padding: '6px 12px' }}
+            style={{ background: '#f5f5f5', borderRadius: 18, padding: '4px 12px', '--font-size': '15px' } as React.CSSProperties}
           />
         </div>
         <Button size="small" color="primary" shape="rounded" onClick={handleSend} disabled={!draft.trim()}>Send</Button>

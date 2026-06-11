@@ -28,7 +28,13 @@ const MessageThread: React.FC<Props> = ({
   const typingTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    // Jump to the latest message; re-scroll a couple times to catch async media
+    // layout so entering a conversation always lands at the bottom.
+    const scroll = () => bottomRef.current?.scrollIntoView({ block: 'end' });
+    scroll();
+    const t1 = setTimeout(scroll, 150);
+    const t2 = setTimeout(scroll, 450);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
   }, [messages, typingNames]);
 
   const isGroup = conversation.type === 'group';
