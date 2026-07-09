@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Button,
   Input,
@@ -7,6 +7,7 @@ import {
   Tooltip,
   Popconfirm,
   Modal,
+  Divider,
   message,
   Empty,
 } from 'antd';
@@ -22,13 +23,10 @@ import {
   ExportOutlined,
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
-import relativeTime from 'dayjs/plugin/relativeTime';
 import api from '../../services/api';
 import PageHeader from '../../components/PageHeader';
 import DocumentList from '../../components/DocumentList';
 import TaskFormModal from '../../components/TaskFormModal';
-
-dayjs.extend(relativeTime);
 
 interface ScratchNote {
   sysId: number;
@@ -41,6 +39,15 @@ interface ScratchNote {
   modifyTimestamp: string;
 }
 
+interface DateGroup {
+  sysId: string; // e.g. 'group-2026-07-09'
+  isGroupHeader: true;
+  groupLabel: string;
+  children: ScratchNote[];
+}
+
+type Row = ScratchNote | DateGroup;
+
 interface BoardSummary {
   sysId: number;
   name: string;
@@ -51,11 +58,19 @@ const firstLine = (content: string): string => {
   return line.length > 120 ? `${line.slice(0, 120)}…` : line;
 };
 
+const dateGroupLabel = (isoDate: string): string => {
+  const d = dayjs(isoDate);
+  const today = dayjs().startOf('day');
+  if (d.isSame(today, 'day')) return `Today · ${d.format('MMM D, YYYY')}`;
+  if (d.isSame(today.subtract(1, 'day'), 'day')) return `Yesterday · ${d.format('MMM D, YYYY')}`;
+  return d.format('dddd · MMM D, YYYY');
+};
+
 const ScratchPad: React.FC = () => {
   const [notes, setNotes] = useState<ScratchNote[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
-  const [expandedRowKeys, setExpandedRowKeys] = useState<React.Key[]>([]);
+  const [expandedGroups, setExpandedGroups] = useState<React.Key[]>([]);
 
   // Composer
   const [content, setContent] = useState('');
@@ -88,6 +103,35 @@ const ScratchPad: React.FC = () => {
     fetchNotes();
   }, [fetchNotes]);
 
+  // Group notes by creation date (notes arrive sorted newest-first).
+  const groupedNotes = useMemo<DateGroup[]>(() => {
+    const groups: DateGroup[] = [];
+    const byDate = new Map<string, ScratchNote[]>();
+    for (const note of notes) {
+      const key = dayjs(note.createTimestamp).format('YYYY-MM-DD');
+      const bucket = byDate.get(key);
+      if (bucket) {
+        bucket.push(note);
+      } else {
+        byDate.set(key, [note]);
+      }
+    }
+    for (const [key, items] of byDate) {
+      groups.push({
+        sysId: `group-${key}`,
+        isGroupHeader: true,
+        groupLabel: dateGroupLabel(key),
+        children: items,
+      });
+    }
+    return groups;
+  }, [notes]);
+
+  // Keep all date groups expanded as data changes.
+  useEffect(() => {
+    setExpandedGroups(groupedNotes.map(g => g.sysId));
+  }, [groupedNotes]);
+
   const handleAdd = async () => {
     if (!content.trim() && fileList.length === 0) {
       message.warning('Type a note or attach a file');
@@ -100,7 +144,7 @@ const ScratchPad: React.FC = () => {
 
       for (const file of fileList) {
         const formData = new FormData();
-        formData.append('file', file as unknown as Blob);
+        formData.append('file', (file.originFileObj ?? file) as Blob);
         formData.append('description', '');
         formData.append('module', 'tasks');
         formData.append('entityType', 'scratchpad');
@@ -127,13 +171,8 @@ const ScratchPad: React.FC = () => {
   const composerUploadProps: UploadProps = {
     multiple: true,
     fileList,
-    beforeUpload: (file) => {
-      setFileList(prev => [...prev, file]);
-      return false; // stage locally; upload happens on Add
-    },
-    onRemove: (file) => {
-      setFileList(prev => prev.filter(f => f.uid !== file.uid));
-    },
+    beforeUpload: () => false, // stage locally; upload happens on Add
+    onChange: ({ fileList: fl }) => setFileList(fl),
   };
 
   const handleComposerKeyDown = (e: React.KeyboardEvent) => {
@@ -147,6 +186,11 @@ const ScratchPad: React.FC = () => {
     setEditNote(note);
     setEditContent(note.content);
     setSelectedRowKeys([]);
+  };
+
+  const closeEdit = () => {
+    setEditNote(null);
+    fetchNotes(); // refresh attachment counts after any uploads/removals
   };
 
   const handleEditSave = async () => {
@@ -207,24 +251,34 @@ const ScratchPad: React.FC = () => {
     }
   };
 
-  const columns: ProColumns<ScratchNote>[] = [
+  const columns: ProColumns<Row>[] = [
     {
       title: 'Note',
       dataIndex: 'content',
       key: 'content',
-      render: (_, record) => (
-        <span
-          style={{
-            display: '-webkit-box',
-            WebkitLineClamp: 2,
-            WebkitBoxOrient: 'vertical',
-            overflow: 'hidden',
-            whiteSpace: 'pre-wrap',
-          }}
-        >
-          {record.content || <span style={{ color: '#bfbfbf' }}>(no text)</span>}
-        </span>
-      ),
+      render: (_, record) => {
+        if ('isGroupHeader' in record) {
+          return (
+            <span style={{ fontWeight: 600 }}>
+              {record.groupLabel}{' '}
+              <span style={{ color: '#8c8c8c', fontWeight: 400 }}>({record.children.length})</span>
+            </span>
+          );
+        }
+        return (
+          <span
+            style={{
+              display: '-webkit-box',
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: 'vertical',
+              overflow: 'hidden',
+              whiteSpace: 'pre-wrap',
+            }}
+          >
+            {record.content || <span style={{ color: '#bfbfbf' }}>(no text)</span>}
+          </span>
+        );
+      },
     },
     {
       title: 'Files',
@@ -232,55 +286,64 @@ const ScratchPad: React.FC = () => {
       key: 'attachmentCount',
       width: 70,
       align: 'center',
-      render: (_, record) =>
-        record.attachmentCount > 0 ? (
+      render: (_, record) => {
+        if ('isGroupHeader' in record) return null;
+        return record.attachmentCount > 0 ? (
           <span>
             <PaperClipOutlined /> {record.attachmentCount}
           </span>
         ) : (
           '-'
-        ),
+        );
+      },
     },
     {
       title: 'Status',
       dataIndex: 'isConverted',
       key: 'isConverted',
       width: 110,
-      render: (_, record) =>
-        record.isConverted ? (
+      render: (_, record) => {
+        if ('isGroupHeader' in record) return null;
+        return record.isConverted ? (
           <Tooltip title={record.convertedDate ? `Converted ${dayjs(record.convertedDate).format('MMM D, YYYY')}` : 'Converted'}>
             <Tag color="green">Converted</Tag>
           </Tooltip>
         ) : (
           <Tag>Note</Tag>
-        ),
+        );
+      },
     },
     {
       title: 'Created',
       dataIndex: 'createTimestamp',
       key: 'createTimestamp',
-      width: 120,
-      render: (_, record) => dayjs(record.createTimestamp).fromNow(),
-      sorter: (a, b) => dayjs(a.createTimestamp).unix() - dayjs(b.createTimestamp).unix(),
+      width: 180,
+      render: (_, record) => {
+        if ('isGroupHeader' in record) return null;
+        return dayjs(record.createTimestamp).format('MMM D, YYYY h:mm A');
+      },
     },
     {
       title: '',
       key: 'actions',
       width: 60,
-      render: (_, record) => (
-        <Tooltip title={record.isConverted ? 'Already converted' : 'Convert to task'}>
-          <Button
-            type="text"
-            size="small"
-            icon={<ExportOutlined />}
-            disabled={record.isConverted}
-            onClick={(e) => {
-              e.stopPropagation();
-              openConvert(record);
-            }}
-          />
-        </Tooltip>
-      ),
+      render: (_, record) => {
+        if ('isGroupHeader' in record) return null;
+        return (
+          <Tooltip title={record.isConverted ? 'Already converted' : 'Convert to task'}>
+            <Button
+              type="text"
+              size="small"
+              icon={<ExportOutlined />}
+              disabled={record.isConverted}
+              onClick={(e) => {
+                e.stopPropagation();
+                openConvert(record);
+              }}
+            />
+          </Tooltip>
+        );
+      },
     },
   ];
 
@@ -391,9 +454,9 @@ const ScratchPad: React.FC = () => {
         {notes.length === 0 && !loading ? (
           <Empty description="No notes yet — jot something above" style={{ marginTop: 48 }} />
         ) : (
-          <ProTable<ScratchNote>
+          <ProTable<Row>
             columns={columns}
-            dataSource={notes}
+            dataSource={groupedNotes}
             rowKey={(record) => record.sysId.toString()}
             loading={loading}
             search={false}
@@ -404,31 +467,32 @@ const ScratchPad: React.FC = () => {
             rowSelection={{
               selectedRowKeys,
               onChange: (keys) => setSelectedRowKeys(keys),
+              getCheckboxProps: (record) => ({
+                disabled: 'isGroupHeader' in record,
+                style: 'isGroupHeader' in record ? { display: 'none' } : undefined,
+              }),
             }}
             expandable={{
-              expandedRowKeys,
-              onExpandedRowsChange: (keys) => {
-                setExpandedRowKeys([...keys]);
-                fetchNotes();
-              },
-              expandedRowRender: (record) => (
-                <DocumentList
-                  module="tasks"
-                  entityType="scratchpad"
-                  entitySysId={record.sysId}
-                  showUpload
-                />
-              ),
+              expandedRowKeys: expandedGroups,
+              onExpandedRowsChange: (keys) => setExpandedGroups([...keys]),
+              childrenColumnName: 'children',
             }}
             onRow={(record) => ({
               onClick: () => {
+                if ('isGroupHeader' in record) return;
                 const key = record.sysId.toString();
                 setSelectedRowKeys(prev =>
                   prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]
                 );
               },
-              onDoubleClick: () => openEdit(record),
-              style: { cursor: 'pointer' },
+              onDoubleClick: () => {
+                if (!('isGroupHeader' in record)) openEdit(record);
+              },
+              style: {
+                cursor: 'isGroupHeader' in record ? 'default' : 'pointer',
+                background: 'isGroupHeader' in record ? '#f5f5f5' : undefined,
+                fontWeight: 'isGroupHeader' in record ? 600 : undefined,
+              },
             })}
           />
         )}
@@ -438,17 +502,31 @@ const ScratchPad: React.FC = () => {
       <Modal
         title="Edit Note"
         open={!!editNote}
-        onCancel={() => setEditNote(null)}
+        onCancel={closeEdit}
         onOk={handleEditSave}
         okText="Save"
         confirmLoading={savingEdit}
-        width={600}
+        width={720}
       >
         <Input.TextArea
           value={editContent}
           onChange={(e) => setEditContent(e.target.value)}
           autoSize={{ minRows: 3, maxRows: 12 }}
         />
+        {editNote && (
+          <>
+            <Divider style={{ margin: '16px 0 8px' }} orientation="left" orientationMargin={0}>
+              Attachments
+            </Divider>
+            <DocumentList
+              key={editNote.sysId}
+              module="tasks"
+              entityType="scratchpad"
+              entitySysId={editNote.sysId}
+              showUpload
+            />
+          </>
+        )}
       </Modal>
 
       {/* Convert to Task Modal */}
