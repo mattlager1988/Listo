@@ -78,7 +78,7 @@ public class DocumentsController : ControllerBase
     [RequestFormLimits(MultipartBodyLengthLimit = 262_144_000)]
     public async Task<IActionResult> Upload(
         IFormFile file,
-        [FromForm] string description,
+        [FromForm] string? description,
         [FromForm] string module,
         [FromForm] string entityType,
         [FromForm] long? entitySysId,
@@ -106,7 +106,7 @@ public class DocumentsController : ControllerBase
             return BadRequest(new { message = $"File type {extension} is not allowed" });
         }
 
-        var request = new CreateDocumentRequest(description, module, entityType, entitySysId, documentTypeSysId);
+        var request = new CreateDocumentRequest(description ?? string.Empty, module, entityType, entitySysId, documentTypeSysId);
 
         using var stream = file.OpenReadStream();
         var document = await _documentService.UploadAsync(stream, file.FileName, request, userId.Value);

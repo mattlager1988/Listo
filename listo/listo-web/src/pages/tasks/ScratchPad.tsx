@@ -145,7 +145,7 @@ const ScratchPad: React.FC = () => {
       for (const file of fileList) {
         const formData = new FormData();
         formData.append('file', (file.originFileObj ?? file) as Blob);
-        formData.append('description', '');
+        formData.append('description', file.name || 'Attachment');
         formData.append('module', 'tasks');
         formData.append('entityType', 'scratchpad');
         formData.append('entitySysId', noteId.toString());
