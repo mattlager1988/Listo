@@ -43,6 +43,7 @@ public class ListoDbContext : DbContext
     public DbSet<TaskBoard> TaskBoards => Set<TaskBoard>();
     public DbSet<TaskBoardColumn> TaskBoardColumns => Set<TaskBoardColumn>();
     public DbSet<TaskItem> TaskItems => Set<TaskItem>();
+    public DbSet<ScratchNote> ScratchNotes => Set<ScratchNote>();
     public DbSet<AudioStream> AudioStreams => Set<AudioStream>();
     public DbSet<AudioStreamCategory> AudioStreamCategories => Set<AudioStreamCategory>();
     public DbSet<Conversation> Conversations => Set<Conversation>();
@@ -777,6 +778,21 @@ public class ListoDbContext : DbContext
             entity.HasIndex(e => e.TaskBoardSysId);
             entity.HasIndex(e => e.TaskBoardColumnSysId);
             entity.HasIndex(e => e.IsCompleted);
+        });
+
+        modelBuilder.Entity<ScratchNote>(entity =>
+        {
+            entity.ToTable("scratch_notes");
+            entity.HasKey(e => e.SysId);
+            entity.Property(e => e.SysId).HasColumnName("sys_id");
+            entity.Property(e => e.Content).HasColumnName("content").HasColumnType("text");
+            entity.Property(e => e.IsConverted).HasColumnName("is_converted");
+            entity.Property(e => e.ConvertedDate).HasColumnName("converted_date");
+            entity.Property(e => e.ConvertedTaskSysId).HasColumnName("converted_task_sys_id");
+            entity.Property(e => e.CreateTimestamp).HasColumnName("create_timestamp");
+            entity.Property(e => e.ModifyTimestamp).HasColumnName("modify_timestamp");
+            entity.Property(e => e.CreateUser).HasColumnName("create_user");
+            entity.Property(e => e.ModifyUser).HasColumnName("modify_user");
         });
 
         modelBuilder.Entity<AudioStreamCategory>(entity =>

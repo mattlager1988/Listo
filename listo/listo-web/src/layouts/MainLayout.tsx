@@ -156,6 +156,10 @@ const MainLayout: React.FC = () => {
       label: 'Tasks',
       children: [
         {
+          key: '/tasks/scratchpad',
+          label: 'Scratch Pad',
+        },
+        {
           key: '/tasks/backlog',
           label: 'Backlog',
         },

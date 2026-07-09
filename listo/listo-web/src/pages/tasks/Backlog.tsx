@@ -403,6 +403,7 @@ const Backlog: React.FC = () => {
         title={editingTask ? 'Edit Task' : 'Add Task'}
         submitLabel={editingTask ? 'Update' : 'Create'}
         loading={saving}
+        entitySysId={editingTask?.sysId}
       />
 
       {/* Assign to Board Modal */}

@@ -32,6 +32,7 @@ import TasksLayout from './pages/tasks';
 import Boards from './pages/tasks/Boards';
 import Backlog from './pages/tasks/Backlog';
 import BoardView from './pages/tasks/BoardView';
+import ScratchPad from './pages/tasks/ScratchPad';
 import MessagingLayout from './pages/messaging';
 import Messaging from './pages/messaging/Messaging';
 
@@ -105,6 +106,7 @@ function App() {
                 <Route path="boards" element={<Boards />} />
                 <Route path="boards/:id" element={<BoardView />} />
                 <Route path="backlog" element={<Backlog />} />
+                <Route path="scratchpad" element={<ScratchPad />} />
               </Route>
               <Route
                 path="messaging"

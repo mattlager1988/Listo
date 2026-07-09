@@ -99,3 +99,31 @@ public record TaskOrderItem(
     long TaskBoardColumnSysId,
     int SortOrder
 );
+
+// Scratch Pad DTOs
+public record ScratchNoteResponse(
+    long SysId,
+    string Content,
+    bool IsConverted,
+    DateTime? ConvertedDate,
+    long? ConvertedTaskSysId,
+    int AttachmentCount,
+    DateTime CreateTimestamp,
+    DateTime ModifyTimestamp
+);
+
+public record CreateScratchNoteRequest(
+    string Content
+);
+
+public record UpdateScratchNoteRequest(
+    string? Content
+);
+
+public record ConvertScratchNoteRequest(
+    string Name,
+    string? Description,
+    string? Priority,
+    DateTime? DueDate,
+    long? TaskBoardSysId  // null = backlog
+);

@@ -24,11 +24,17 @@ public interface ITaskItemService
 
 public class TaskItemService : ITaskItemService
 {
-    private readonly ListoDbContext _context;
+    // Attachments on a task use these keys on the generic Documents system.
+    private const string DocumentModule = "tasks";
+    private const string TaskEntityType = "task";
 
-    public TaskItemService(ListoDbContext context)
+    private readonly ListoDbContext _context;
+    private readonly IDocumentService _documentService;
+
+    public TaskItemService(ListoDbContext context, IDocumentService documentService)
     {
         _context = context;
+        _documentService = documentService;
     }
 
     public async Task<IEnumerable<TaskItemResponse>> GetBacklogAsync()
@@ -148,6 +154,19 @@ public class TaskItemService : ITaskItemService
     {
         var task = await _context.TaskItems.FindAsync(id);
         if (task == null) return false;
+
+        // Remove any attachments (DB rows + files on disk) so they aren't orphaned.
+        var attachments = await _context.Documents
+            .Where(d => d.Module == DocumentModule &&
+                        d.EntityType == TaskEntityType &&
+                        d.EntitySysId == id)
+            .Select(d => d.SysId)
+            .ToListAsync();
+
+        foreach (var documentId in attachments)
+        {
+            await _documentService.DeleteAsync(documentId);
+        }
 
         _context.TaskItems.Remove(task);
         await _context.SaveChangesAsync();

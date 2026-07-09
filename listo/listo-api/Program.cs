@@ -103,6 +103,7 @@ builder.Services.AddScoped<IPasswordCategoryService, PasswordCategoryService>();
 builder.Services.AddScoped<IPasswordEntryService, PasswordEntryService>();
 builder.Services.AddScoped<ITaskBoardService, TaskBoardService>();
 builder.Services.AddScoped<ITaskItemService, TaskItemService>();
+builder.Services.AddScoped<IScratchNoteService, ScratchNoteService>();
 builder.Services.AddScoped<IAudioStreamService, AudioStreamService>();
 builder.Services.AddScoped<IAudioStreamCategoryService, AudioStreamCategoryService>();
 builder.Services.AddScoped<ITranscriptionService, TranscriptionService>();
