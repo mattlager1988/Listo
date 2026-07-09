@@ -13,9 +13,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const response = await api.get('/users/me');
       setUser(response.data);
     } catch {
-      setUser(null);
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('refreshToken');
+      // Session expiration is disabled: keep any existing session and tokens on
+      // a failed /users/me so transient errors never log the user out.
     }
   }, []);
 

@@ -35,9 +35,8 @@ api.interceptors.response.use(
           originalRequest.headers.Authorization = `Bearer ${accessToken}`;
           return api(originalRequest);
         } catch {
-          localStorage.removeItem('accessToken');
-          localStorage.removeItem('refreshToken');
-          window.location.href = '/login';
+          // Session expiration is disabled: do not clear tokens or redirect to
+          // /login on a failed refresh. Surface the error and keep the session.
         }
       }
     }
