@@ -7,8 +7,8 @@
     "Secret": "YOUR-SECRET-KEY-MIN-32-CHARS-CHANGE-IN-PRODUCTION",
     "Issuer": "Listo",
     "Audience": "Listo",
-    "AccessTokenExpirationMinutes": 5256000,
-    "RefreshTokenExpirationDays": 3650
+    "AccessTokenExpirationMinutes": 15,
+    "RefreshTokenExpirationDays": 7
   },
   "InitialAdmin": {
     "Email": "admin@example.com",
