@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Listo.Api.DTOs;
 using Listo.Api.Services;
 
@@ -17,6 +18,7 @@ public class AuthController : ControllerBase
         _authService = authService;
     }
 
+    [EnableRateLimiting("login")]
     [HttpPost("login")]
     public async Task<ActionResult<LoginResponse>> Login([FromBody] LoginRequest request)
     {
@@ -31,6 +33,7 @@ public class AuthController : ControllerBase
         }
     }
 
+    [EnableRateLimiting("login")]
     [HttpPost("mfa/verify")]
     public async Task<ActionResult<TokenResponse>> VerifyMfa([FromBody] MfaVerifyRequest request)
     {
@@ -45,6 +48,7 @@ public class AuthController : ControllerBase
         }
     }
 
+    [EnableRateLimiting("refresh")]
     [HttpPost("refresh")]
     public async Task<ActionResult<TokenResponse>> Refresh([FromBody] RefreshRequest request)
     {
