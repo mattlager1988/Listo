@@ -677,7 +677,7 @@ const Dashboard: React.FC = () => {
       }
 
       case 'days-until-ring': {
-        const daysUntilRing = dayjs().startOf('day').diff(dayjs('2026-06-13'), 'day');
+        const daysUntilRing = dayjs().startOf('day').diff(dayjs('2026-06-22'), 'day');
         return (
           <Card title="Days of Love" size="small">
             <div style={{ textAlign: 'center', padding: '16px 0' }}>

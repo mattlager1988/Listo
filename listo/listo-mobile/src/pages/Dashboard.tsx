@@ -79,7 +79,7 @@ const Dashboard: React.FC = () => {
         <Card title="Days of Love" style={{ borderRadius: 8 }}>
           <div style={{ textAlign: 'center', padding: '12px 0' }}>
             <div style={{ fontSize: 48, fontWeight: 700, color: '#eb2f96', lineHeight: 1 }}>
-              {dayjs().startOf('day').diff(dayjs('2026-06-13'), 'day')}
+              {dayjs().startOf('day').diff(dayjs('2026-06-22'), 'day')}
             </div>
           </div>
         </Card>
