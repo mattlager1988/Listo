@@ -3,7 +3,6 @@ import {
   Button,
   Input,
   Upload,
-  Tag,
   Tooltip,
   Popconfirm,
   Modal,
@@ -31,9 +30,6 @@ import TaskFormModal from '../../components/TaskFormModal';
 interface ScratchNote {
   sysId: number;
   content: string;
-  isConverted: boolean;
-  convertedDate?: string;
-  convertedTaskSysId?: number;
   attachmentCount: number;
   createTimestamp: string;
   modifyTimestamp: string;
@@ -298,22 +294,6 @@ const ScratchPad: React.FC = () => {
       },
     },
     {
-      title: 'Status',
-      dataIndex: 'isConverted',
-      key: 'isConverted',
-      width: 110,
-      render: (_, record) => {
-        if ('isGroupHeader' in record) return null;
-        return record.isConverted ? (
-          <Tooltip title={record.convertedDate ? `Converted ${dayjs(record.convertedDate).format('MMM D, YYYY')}` : 'Converted'}>
-            <Tag color="green">Converted</Tag>
-          </Tooltip>
-        ) : (
-          <Tag>Note</Tag>
-        );
-      },
-    },
-    {
       title: 'Created',
       dataIndex: 'createTimestamp',
       key: 'createTimestamp',
@@ -330,12 +310,11 @@ const ScratchPad: React.FC = () => {
       render: (_, record) => {
         if ('isGroupHeader' in record) return null;
         return (
-          <Tooltip title={record.isConverted ? 'Already converted' : 'Convert to task'}>
+          <Tooltip title="Convert to task">
             <Button
               type="text"
               size="small"
               icon={<ExportOutlined />}
-              disabled={record.isConverted}
               onClick={(e) => {
                 e.stopPropagation();
                 openConvert(record);
@@ -417,7 +396,7 @@ const ScratchPad: React.FC = () => {
             type="text"
             size="small"
             icon={<ExportOutlined />}
-            disabled={selectedRowKeys.length !== 1 || !!selectedNote?.isConverted}
+            disabled={selectedRowKeys.length !== 1}
             onClick={() => { if (selectedNote) openConvert(selectedNote); }}
           />
         </Tooltip>

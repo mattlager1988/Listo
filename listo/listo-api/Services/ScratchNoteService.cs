@@ -136,12 +136,13 @@ public class ScratchNoteService : IScratchNoteService
             doc.EntitySysId = task.SysId;
         }
 
-        note.IsConverted = true;
-        note.ConvertedDate = DateTime.UtcNow;
-        note.ConvertedTaskSysId = task.SysId;
+        // The note has become a task; remove it entirely. Its attachments were
+        // re-pointed to the task above, so they are not deleted here.
+        var response = MapToResponse(note, attachments.Count);
+        _context.ScratchNotes.Remove(note);
 
         await _context.SaveChangesAsync();
-        return await GetByIdAsync(id);
+        return response;
     }
 
     private async Task<Dictionary<long, int>> GetAttachmentCountsAsync(List<long> noteIds)
