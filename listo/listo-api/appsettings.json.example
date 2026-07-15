@@ -25,5 +25,13 @@
       "Microsoft.AspNetCore": "Warning"
     }
   },
-  "AllowedHosts": "*"
+  "Cors": {
+    "_comment": "Browser origins allowed to call the API. List BOTH the web app and mobile app production origins. Defaults to local dev origins if omitted.",
+    "AllowedOrigins": [ "https://app.yourdomain.example", "https://m.yourdomain.example" ]
+  },
+  "ForwardedHeaders": {
+    "_comment": "Only needed if the reverse proxy connects from a non-loopback address (e.g. Docker/LAN). Set to the proxy's IP(s). Leave empty when the proxy runs on the same host over localhost.",
+    "KnownProxies": []
+  },
+  "AllowedHosts": "your-api-hostname.example.com"
 }

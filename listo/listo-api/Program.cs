@@ -1,7 +1,9 @@
+using System.Net;
 using System.Text;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Http.Features;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -118,16 +120,41 @@ builder.Services.AddSingleton<IPresenceTracker, PresenceTracker>();
 builder.Services.AddHttpClient<IPushoverService, PushoverService>(c => c.Timeout = TimeSpan.FromSeconds(10));
 builder.Services.AddHostedService<UnreadNotificationService>();
 
-// CORS
+// CORS — allowed browser origins are config-driven so the web and mobile apps'
+// production origins can be listed per environment (defaults to local dev origins).
+var corsOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
+    ?? new[] { "http://localhost:5173", "http://localhost:3000" };
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
-        policy.WithOrigins("http://localhost:5173", "http://localhost:3000")
+        policy.WithOrigins(corsOrigins)
             .AllowAnyHeader()
             .AllowAnyMethod()
             .AllowCredentials();
     });
+});
+
+// Honor X-Forwarded-* from the reverse proxy so RemoteIpAddress (used by the rate
+// limiter) and Request.IsHttps (used by HSTS) reflect the real client. By default
+// only loopback proxies are trusted — correct when the proxy runs on the same host
+// over localhost. To trust a proxy on another address, list its IP(s) under
+// ForwardedHeaders:KnownProxies; that clears the defaults and trusts only those.
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+
+    var knownProxies = builder.Configuration.GetSection("ForwardedHeaders:KnownProxies").Get<string[]>();
+    if (knownProxies is { Length: > 0 })
+    {
+        options.KnownProxies.Clear();
+        options.KnownNetworks.Clear();
+        foreach (var proxy in knownProxies)
+        {
+            if (IPAddress.TryParse(proxy, out var ip))
+                options.KnownProxies.Add(ip);
+        }
+    }
 });
 
 // Rate limiting for authentication endpoints to blunt brute-force / credential
@@ -170,12 +197,32 @@ builder.Services.AddRateLimiter(options =>
 
 var app = builder.Build();
 
+// Apply forwarded headers before anything reads the client IP or scheme.
+app.UseForwardedHeaders();
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+else
+{
+    // TLS terminates at the reverse proxy; the proxy handles HTTP->HTTPS redirects.
+    // HSTS is emitted on requests the proxy forwards as https (via X-Forwarded-Proto).
+    app.UseHsts();
+}
+
+// Baseline security response headers on every response.
+app.Use(async (context, next) =>
+{
+    var headers = context.Response.Headers;
+    headers["X-Content-Type-Options"] = "nosniff";
+    headers["X-Frame-Options"] = "DENY";
+    headers["Referrer-Policy"] = "no-referrer";
+    headers["Content-Security-Policy"] = "default-src 'none'; frame-ancestors 'none'";
+    await next();
+});
 
 app.UseCors("AllowFrontend");
 app.UseRateLimiter();
