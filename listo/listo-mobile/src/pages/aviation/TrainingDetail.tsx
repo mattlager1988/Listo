@@ -14,15 +14,10 @@ import {
   Popup,
 } from 'antd-mobile';
 import type { Action } from 'antd-mobile/es/components/action-sheet';
-import { Worker, Viewer } from '@react-pdf-viewer/core';
-import '@react-pdf-viewer/core/lib/styles/index.css';
-import { defaultLayoutPlugin } from '@react-pdf-viewer/default-layout';
-import '@react-pdf-viewer/default-layout/lib/styles/index.css';
 import DOMPurify from 'dompurify';
 import { parseDate } from '@shared/utils/format';
 import api from '@shared/services/api';
-
-const pdfWorkerUrl = new URL('pdfjs-dist/build/pdf.worker.min.js', import.meta.url).toString();
+import PdfViewer from '../../components/PdfViewer';
 
 interface TrainingLog {
   sysId: number;
@@ -47,7 +42,6 @@ interface Attachment {
 const TrainingDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const defaultLayoutPluginInstance = defaultLayoutPlugin();
   const [log, setLog] = useState<TrainingLog | null>(null);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -383,11 +377,9 @@ const TrainingDetail: React.FC = () => {
                   <Skeleton.Paragraph lineCount={6} animated />
                 </div>
               ) : viewUrl && viewingDoc.mimeType === 'application/pdf' ? (
-                <Worker workerUrl={pdfWorkerUrl}>
-                  <div style={{ height: '70vh' }}>
-                    <Viewer fileUrl={viewUrl} plugins={[defaultLayoutPluginInstance]} />
-                  </div>
-                </Worker>
+                <div style={{ height: '70vh' }}>
+                  <PdfViewer fileUrl={viewUrl} fileName={viewingDoc.originalFileName} />
+                </div>
               ) : viewUrl && viewingDoc.mimeType.startsWith('image/') ? (
                 <div style={{ textAlign: 'center', padding: 16 }}>
                   <img

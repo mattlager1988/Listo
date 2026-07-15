@@ -157,3 +157,12 @@ button,
 .rich-text-content em {
   font-style: italic;
 }
+
+/* react-pdf: make the Document wrapper fill the viewer and lay out
+   the thumbnail rail + page area side by side. */
+.listo-pdf-document {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+}
