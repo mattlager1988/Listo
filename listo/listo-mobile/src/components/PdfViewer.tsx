@@ -33,7 +33,16 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ fileUrl, fileName }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const pageRefs = useRef<(HTMLDivElement | null)[]>([]);
 
+  // Keep the latest zoom accessible to the (non-reattaching) pinch handler.
+  const zoomRef = useRef(zoom);
+  useEffect(() => {
+    zoomRef.current = zoom;
+  }, [zoom]);
+
   // Measure the main scroll area for fit-to-width rendering.
+  // Depends on numPages because react-pdf's <Document> does not mount its
+  // children (this scroll area) until the PDF has loaded — so at first mount
+  // scrollRef.current is null. Re-running after load attaches the observer.
   useEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
@@ -42,7 +51,54 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ fileUrl, fileName }) => {
     const observer = new ResizeObserver(measure);
     observer.observe(el);
     return () => observer.disconnect();
-  }, []);
+  }, [numPages]);
+
+  // Pinch-to-zoom. The app disables native pinch globally
+  // (viewport user-scalable=no), so we implement it manually. Listeners are
+  // attached natively with passive:false so preventDefault() can suppress the
+  // browser's two-finger pan while pinching.
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+
+    const distance = (touches: TouchList) =>
+      Math.hypot(
+        touches[0].clientX - touches[1].clientX,
+        touches[0].clientY - touches[1].clientY,
+      );
+
+    let startDist = 0;
+    let startZoom = 1;
+
+    const onTouchStart = (e: TouchEvent) => {
+      if (e.touches.length === 2) {
+        startDist = distance(e.touches);
+        startZoom = zoomRef.current;
+      }
+    };
+    const onTouchMove = (e: TouchEvent) => {
+      if (e.touches.length === 2 && startDist > 0) {
+        e.preventDefault();
+        const ratio = distance(e.touches) / startDist;
+        const next = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, +(startZoom * ratio).toFixed(2)));
+        setZoom(next);
+      }
+    };
+    const onTouchEnd = (e: TouchEvent) => {
+      if (e.touches.length < 2) startDist = 0;
+    };
+
+    el.addEventListener('touchstart', onTouchStart, { passive: false });
+    el.addEventListener('touchmove', onTouchMove, { passive: false });
+    el.addEventListener('touchend', onTouchEnd);
+    el.addEventListener('touchcancel', onTouchEnd);
+    return () => {
+      el.removeEventListener('touchstart', onTouchStart);
+      el.removeEventListener('touchmove', onTouchMove);
+      el.removeEventListener('touchend', onTouchEnd);
+      el.removeEventListener('touchcancel', onTouchEnd);
+    };
+  }, [numPages]);
 
   // Track the most-visible page so the page indicator stays accurate on scroll.
   useEffect(() => {
