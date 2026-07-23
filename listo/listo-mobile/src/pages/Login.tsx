@@ -3,6 +3,34 @@ import { useNavigate } from 'react-router-dom';
 import { Form, Input, Button, Toast, PasscodeInput, SafeArea } from 'antd-mobile';
 import { useAuth } from '@shared/contexts/AuthContext';
 
+interface RequestError {
+  response?: { status?: number; data?: { message?: string } };
+  request?: unknown;
+  code?: string;
+}
+
+// Turns a login/MFA failure into a message that tells the user whether the
+// problem is their credentials or their connection to the app.
+const getAuthErrorMessage = (err: unknown, invalidCredentialsMessage: string): string => {
+  const error = err as RequestError;
+
+  // No response received: the request never reached the API (server down, no
+  // network, DNS failure, or a timeout). This is a connectivity problem, not
+  // a credentials problem.
+  if (!error.response) {
+    return "Can't reach Listo. Check your connection and try again.";
+  }
+
+  const status = error.response.status;
+
+  // The server is up but failing — don't blame the user's credentials.
+  if (status !== undefined && status >= 500) {
+    return 'Listo is having a problem right now. Please try again shortly.';
+  }
+
+  return error.response.data?.message || invalidCredentialsMessage;
+};
+
 const Login: React.FC = () => {
   const { login, verifyMfa } = useAuth();
   const navigate = useNavigate();
@@ -20,8 +48,8 @@ const Login: React.FC = () => {
       } else {
         navigate('/', { replace: true });
       }
-    } catch {
-      Toast.show({ icon: 'fail', content: 'Invalid credentials' });
+    } catch (err: unknown) {
+      Toast.show({ icon: 'fail', content: getAuthErrorMessage(err, 'Invalid email or password') });
     } finally {
       setLoading(false);
     }
@@ -33,8 +61,8 @@ const Login: React.FC = () => {
     try {
       await verifyMfa(mfaToken, code);
       navigate('/', { replace: true });
-    } catch {
-      Toast.show({ icon: 'fail', content: 'Invalid MFA code' });
+    } catch (err: unknown) {
+      Toast.show({ icon: 'fail', content: getAuthErrorMessage(err, 'Invalid MFA code') });
     } finally {
       setLoading(false);
     }

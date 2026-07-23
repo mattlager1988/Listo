@@ -6,6 +6,34 @@ import { useAuth } from '../contexts/AuthContext';
 
 const { Title, Text } = Typography;
 
+interface RequestError {
+  response?: { status?: number; data?: { message?: string } };
+  request?: unknown;
+  code?: string;
+}
+
+// Turns a login/MFA failure into a message that tells the user whether the
+// problem is their credentials or their connection to the app.
+const getAuthErrorMessage = (err: unknown, invalidCredentialsMessage: string): string => {
+  const error = err as RequestError;
+
+  // No response received: the request never reached the API (server down, no
+  // network, DNS failure, or a timeout). This is a connectivity problem, not
+  // a credentials problem.
+  if (!error.response) {
+    return "Can't reach Listo. Please check your connection or try again in a moment.";
+  }
+
+  const status = error.response.status;
+
+  // The server is up but failing — don't blame the user's credentials.
+  if (status !== undefined && status >= 500) {
+    return 'Listo is having a problem right now. Please try again shortly.';
+  }
+
+  return error.response.data?.message || invalidCredentialsMessage;
+};
+
 const Login: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -26,8 +54,7 @@ const Login: React.FC = () => {
         navigate('/');
       }
     } catch (err: unknown) {
-      const error = err as { response?: { data?: { message?: string } } };
-      setError(error.response?.data?.message || 'Login failed');
+      setError(getAuthErrorMessage(err, 'Invalid email or password'));
     } finally {
       setLoading(false);
     }
@@ -41,8 +68,7 @@ const Login: React.FC = () => {
       await verifyMfa(mfaToken, values.code);
       navigate('/');
     } catch (err: unknown) {
-      const error = err as { response?: { data?: { message?: string } } };
-      setError(error.response?.data?.message || 'Invalid MFA code');
+      setError(getAuthErrorMessage(err, 'Invalid MFA code'));
     } finally {
       setLoading(false);
     }
