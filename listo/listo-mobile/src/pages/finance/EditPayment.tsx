@@ -141,9 +141,10 @@ const EditPayment: React.FC = () => {
             <Form.Item
               name="adjustLedger"
               label={`Adjust ${bankName} balance`}
+              valuePropName="checked"
               childElementPosition="right"
             >
-              <Switch defaultChecked />
+              <Switch />
             </Form.Item>
           </>
         )}

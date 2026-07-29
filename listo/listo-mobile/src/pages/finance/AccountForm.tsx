@@ -312,11 +312,11 @@ const AccountForm: React.FC = () => {
           </Picker>
         </Form.Item>
 
-        <Form.Item name="autoPay" label="Auto Pay" childElementPosition="right">
+        <Form.Item name="autoPay" label="Auto Pay" valuePropName="checked" childElementPosition="right">
           <Switch />
         </Form.Item>
 
-        <Form.Item name="resetAmountDue" label="Reset Amount After Payment" childElementPosition="right">
+        <Form.Item name="resetAmountDue" label="Reset Amount After Payment" valuePropName="checked" childElementPosition="right">
           <Switch />
         </Form.Item>
 
