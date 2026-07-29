@@ -230,14 +230,10 @@ const CyclePlans: React.FC = () => {
         amountOut: field === 'amountOut' ? value : plan.amountOut,
         notes: plan.notes,
       };
-      await api.put(`/finance/cycleplans/${plan.sysId}`, payload);
-      // Update local state
+      const response = await api.put<CyclePlan>(`/finance/cycleplans/${plan.sysId}`, payload);
+      // Update local state with the server-calculated values (balance includes cycle transactions)
       setCyclePlans(prev => prev.map(p =>
-        p.sysId === plan.sysId
-          ? { ...p, [field]: value, balance: field === 'amountIn' || field === 'amountOut'
-              ? (field === 'amountIn' ? (value as number) : p.amountIn) - (field === 'amountOut' ? (value as number) : p.amountOut)
-              : p.balance }
-          : p
+        p.sysId === plan.sysId ? response.data : p
       ));
     } catch {
       message.error('Failed to update');
