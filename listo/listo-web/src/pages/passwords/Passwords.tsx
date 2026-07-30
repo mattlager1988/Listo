@@ -22,10 +22,12 @@ import {
   LinkOutlined,
   LoginOutlined,
   SearchOutlined,
+  KeyOutlined,
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import api from '../../services/api';
 import PageHeader from '../../components/PageHeader';
+import PasswordGenerator from '../../components/PasswordGenerator';
 
 interface PasswordEntry {
   sysId: number;
@@ -61,6 +63,7 @@ const Passwords: React.FC = () => {
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [visiblePasswords, setVisiblePasswords] = useState<Set<number>>(new Set());
   const [searchText, setSearchText] = useState('');
+  const [passwordVisible, setPasswordVisible] = useState(false);
   const [form] = Form.useForm();
 
   const fetchEntries = useCallback(async () => {
@@ -137,7 +140,13 @@ const Passwords: React.FC = () => {
   const handleCreate = () => {
     setEditingEntry(null);
     form.resetFields();
+    setPasswordVisible(false);
     setModalVisible(true);
+  };
+
+  const handleUseGeneratedPassword = (password: string) => {
+    form.setFieldsValue({ password });
+    setPasswordVisible(true);
   };
 
   const handleEdit = (entry: PasswordEntry) => {
@@ -150,6 +159,7 @@ const Passwords: React.FC = () => {
       notes: entry.notes,
       categorySysId: entry.categorySysId,
     });
+    setPasswordVisible(false);
     setModalVisible(true);
     setSelectedRowKeys([]);
   };
@@ -490,7 +500,7 @@ const Passwords: React.FC = () => {
               <Input placeholder="https://example.com" />
             </Form.Item>
 
-            <Space size="middle" style={{ width: '100%' }}>
+            <div style={{ display: 'flex', gap: 12 }}>
               <Form.Item
                 name="username"
                 label="Username"
@@ -501,12 +511,34 @@ const Passwords: React.FC = () => {
 
               <Form.Item
                 name="password"
-                label="Password"
+                label={
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    Password
+                    <PasswordGenerator onUse={handleUseGeneratedPassword}>
+                      <Button
+                        type="link"
+                        size="small"
+                        icon={<KeyOutlined />}
+                        style={{ padding: 0, height: 'auto', fontSize: 12 }}
+                        // Keep the click from being forwarded to the input by the <label>.
+                        onClick={(e) => e.preventDefault()}
+                      >
+                        Generate
+                      </Button>
+                    </PasswordGenerator>
+                  </span>
+                }
                 style={{ marginBottom: 0, flex: 1 }}
               >
-                <Input.Password placeholder="Password" />
+                <Input.Password
+                  placeholder="Password"
+                  visibilityToggle={{
+                    visible: passwordVisible,
+                    onVisibleChange: setPasswordVisible,
+                  }}
+                />
               </Form.Item>
-            </Space>
+            </div>
 
             <Form.Item
               name="categorySysId"

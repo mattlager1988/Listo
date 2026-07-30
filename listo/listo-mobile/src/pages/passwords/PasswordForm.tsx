@@ -10,7 +10,9 @@ import {
   Skeleton,
   Picker,
 } from 'antd-mobile';
+import { EyeOutline, EyeInvisibleOutline } from 'antd-mobile-icons';
 import api from '@shared/services/api';
+import PasswordGenerator from '../../components/PasswordGenerator';
 
 interface PasswordCategory {
   sysId: number;
@@ -28,6 +30,8 @@ const PasswordForm: React.FC = () => {
   const [categories, setCategories] = useState<PasswordCategory[]>([]);
   const [categoryPickerVisible, setCategoryPickerVisible] = useState(false);
   const [selectedCategorySysId, setSelectedCategorySysId] = useState<number | null>(null);
+  const [generatorVisible, setGeneratorVisible] = useState(false);
+  const [passwordVisible, setPasswordVisible] = useState(false);
 
   const fetchCategories = useCallback(async () => {
     try {
@@ -164,8 +168,27 @@ const PasswordForm: React.FC = () => {
           <Input placeholder="Username or email" />
         </Form.Item>
 
-        <Form.Item name="password" label="Password">
-          <Input type="password" placeholder="Password" />
+        <Form.Item
+          name="password"
+          label="Password"
+          extra={
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <span
+                onClick={() => setPasswordVisible(!passwordVisible)}
+                style={{ color: '#1890ff', cursor: 'pointer', fontSize: 18, display: 'flex' }}
+              >
+                {passwordVisible ? <EyeInvisibleOutline /> : <EyeOutline />}
+              </span>
+              <span
+                onClick={() => setGeneratorVisible(true)}
+                style={{ color: '#1890ff', cursor: 'pointer', fontSize: 13, whiteSpace: 'nowrap' }}
+              >
+                Generate
+              </span>
+            </div>
+          }
+        >
+          <Input type={passwordVisible ? 'text' : 'password'} placeholder="Password" />
         </Form.Item>
 
         <Form.Item
@@ -198,6 +221,15 @@ const PasswordForm: React.FC = () => {
           />
         </Form.Item>
       </Form>
+
+      <PasswordGenerator
+        visible={generatorVisible}
+        onClose={() => setGeneratorVisible(false)}
+        onUse={(password) => {
+          form.setFieldsValue({ password });
+          setPasswordVisible(true);
+        }}
+      />
 
       {!isEditing && (
         <div style={{ padding: '16px 12px', display: 'flex', flexDirection: 'column', gap: 8 }}>
