@@ -10,6 +10,9 @@
     "AccessTokenExpirationMinutes": 15,
     "RefreshTokenExpirationDays": 7
   },
+  "Mfa": {
+    "ReVerifyIntervalHours": 24
+  },
   "InitialAdmin": {
     "Email": "admin@example.com",
     "Password": "CHANGE_THIS_PASSWORD_16_CHARS_MIN",

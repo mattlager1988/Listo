@@ -50,8 +50,19 @@ public class AuthService : IAuthService
 
         if (user.MfaEnabled)
         {
-            var mfaToken = GenerateMfaToken(user.SysId);
-            return new LoginResponse(true, mfaToken, null);
+            // MFA is only required when it has been longer than the configured
+            // interval (default 24h) since the user last logged in. Any successful
+            // login resets LastLoginAt, restarting the clock.
+            var intervalHours = _config.GetValue<int>("Mfa:ReVerifyIntervalHours", 24);
+            var mfaStillValid = user.LastLoginAt.HasValue
+                && user.LastLoginAt.Value > DateTime.UtcNow.AddHours(-intervalHours);
+
+            if (!mfaStillValid)
+            {
+                var mfaToken = GenerateMfaToken(user.SysId);
+                return new LoginResponse(true, mfaToken, null);
+            }
+            // within the window: fall through and issue tokens directly
         }
 
         var tokens = await GenerateTokensAsync(user);
