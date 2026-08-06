@@ -6,6 +6,7 @@ export const MODULE_KEYS = {
   passwords: 'passwords',
   tasks: 'tasks',
   messaging: 'messaging',
+  lizzylog: 'lizzylog',
   admin: 'admin',
 } as const;
 

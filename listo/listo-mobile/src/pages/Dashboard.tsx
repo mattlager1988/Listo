@@ -6,6 +6,8 @@ import { UnorderedListOutline } from 'antd-mobile-icons';
 import dayjs from 'dayjs';
 import api from '@shared/services/api';
 import type { DashboardSummary, PendingPayment } from '@shared/types';
+import { useAuth } from '@shared/contexts/AuthContext';
+import { hasModule, MODULE_KEYS } from '@shared/utils/modules';
 import { useMenu } from '../contexts/MenuContext';
 
 const getBankBalanceColor = (balance: number) => {
@@ -15,6 +17,7 @@ const getBankBalanceColor = (balance: number) => {
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const { openMenu } = useMenu();
+  const { user } = useAuth();
   const [data, setData] = useState<DashboardSummary | null>(null);
   const [pendingPayments, setPendingPayments] = useState<PendingPayment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -92,6 +95,26 @@ const Dashboard: React.FC = () => {
             </div>
           </div>
         </Card>
+
+        {/* Lizzy Log */}
+        {hasModule(user, MODULE_KEYS.lizzylog) && (
+          <Card title="Lizzy Log" style={{ borderRadius: 8 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-around', textAlign: 'center', padding: '4px 0' }}>
+              <div>
+                <div style={{ fontSize: 12, color: '#8c8c8c', marginBottom: 4 }}>Last Period</div>
+                <div style={{ fontSize: 16, fontWeight: 600 }}>
+                  {data.lastPeriodDate ? parseDate(data.lastPeriodDate).format('MMM D, YYYY') : '—'}
+                </div>
+              </div>
+              <div>
+                <div style={{ fontSize: 12, color: '#8c8c8c', marginBottom: 4 }}>Next Estimated</div>
+                <div style={{ fontSize: 16, fontWeight: 600, color: '#eb2f96' }}>
+                  {data.nextEstimatedPeriodDate ? parseDate(data.nextEstimatedPeriodDate).format('MMM D, YYYY') : '—'}
+                </div>
+              </div>
+            </div>
+          </Card>
+        )}
 
         {/* Bank Accounts */}
         {data.bankAccounts.length > 0 && (

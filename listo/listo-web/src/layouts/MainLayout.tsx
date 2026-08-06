@@ -13,6 +13,7 @@ import {
   LockOutlined,
   ProjectOutlined,
   MessageOutlined,
+  HeartOutlined,
 } from '@ant-design/icons';
 import { Outlet, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -168,6 +169,11 @@ const MainLayout: React.FC = () => {
           label: 'Boards',
         },
       ],
+    }] : []),
+    ...(hasModule(user, MODULE_KEYS.lizzylog) ? [{
+      key: '/lizzylog',
+      icon: <HeartOutlined />,
+      label: 'Lizzy Log',
     }] : []),
     ...(user?.role === 'admin' ? [{
       key: '/admin',

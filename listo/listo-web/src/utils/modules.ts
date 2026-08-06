@@ -6,6 +6,7 @@ export const MODULE_KEYS = {
   passwords: 'passwords',
   tasks: 'tasks',
   messaging: 'messaging',
+  lizzylog: 'lizzylog',
   admin: 'admin',
 } as const;
 
@@ -19,6 +20,7 @@ export const ASSIGNABLE_MODULES: { key: ModuleKey; label: string }[] = [
   { key: MODULE_KEYS.passwords, label: 'Passwords' },
   { key: MODULE_KEYS.tasks, label: 'Tasks' },
   { key: MODULE_KEYS.messaging, label: 'Messaging' },
+  { key: MODULE_KEYS.lizzylog, label: 'Lizzy Log' },
 ];
 
 interface ModuleUser {

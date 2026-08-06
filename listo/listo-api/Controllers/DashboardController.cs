@@ -21,7 +21,8 @@ public class DashboardController : ControllerBase
     [HttpGet("summary")]
     public async Task<ActionResult<DashboardSummaryResponse>> GetSummary()
     {
-        var summary = await _dashboardService.GetSummaryAsync();
+        var userId = long.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+        var summary = await _dashboardService.GetSummaryAsync(userId);
         return Ok(summary);
     }
 

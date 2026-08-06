@@ -10,6 +10,7 @@ import {
   UserOutline,
   UnorderedListOutline,
   MessageOutline,
+  HeartOutline,
 } from 'antd-mobile-icons';
 import { useAuth } from '@shared/contexts/AuthContext';
 import { hasModule, MODULE_KEYS } from '@shared/utils/modules';
@@ -34,6 +35,7 @@ const menuItems: MenuEntry[] = [
   { label: 'Aviation', path: '/aviation/training', icon: <GlobalOutline />, matchPrefix: '/aviation', moduleKey: MODULE_KEYS.aviation },
   { label: 'Messaging', path: '/messaging', icon: <MessageOutline />, matchPrefix: '/messaging', moduleKey: MODULE_KEYS.messaging },
   { label: 'Passwords', path: '/passwords', icon: <LockOutline />, matchPrefix: '/passwords', moduleKey: MODULE_KEYS.passwords },
+  { label: 'Lizzy Log', path: '/lizzylog', icon: <HeartOutline />, matchPrefix: '/lizzylog', moduleKey: MODULE_KEYS.lizzylog },
   { label: 'Admin', path: '/admin/users', icon: <SetOutline />, matchPrefix: '/admin', adminOnly: true },
 ];
 

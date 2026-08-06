@@ -28,6 +28,7 @@ public class ListoDbContext : DbContext
     public DbSet<TrainingLog> TrainingLogs => Set<TrainingLog>();
     public DbSet<DocumentType> DocumentTypes => Set<DocumentType>();
     public DbSet<Note> Notes => Set<Note>();
+    public DbSet<PeriodLog> PeriodLogs => Set<PeriodLog>();
     public DbSet<Setting> Settings => Set<Setting>();
     public DbSet<AiPrompt> AiPrompts => Set<AiPrompt>();
     public DbSet<PaymentMethod> PaymentMethods => Set<PaymentMethod>();
@@ -437,6 +438,28 @@ public class ListoDbContext : DbContext
             entity.Property(e => e.SysId).HasColumnName("sys_id");
             entity.Property(e => e.Subject).HasColumnName("subject").IsRequired();
             entity.Property(e => e.Description).HasColumnName("description").HasColumnType("text");
+            entity.Property(e => e.UserSysId).HasColumnName("user_sys_id");
+            entity.Property(e => e.CreateTimestamp).HasColumnName("create_timestamp");
+            entity.Property(e => e.ModifyTimestamp).HasColumnName("modify_timestamp");
+            entity.Property(e => e.CreateUser).HasColumnName("create_user");
+            entity.Property(e => e.ModifyUser).HasColumnName("modify_user");
+
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserSysId);
+
+            entity.HasIndex(e => e.UserSysId);
+        });
+
+        modelBuilder.Entity<PeriodLog>(entity =>
+        {
+            entity.ToTable("period_logs");
+            entity.HasKey(e => e.SysId);
+            entity.Property(e => e.SysId).HasColumnName("sys_id");
+            entity.Property(e => e.StartDate).HasColumnName("start_date");
+            entity.Property(e => e.PainSeverity).HasColumnName("pain_severity");
+            entity.Property(e => e.Mood).HasColumnName("mood");
+            entity.Property(e => e.Notes).HasColumnName("notes").HasColumnType("text");
             entity.Property(e => e.UserSysId).HasColumnName("user_sys_id");
             entity.Property(e => e.CreateTimestamp).HasColumnName("create_timestamp");
             entity.Property(e => e.ModifyTimestamp).HasColumnName("modify_timestamp");

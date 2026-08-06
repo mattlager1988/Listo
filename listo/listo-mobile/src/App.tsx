@@ -57,6 +57,9 @@ import TaskColumnSettings from './pages/tasks/ColumnSettings';
 import Conversations from './pages/messaging/Conversations';
 import Thread from './pages/messaging/Thread';
 import NewChat from './pages/messaging/NewChat';
+import LizzyLogList from './pages/lizzylog/LizzyLogList';
+import PeriodForm from './pages/lizzylog/PeriodForm';
+import PeriodDetail from './pages/lizzylog/PeriodDetail';
 
 const ProtectedRoute: React.FC = () => {
   const { isAuthenticated, isLoading } = useAuth();
@@ -246,6 +249,12 @@ const App: React.FC = () => {
             <Route path="messaging" element={<Conversations />} />
             <Route path="messaging/new" element={<NewChat />} />
             <Route path="messaging/:id" element={<Thread />} />
+          </Route>
+          <Route element={<ModuleGuard module={MODULE_KEYS.lizzylog}><Outlet /></ModuleGuard>}>
+            <Route path="lizzylog" element={<LizzyLogList />} />
+            <Route path="lizzylog/new" element={<PeriodForm />} />
+            <Route path="lizzylog/:id" element={<PeriodDetail />} />
+            <Route path="lizzylog/:id/edit" element={<PeriodForm />} />
           </Route>
           <Route element={<ModuleGuard module={MODULE_KEYS.admin}><Outlet /></ModuleGuard>}>
             <Route path="admin/users" element={<AdminUsers />} />

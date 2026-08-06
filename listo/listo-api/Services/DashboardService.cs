@@ -7,7 +7,7 @@ namespace Listo.Api.Services;
 
 public interface IDashboardService
 {
-    Task<DashboardSummaryResponse> GetSummaryAsync();
+    Task<DashboardSummaryResponse> GetSummaryAsync(long userId);
     Task<DashboardLayoutDto?> GetLayoutAsync(long userSysId);
     Task<DashboardLayoutDto> SaveLayoutAsync(long userSysId, string layoutJson);
 }
@@ -15,13 +15,15 @@ public interface IDashboardService
 public class DashboardService : IDashboardService
 {
     private readonly ListoDbContext _context;
+    private readonly IPeriodLogService _periodLogService;
 
-    public DashboardService(ListoDbContext context)
+    public DashboardService(ListoDbContext context, IPeriodLogService periodLogService)
     {
         _context = context;
+        _periodLogService = periodLogService;
     }
 
-    public async Task<DashboardSummaryResponse> GetSummaryAsync()
+    public async Task<DashboardSummaryResponse> GetSummaryAsync(long userId)
     {
         var now = DateTime.UtcNow;
         var in14Days = now.AddDays(14);
@@ -145,11 +147,16 @@ public class DashboardService : IDashboardService
             );
         }
 
+        // Lizzy Log: last and next estimated period
+        var periodStats = await _periodLogService.GetStatsAsync(userId);
+
         return new DashboardSummaryResponse(
             bankAccounts,
             activeCyclePlan,
             upcomingBills,
-            aviationStats
+            aviationStats,
+            periodStats.LastPeriodDate,
+            periodStats.NextEstimatedDate
         );
     }
 

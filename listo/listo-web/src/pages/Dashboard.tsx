@@ -32,6 +32,8 @@ import dayjs from 'dayjs';
 const parseDate = (date: string) => dayjs(date.substring(0, 10));
 
 import api from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
+import { hasModule, MODULE_KEYS } from '../utils/modules';
 
 
 interface BankAccountSummary {
@@ -82,6 +84,8 @@ interface DashboardSummary {
   activeCyclePlan: CyclePlanSummary | null;
   upcomingBills: UpcomingBill[];
   aviationStats: AviationSummary | null;
+  lastPeriodDate: string | null;
+  nextEstimatedPeriodDate: string | null;
 }
 
 interface PendingPayment {
@@ -93,7 +97,7 @@ interface PendingPayment {
   accountName: string;
 }
 
-type WidgetId = 'bank-accounts' | 'upcoming-bills' | 'cycle-plan' | 'pending-payments' | 'flight-training' | 'sober-days' | 'days-until-ring';
+type WidgetId = 'bank-accounts' | 'upcoming-bills' | 'cycle-plan' | 'pending-payments' | 'flight-training' | 'sober-days' | 'days-until-ring' | 'lizzy-log';
 
 type WidgetWidth = 'full' | 'half';
 
@@ -110,6 +114,7 @@ const defaultWidgetLayout: WidgetConfig[] = [
   { id: 'flight-training', width: 'half' },
   { id: 'sober-days', width: 'half' },
   { id: 'days-until-ring', width: 'half' },
+  { id: 'lizzy-log', width: 'half' },
 ];
 
 interface SortableWidgetProps {
@@ -183,6 +188,7 @@ const SortableWidget: React.FC<SortableWidgetProps> = ({ id, children, isLocked,
 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [data, setData] = useState<DashboardSummary | null>(null);
   const [pendingPayments, setPendingPayments] = useState<PendingPayment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -690,10 +696,51 @@ const Dashboard: React.FC = () => {
         );
       }
 
+      case 'lizzy-log':
+        return (
+          <Card title="Lizzy Log" size="small">
+            <Row gutter={12}>
+              <Col span={12}>
+                <Card size="small" style={{ background: '#fafafa' }}>
+                  <Statistic
+                    title="Last Period"
+                    value={
+                      data.lastPeriodDate
+                        ? parseDate(data.lastPeriodDate).format('MMM D, YYYY')
+                        : '—'
+                    }
+                    valueStyle={{ fontSize: 16 }}
+                  />
+                </Card>
+              </Col>
+              <Col span={12}>
+                <Card size="small" style={{ background: '#fafafa' }}>
+                  <Statistic
+                    title="Next Estimated"
+                    value={
+                      data.nextEstimatedPeriodDate
+                        ? parseDate(data.nextEstimatedPeriodDate).format('MMM D, YYYY')
+                        : 'Not enough data'
+                    }
+                    valueStyle={{
+                      fontSize: 16,
+                      color: data.nextEstimatedPeriodDate ? '#eb2f96' : '#8c8c8c',
+                    }}
+                  />
+                </Card>
+              </Col>
+            </Row>
+          </Card>
+        );
+
       default:
         return null;
     }
   };
+
+  const visibleLayout = widgetLayout.filter(
+    w => w.id !== 'lizzy-log' || hasModule(user, MODULE_KEYS.lizzylog)
+  );
 
   return (
     <div>
@@ -720,9 +767,9 @@ const Dashboard: React.FC = () => {
           collisionDetection={closestCenter}
           onDragEnd={handleDragEnd}
         >
-          <SortableContext items={widgetLayout.map(w => w.id)} strategy={verticalListSortingStrategy}>
+          <SortableContext items={visibleLayout.map(w => w.id)} strategy={verticalListSortingStrategy}>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16 }}>
-              {widgetLayout.map((widget) => (
+              {visibleLayout.map((widget) => (
                 <SortableWidget
                   key={widget.id}
                   id={widget.id}

@@ -12,6 +12,7 @@ public static class ModuleKeys
     public const string Passwords = "passwords";
     public const string Tasks = "tasks";
     public const string Messaging = "messaging";
+    public const string LizzyLog = "lizzylog";
     public const string Admin = "admin";
 
     /// <summary>
@@ -20,7 +21,7 @@ public static class ModuleKeys
     /// </summary>
     public static readonly string[] Assignable =
     {
-        Dashboard, Finance, Aviation, Passwords, Tasks, Messaging
+        Dashboard, Finance, Aviation, Passwords, Tasks, Messaging, LizzyLog
     };
 
     public static readonly HashSet<string> All =

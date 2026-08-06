@@ -35,6 +35,7 @@ import BoardView from './pages/tasks/BoardView';
 import ScratchPad from './pages/tasks/ScratchPad';
 import MessagingLayout from './pages/messaging';
 import Messaging from './pages/messaging/Messaging';
+import LizzyLog from './pages/lizzylog/LizzyLog';
 
 function App() {
   return (
@@ -118,6 +119,14 @@ function App() {
               >
                 <Route index element={<Messaging />} />
               </Route>
+              <Route
+                path="lizzylog"
+                element={
+                  <ProtectedRoute requiredModule={MODULE_KEYS.lizzylog}>
+                    <LizzyLog />
+                  </ProtectedRoute>
+                }
+              />
               <Route
                 path="admin"
                 element={

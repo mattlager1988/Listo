@@ -42,4 +42,6 @@ export interface DashboardSummary {
   activeCyclePlan: CyclePlanSummary | null;
   upcomingBills: UpcomingBill[];
   aviationStats: unknown;
+  lastPeriodDate?: string | null;
+  nextEstimatedPeriodDate?: string | null;
 }

@@ -11,7 +11,11 @@ public record DashboardSummaryResponse(
     IEnumerable<UpcomingBillDto> UpcomingBills,
 
     // Aviation Summary
-    AviationSummaryDto? AviationStats
+    AviationSummaryDto? AviationStats,
+
+    // Lizzy Log
+    DateTime? LastPeriodDate,
+    DateTime? NextEstimatedPeriodDate
 );
 
 public record BankAccountSummaryDto(
