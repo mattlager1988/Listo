@@ -16,7 +16,7 @@ namespace Listo.Api.Services;
 public interface IAuthService
 {
     Task<LoginResponse> LoginAsync(LoginRequest request);
-    Task<TokenResponse> VerifyMfaAsync(MfaVerifyRequest request);
+    Task<MfaVerifyResponse> VerifyMfaAsync(MfaVerifyRequest request);
     Task<TokenResponse?> RefreshTokenAsync(string refreshToken);
     Task RevokeRefreshTokenAsync(string refreshToken);
     Task<MfaSetupResponse> SetupMfaAsync(long userId);
@@ -50,19 +50,27 @@ public class AuthService : IAuthService
 
         if (user.MfaEnabled)
         {
-            // MFA is only required when it has been longer than the configured
-            // interval (default 24h) since the user last logged in. Any successful
-            // login resets LastLoginAt, restarting the clock.
+            // MFA is required unless this specific device presents a still-valid
+            // trusted-device token. A successful login from a trusted device slides
+            // its expiry forward, so an actively-used device stays trusted while an
+            // idle one (or a brand-new/incognito browser) is challenged again.
             var intervalHours = _config.GetValue<int>("Mfa:ReVerifyIntervalHours", 24);
-            var mfaStillValid = user.LastLoginAt.HasValue
-                && user.LastLoginAt.Value > DateTime.UtcNow.AddHours(-intervalHours);
+            var device = string.IsNullOrEmpty(request.DeviceToken)
+                ? null
+                : await _context.TrustedDevices.FirstOrDefaultAsync(d =>
+                    d.Token == request.DeviceToken
+                    && d.UsersSysId == user.SysId
+                    && !d.Revoked
+                    && d.ExpiresAt > DateTime.UtcNow);
 
-            if (!mfaStillValid)
+            if (device == null)
             {
                 var mfaToken = GenerateMfaToken(user.SysId);
                 return new LoginResponse(true, mfaToken, null);
             }
-            // within the window: fall through and issue tokens directly
+
+            device.ExpiresAt = DateTime.UtcNow.AddHours(intervalHours);
+            // fall through: issue tokens directly for this trusted device
         }
 
         var tokens = await GenerateTokensAsync(user);
@@ -72,7 +80,7 @@ public class AuthService : IAuthService
         return new LoginResponse(false, null, tokens);
     }
 
-    public async Task<TokenResponse> VerifyMfaAsync(MfaVerifyRequest request)
+    public async Task<MfaVerifyResponse> VerifyMfaAsync(MfaVerifyRequest request)
     {
         var userId = ValidateMfaToken(request.MfaToken);
         var user = await _context.Users
@@ -91,9 +99,19 @@ public class AuthService : IAuthService
 
         var tokens = await GenerateTokensAsync(user);
         user.LastLoginAt = DateTime.UtcNow;
+
+        // Trust this device so it can skip MFA on future logins within the window.
+        var intervalHours = _config.GetValue<int>("Mfa:ReVerifyIntervalHours", 24);
+        var deviceToken = GenerateDeviceToken();
+        _context.TrustedDevices.Add(new TrustedDevice
+        {
+            UsersSysId = user.SysId,
+            Token = deviceToken,
+            ExpiresAt = DateTime.UtcNow.AddHours(intervalHours)
+        });
         await _context.SaveChangesAsync();
 
-        return tokens;
+        return new MfaVerifyResponse(tokens, deviceToken);
     }
 
     public async Task<TokenResponse?> RefreshTokenAsync(string refreshToken)
@@ -170,6 +188,12 @@ public class AuthService : IAuthService
 
         user.MfaEnabled = false;
         user.MfaSecret = null;
+
+        // Drop any trusted devices so re-enabling MFA later doesn't silently trust
+        // devices that were remembered under the previous secret.
+        _context.TrustedDevices.RemoveRange(
+            _context.TrustedDevices.Where(d => d.UsersSysId == userId));
+
         await _context.SaveChangesAsync();
         return true;
     }
@@ -231,6 +255,14 @@ public class AuthService : IAuthService
     }
 
     private static string GenerateRefreshToken()
+    {
+        var randomBytes = new byte[64];
+        using var rng = RandomNumberGenerator.Create();
+        rng.GetBytes(randomBytes);
+        return Convert.ToBase64String(randomBytes);
+    }
+
+    private static string GenerateDeviceToken()
     {
         var randomBytes = new byte[64];
         using var rng = RandomNumberGenerator.Create();

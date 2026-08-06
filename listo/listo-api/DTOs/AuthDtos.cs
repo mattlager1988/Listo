@@ -1,8 +1,9 @@
 namespace Listo.Api.DTOs;
 
-public record LoginRequest(string Email, string Password);
+public record LoginRequest(string Email, string Password, string? DeviceToken);
 public record LoginResponse(bool RequiresMfa, string? MfaToken, TokenResponse? Tokens);
 public record MfaVerifyRequest(string MfaToken, string Code);
+public record MfaVerifyResponse(TokenResponse Tokens, string DeviceToken);
 public record TokenResponse(string AccessToken, string RefreshToken, DateTime ExpiresAt);
 public record RefreshRequest(string RefreshToken);
 public record MfaSetupResponse(string QrCodeBase64, string ManualEntryKey);

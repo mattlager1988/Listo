@@ -56,7 +56,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, [refreshUser]);
 
   const login = async (email: string, password: string) => {
-    const response = await api.post('/auth/login', { email, password });
+    // Send this device's trusted-device token (if any) so a device that has
+    // already passed MFA within the window can skip it.
+    const deviceToken = localStorage.getItem('trustedDeviceToken');
+    const response = await api.post('/auth/login', { email, password, deviceToken });
 
     if (response.data.requiresMfa) {
       return { requiresMfa: true, mfaToken: response.data.mfaToken };
@@ -72,9 +75,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const verifyMfa = async (mfaToken: string, code: string) => {
     const response = await api.post('/auth/mfa/verify', { mfaToken, code });
-    const { accessToken, refreshToken } = response.data;
+    const { accessToken, refreshToken } = response.data.tokens;
     localStorage.setItem('accessToken', accessToken);
     localStorage.setItem('refreshToken', refreshToken);
+    // Remember this device so future logins skip MFA until the token expires.
+    if (response.data.deviceToken) {
+      localStorage.setItem('trustedDeviceToken', response.data.deviceToken);
+    }
     await refreshUser();
   };
 

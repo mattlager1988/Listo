@@ -17,6 +17,7 @@ public class ListoDbContext : DbContext
     public DbSet<User> Users => Set<User>();
     public DbSet<UserModule> UserModules => Set<UserModule>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+    public DbSet<TrustedDevice> TrustedDevices => Set<TrustedDevice>();
     public DbSet<AccountType> AccountTypes => Set<AccountType>();
     public DbSet<AccountOwner> AccountOwners => Set<AccountOwner>();
     public DbSet<Account> Accounts => Set<Account>();
@@ -219,6 +220,25 @@ public class ListoDbContext : DbContext
             entity.Property(e => e.ModifyUser).HasColumnName("modify_user");
             entity.HasOne(e => e.User)
                 .WithMany(u => u.RefreshTokens)
+                .HasForeignKey(e => e.UsersSysId);
+        });
+
+        modelBuilder.Entity<TrustedDevice>(entity =>
+        {
+            entity.ToTable("trusted_devices");
+            entity.HasKey(e => e.SysId);
+            entity.Property(e => e.SysId).HasColumnName("sys_id");
+            entity.Property(e => e.UsersSysId).HasColumnName("users_sys_id");
+            entity.Property(e => e.Token).HasColumnName("token").IsRequired();
+            entity.Property(e => e.ExpiresAt).HasColumnName("expires_at");
+            entity.Property(e => e.Revoked).HasColumnName("revoked");
+            entity.Property(e => e.CreateTimestamp).HasColumnName("create_timestamp");
+            entity.Property(e => e.ModifyTimestamp).HasColumnName("modify_timestamp");
+            entity.Property(e => e.CreateUser).HasColumnName("create_user");
+            entity.Property(e => e.ModifyUser).HasColumnName("modify_user");
+            entity.HasIndex(e => e.Token);
+            entity.HasOne(e => e.User)
+                .WithMany(u => u.TrustedDevices)
                 .HasForeignKey(e => e.UsersSysId);
         });
 

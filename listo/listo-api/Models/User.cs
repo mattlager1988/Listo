@@ -18,5 +18,6 @@ public class User : BaseEntity
     public string? ProfilePhoto { get; set; }
 
     public ICollection<RefreshToken> RefreshTokens { get; set; } = new List<RefreshToken>();
+    public ICollection<TrustedDevice> TrustedDevices { get; set; } = new List<TrustedDevice>();
     public ICollection<UserModule> Modules { get; set; } = new List<UserModule>();
 }

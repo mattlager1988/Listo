@@ -35,7 +35,7 @@ public class AuthController : ControllerBase
 
     [EnableRateLimiting("login")]
     [HttpPost("mfa/verify")]
-    public async Task<ActionResult<TokenResponse>> VerifyMfa([FromBody] MfaVerifyRequest request)
+    public async Task<ActionResult<MfaVerifyResponse>> VerifyMfa([FromBody] MfaVerifyRequest request)
     {
         try
         {
