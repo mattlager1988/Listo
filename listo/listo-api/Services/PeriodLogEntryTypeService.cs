@@ -1,0 +1,127 @@
+using Microsoft.EntityFrameworkCore;
+using Listo.Api.Data;
+using Listo.Api.DTOs;
+using Listo.Api.Models;
+
+namespace Listo.Api.Services;
+
+public interface IPeriodLogEntryTypeService
+{
+    Task<IEnumerable<PeriodLogEntryTypeResponse>> GetAllAsync(bool includeDeleted = false);
+    Task<PeriodLogEntryTypeResponse?> GetByIdAsync(long id);
+    Task<PeriodLogEntryTypeResponse> CreateAsync(CreatePeriodLogEntryTypeRequest request);
+    Task<PeriodLogEntryTypeResponse?> UpdateAsync(long id, UpdatePeriodLogEntryTypeRequest request);
+    Task<bool> SoftDeleteAsync(long id);
+    Task<bool> RestoreAsync(long id);
+    Task<bool> PurgeAsync(long id);
+}
+
+public class PeriodLogEntryTypeService : IPeriodLogEntryTypeService
+{
+    private readonly ListoDbContext _context;
+
+    public PeriodLogEntryTypeService(ListoDbContext context)
+    {
+        _context = context;
+    }
+
+    public async Task<IEnumerable<PeriodLogEntryTypeResponse>> GetAllAsync(bool includeDeleted = false)
+    {
+        var query = _context.PeriodLogEntryTypes.AsQueryable();
+        if (!includeDeleted)
+            query = query.Where(t => !t.IsDeleted);
+
+        return await query
+            .Select(t => new PeriodLogEntryTypeResponse(
+                t.SysId,
+                t.Name,
+                t.IsDeleted,
+                t.Entries.Count
+            ))
+            .ToListAsync();
+    }
+
+    public async Task<PeriodLogEntryTypeResponse?> GetByIdAsync(long id)
+    {
+        var type = await _context.PeriodLogEntryTypes
+            .Include(t => t.Entries)
+            .FirstOrDefaultAsync(t => t.SysId == id);
+
+        return type == null ? null : new PeriodLogEntryTypeResponse(
+            type.SysId,
+            type.Name,
+            type.IsDeleted,
+            type.Entries.Count
+        );
+    }
+
+    public async Task<PeriodLogEntryTypeResponse> CreateAsync(CreatePeriodLogEntryTypeRequest request)
+    {
+        if (await _context.PeriodLogEntryTypes.AnyAsync(t => t.Name == request.Name && !t.IsDeleted))
+            throw new InvalidOperationException("Log record type with this name already exists");
+
+        var type = new PeriodLogEntryType { Name = request.Name };
+        _context.PeriodLogEntryTypes.Add(type);
+        await _context.SaveChangesAsync();
+
+        return new PeriodLogEntryTypeResponse(type.SysId, type.Name, type.IsDeleted, 0);
+    }
+
+    public async Task<PeriodLogEntryTypeResponse?> UpdateAsync(long id, UpdatePeriodLogEntryTypeRequest request)
+    {
+        var type = await _context.PeriodLogEntryTypes
+            .Include(t => t.Entries)
+            .FirstOrDefaultAsync(t => t.SysId == id);
+
+        if (type == null) return null;
+
+        if (request.Name != null)
+        {
+            if (await _context.PeriodLogEntryTypes.AnyAsync(t => t.Name == request.Name && !t.IsDeleted && t.SysId != id))
+                throw new InvalidOperationException("Log record type with this name already exists");
+            type.Name = request.Name;
+        }
+
+        await _context.SaveChangesAsync();
+        return new PeriodLogEntryTypeResponse(type.SysId, type.Name, type.IsDeleted, type.Entries.Count);
+    }
+
+    public async Task<bool> SoftDeleteAsync(long id)
+    {
+        var type = await _context.PeriodLogEntryTypes.FindAsync(id);
+        if (type == null) return false;
+
+        type.IsDeleted = true;
+        await _context.SaveChangesAsync();
+        return true;
+    }
+
+    public async Task<bool> RestoreAsync(long id)
+    {
+        var type = await _context.PeriodLogEntryTypes.FindAsync(id);
+        if (type == null) return false;
+
+        // Check if an active item with the same name already exists
+        if (await _context.PeriodLogEntryTypes.AnyAsync(t => t.Name == type.Name && !t.IsDeleted && t.SysId != id))
+            throw new InvalidOperationException("Cannot restore: an active log record type with this name already exists");
+
+        type.IsDeleted = false;
+        await _context.SaveChangesAsync();
+        return true;
+    }
+
+    public async Task<bool> PurgeAsync(long id)
+    {
+        var type = await _context.PeriodLogEntryTypes
+            .Include(t => t.Entries)
+            .FirstOrDefaultAsync(t => t.SysId == id);
+
+        if (type == null) return false;
+        if (type.Entries.Count > 0)
+            throw new InvalidOperationException("Cannot purge log record type that has associated records");
+
+        _context.PeriodLogEntryTypes.Remove(type);
+        await _context.SaveChangesAsync();
+        return true;
+    }
+}

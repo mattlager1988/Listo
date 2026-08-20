@@ -5,7 +5,7 @@ import {
   Form,
   TextArea,
   Button,
-  Selector,
+  Switch,
   Toast,
   Skeleton,
   DatePicker,
@@ -13,8 +13,6 @@ import {
 import dayjs from 'dayjs';
 import { parseDate } from '@shared/utils/format';
 import api from '@shared/services/api';
-
-const RATING_OPTIONS = [1, 2, 3, 4, 5].map(n => ({ label: String(n), value: n }));
 
 const PeriodForm: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -27,8 +25,9 @@ const PeriodForm: React.FC = () => {
 
   const [datePickerVisible, setDatePickerVisible] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  const [painSeverity, setPainSeverity] = useState<number>(3);
-  const [mood, setMood] = useState<number>(3);
+  const [preWeekPickerVisible, setPreWeekPickerVisible] = useState(false);
+  const [preWeekDate, setPreWeekDate] = useState<Date | null>(null);
+  const [isEstimated, setIsEstimated] = useState<boolean>(true);
 
   const fetchEntry = useCallback(async () => {
     if (!id) return;
@@ -37,8 +36,8 @@ const PeriodForm: React.FC = () => {
       const response = await api.get(`/lizzylog/periods/${id}`);
       const entry = response.data;
       setSelectedDate(parseDate(entry.startDate).toDate());
-      setPainSeverity(entry.painSeverity);
-      setMood(entry.mood);
+      setPreWeekDate(entry.preWeekStartDate ? parseDate(entry.preWeekStartDate).toDate() : null);
+      setIsEstimated(!!entry.isStartDateEstimated);
       form.setFieldsValue({ notes: entry.notes || '' });
     } catch {
       Toast.show({ icon: 'fail', content: 'Failed to load entry' });
@@ -57,21 +56,12 @@ const PeriodForm: React.FC = () => {
   const handleSubmit = async () => {
     const values = form.getFieldsValue();
 
-    if (!painSeverity) {
-      Toast.show({ content: 'Please select a pain severity' });
-      return;
-    }
-    if (!mood) {
-      Toast.show({ content: 'Please select a mood' });
-      return;
-    }
-
     setSubmitting(true);
     try {
       const payload = {
         startDate: dayjs(selectedDate).format('YYYY-MM-DD'),
-        painSeverity,
-        mood,
+        preWeekStartDate: preWeekDate ? dayjs(preWeekDate).format('YYYY-MM-DD') : null,
+        isStartDateEstimated: isEstimated,
         notes: values.notes?.trim() || null,
       };
 
@@ -132,7 +122,38 @@ const PeriodForm: React.FC = () => {
         <Form.Header>Period Details</Form.Header>
 
         <Form.Item
-          label="Start Date"
+          label="Pre-Week Start"
+          onClick={() => setPreWeekPickerVisible(true)}
+          extra={
+            preWeekDate ? (
+              <span
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setPreWeekDate(null);
+                }}
+                style={{ fontSize: 13, color: '#1890ff' }}
+              >
+                Clear
+              </span>
+            ) : undefined
+          }
+        >
+          <span style={{ fontSize: 15, color: preWeekDate ? undefined : '#8c8c8c' }}>
+            {preWeekDate ? dayjs(preWeekDate).format('MMM D, YYYY') : 'Not set (optional)'}
+          </span>
+          <DatePicker
+            visible={preWeekPickerVisible}
+            onClose={() => setPreWeekPickerVisible(false)}
+            onConfirm={(val) => {
+              setPreWeekDate(val);
+              setPreWeekPickerVisible(false);
+            }}
+            value={preWeekDate ?? undefined}
+          />
+        </Form.Item>
+
+        <Form.Item
+          label="Period Start Date"
           onClick={() => setDatePickerVisible(true)}
         >
           <span style={{ fontSize: 15 }}>
@@ -149,25 +170,10 @@ const PeriodForm: React.FC = () => {
           />
         </Form.Item>
 
-        <Form.Item label="Pain Severity">
-          <Selector
-            options={RATING_OPTIONS}
-            value={[painSeverity]}
-            onChange={(val) => {
-              if (val.length) setPainSeverity(val[0]);
-            }}
-          />
-        </Form.Item>
-
-        <Form.Item label="Mood">
-          <Selector
-            options={RATING_OPTIONS}
-            value={[mood]}
-            onChange={(val) => {
-              if (val.length) setMood(val[0]);
-            }}
-          />
-        </Form.Item>
+        <Form.Item
+          label="Start date is estimated"
+          extra={<Switch checked={isEstimated} onChange={setIsEstimated} />}
+        />
 
         <Form.Item name="notes" label="Notes">
           <TextArea placeholder="Optional notes" rows={4} />

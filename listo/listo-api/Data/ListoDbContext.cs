@@ -29,6 +29,8 @@ public class ListoDbContext : DbContext
     public DbSet<DocumentType> DocumentTypes => Set<DocumentType>();
     public DbSet<Note> Notes => Set<Note>();
     public DbSet<PeriodLog> PeriodLogs => Set<PeriodLog>();
+    public DbSet<PeriodLogEntry> PeriodLogEntries => Set<PeriodLogEntry>();
+    public DbSet<PeriodLogEntryType> PeriodLogEntryTypes => Set<PeriodLogEntryType>();
     public DbSet<Setting> Settings => Set<Setting>();
     public DbSet<AiPrompt> AiPrompts => Set<AiPrompt>();
     public DbSet<PaymentMethod> PaymentMethods => Set<PaymentMethod>();
@@ -457,8 +459,8 @@ public class ListoDbContext : DbContext
             entity.HasKey(e => e.SysId);
             entity.Property(e => e.SysId).HasColumnName("sys_id");
             entity.Property(e => e.StartDate).HasColumnName("start_date");
-            entity.Property(e => e.PainSeverity).HasColumnName("pain_severity");
-            entity.Property(e => e.Mood).HasColumnName("mood");
+            entity.Property(e => e.PreWeekStartDate).HasColumnName("pre_week_start_date");
+            entity.Property(e => e.IsStartDateEstimated).HasColumnName("is_start_date_estimated");
             entity.Property(e => e.Notes).HasColumnName("notes").HasColumnType("text");
             entity.Property(e => e.UserSysId).HasColumnName("user_sys_id");
             entity.Property(e => e.CreateTimestamp).HasColumnName("create_timestamp");
@@ -471,6 +473,48 @@ public class ListoDbContext : DbContext
                 .HasForeignKey(e => e.UserSysId);
 
             entity.HasIndex(e => e.UserSysId);
+        });
+
+        modelBuilder.Entity<PeriodLogEntryType>(entity =>
+        {
+            entity.ToTable("period_log_entry_types");
+            entity.HasKey(e => e.SysId);
+            entity.Property(e => e.SysId).HasColumnName("sys_id");
+            entity.Property(e => e.Name).HasColumnName("name").IsRequired();
+            entity.Property(e => e.IsDeleted).HasColumnName("is_deleted");
+            entity.Property(e => e.CreateTimestamp).HasColumnName("create_timestamp");
+            entity.Property(e => e.ModifyTimestamp).HasColumnName("modify_timestamp");
+            entity.Property(e => e.CreateUser).HasColumnName("create_user");
+            entity.Property(e => e.ModifyUser).HasColumnName("modify_user");
+            entity.HasIndex(e => e.Name).IsUnique();
+        });
+
+        modelBuilder.Entity<PeriodLogEntry>(entity =>
+        {
+            entity.ToTable("period_log_entries");
+            entity.HasKey(e => e.SysId);
+            entity.Property(e => e.SysId).HasColumnName("sys_id");
+            entity.Property(e => e.PeriodLogSysId).HasColumnName("period_log_sys_id");
+            entity.Property(e => e.EntryTypeSysId).HasColumnName("entry_type_sys_id");
+            entity.Property(e => e.EntryDate).HasColumnName("entry_date");
+            entity.Property(e => e.Notes).HasColumnName("notes").HasColumnType("text");
+            entity.Property(e => e.CreateTimestamp).HasColumnName("create_timestamp");
+            entity.Property(e => e.ModifyTimestamp).HasColumnName("modify_timestamp");
+            entity.Property(e => e.CreateUser).HasColumnName("create_user");
+            entity.Property(e => e.ModifyUser).HasColumnName("modify_user");
+
+            entity.HasOne(e => e.PeriodLog)
+                .WithMany(p => p.Entries)
+                .HasForeignKey(e => e.PeriodLogSysId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.EntryType)
+                .WithMany(t => t.Entries)
+                .HasForeignKey(e => e.EntryTypeSysId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasIndex(e => e.PeriodLogSysId);
+            entity.HasIndex(e => e.EntryTypeSysId);
         });
 
         modelBuilder.Entity<Setting>(entity =>

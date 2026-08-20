@@ -96,6 +96,7 @@ builder.Services.AddScoped<ITrainingLogService, TrainingLogService>();
 builder.Services.AddScoped<IDocumentTypeService, DocumentTypeService>();
 builder.Services.AddScoped<INoteService, NoteService>();
 builder.Services.AddScoped<IPeriodLogService, PeriodLogService>();
+builder.Services.AddScoped<IPeriodLogEntryTypeService, PeriodLogEntryTypeService>();
 builder.Services.AddScoped<ISettingsService, SettingsService>();
 builder.Services.AddScoped<IOpenAIService, OpenAIService>();
 builder.Services.AddScoped<IAiPromptService, AiPromptService>();

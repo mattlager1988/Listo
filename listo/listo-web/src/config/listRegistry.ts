@@ -132,4 +132,17 @@ export const listRegistry: ModuleConfig[] = [
       },
     ],
   },
+  {
+    key: 'lizzylog',
+    label: 'Lizzy Log',
+    lists: [
+      {
+        key: 'periodentrytypes',
+        label: 'Log Record Types',
+        endpoint: '/lizzylog/entrytypes',
+        singularLabel: 'Log Record Type',
+        usageCountField: 'entryCount',
+      },
+    ],
+  },
 ];

@@ -14,12 +14,20 @@ import { parseDate } from '@shared/utils/format';
 import api from '@shared/services/api';
 import { useMenu } from '../../contexts/MenuContext';
 
+interface PeriodLogRecord {
+  sysId: number;
+  entryTypeName: string;
+  entryDate: string;
+  notes: string | null;
+}
+
 interface PeriodEntry {
   sysId: number;
   startDate: string;
-  painSeverity: number;
-  mood: number;
+  preWeekStartDate: string | null;
+  isStartDateEstimated: boolean;
   notes: string | null;
+  entries: PeriodLogRecord[];
   createTimestamp: string;
   modifyTimestamp: string;
 }
@@ -129,7 +137,13 @@ const LizzyLogList: React.FC = () => {
                 description={
                   <div>
                     <div style={{ fontSize: 12, color: '#8c8c8c', marginBottom: 2 }}>
-                      Pain: {entry.painSeverity} · Mood: {entry.mood}
+                      {entry.isStartDateEstimated && (
+                        <span style={{ color: '#fa8c16' }}>est. · </span>
+                      )}
+                      {(entry.entries?.length ?? 0)} log record{(entry.entries?.length ?? 0) === 1 ? '' : 's'}
+                      {entry.preWeekStartDate && (
+                        <span> · pre-week {parseDate(entry.preWeekStartDate).format('MMM D')}</span>
+                      )}
                     </div>
                     {entry.notes && (
                       <div style={{
