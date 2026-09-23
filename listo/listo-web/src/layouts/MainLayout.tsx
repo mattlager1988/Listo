@@ -130,10 +130,6 @@ const MainLayout: React.FC = () => {
           key: '/aviation/notes',
           label: 'Notes',
         },
-        {
-          key: '/aviation/listen',
-          label: 'Listen',
-        },
       ],
     }] : []),
     ...(hasModule(user, MODULE_KEYS.messaging) ? [{
