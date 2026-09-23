@@ -37,3 +37,13 @@ export interface BoardDetail {
   taskCount: number;
   columns: BoardColumn[];
 }
+
+// An append-only, timestamped note logged against a task.
+export interface TaskNote {
+  sysId: number;
+  taskItemSysId: number;
+  content: string;
+  createTimestamp: string;
+  createUser?: number;
+  authorName?: string | null;
+}

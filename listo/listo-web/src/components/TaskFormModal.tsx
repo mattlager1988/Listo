@@ -3,6 +3,7 @@ import { Modal, Form, Input, Select, DatePicker, Button, Space, Divider } from '
 import dayjs from 'dayjs';
 import RichTextEditor from './RichTextEditor';
 import DocumentList from './DocumentList';
+import TaskNotesLog from './TaskNotesLog';
 
 interface TaskFormValues {
   name: string;
@@ -130,6 +131,10 @@ const TaskFormModal: React.FC<TaskFormModalProps> = ({
 
       {entitySysId && (
         <>
+          <Divider style={{ margin: '16px 0 8px' }} orientation="left" orientationMargin={0}>
+            Notes
+          </Divider>
+          <TaskNotesLog key={`notes-${entitySysId}`} taskSysId={entitySysId} />
           <Divider style={{ margin: '16px 0 8px' }} orientation="left" orientationMargin={0}>
             Attachments
           </Divider>

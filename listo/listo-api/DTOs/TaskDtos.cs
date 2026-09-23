@@ -116,6 +116,20 @@ public record CreateScratchNoteRequest(
     string Content
 );
 
+// Task Note DTOs (append-only timestamped log on a task)
+public record TaskNoteResponse(
+    long SysId,
+    long TaskItemSysId,
+    string Content,
+    DateTime CreateTimestamp,
+    long? CreateUser,
+    string? AuthorName
+);
+
+public record CreateTaskNoteRequest(
+    string Content
+);
+
 public record UpdateScratchNoteRequest(
     string? Content
 );

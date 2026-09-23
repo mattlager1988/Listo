@@ -48,6 +48,7 @@ public class ListoDbContext : DbContext
     public DbSet<TaskBoardColumn> TaskBoardColumns => Set<TaskBoardColumn>();
     public DbSet<TaskItem> TaskItems => Set<TaskItem>();
     public DbSet<ScratchNote> ScratchNotes => Set<ScratchNote>();
+    public DbSet<TaskNote> TaskNotes => Set<TaskNote>();
     public DbSet<AudioStream> AudioStreams => Set<AudioStream>();
     public DbSet<AudioStreamCategory> AudioStreamCategories => Set<AudioStreamCategory>();
     public DbSet<Conversation> Conversations => Set<Conversation>();
@@ -880,6 +881,26 @@ public class ListoDbContext : DbContext
             entity.Property(e => e.ModifyTimestamp).HasColumnName("modify_timestamp");
             entity.Property(e => e.CreateUser).HasColumnName("create_user");
             entity.Property(e => e.ModifyUser).HasColumnName("modify_user");
+        });
+
+        modelBuilder.Entity<TaskNote>(entity =>
+        {
+            entity.ToTable("task_notes");
+            entity.HasKey(e => e.SysId);
+            entity.Property(e => e.SysId).HasColumnName("sys_id");
+            entity.Property(e => e.Content).HasColumnName("content").HasColumnType("text");
+            entity.Property(e => e.TaskItemSysId).HasColumnName("task_item_sys_id");
+            entity.Property(e => e.CreateTimestamp).HasColumnName("create_timestamp");
+            entity.Property(e => e.ModifyTimestamp).HasColumnName("modify_timestamp");
+            entity.Property(e => e.CreateUser).HasColumnName("create_user");
+            entity.Property(e => e.ModifyUser).HasColumnName("modify_user");
+
+            entity.HasOne(e => e.TaskItem)
+                .WithMany()
+                .HasForeignKey(e => e.TaskItemSysId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(e => e.TaskItemSysId);
         });
 
         modelBuilder.Entity<AudioStreamCategory>(entity =>

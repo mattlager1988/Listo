@@ -8,10 +8,12 @@ import {
   Toast,
   Skeleton,
   DatePicker,
+  TextArea,
 } from 'antd-mobile';
 import dayjs from 'dayjs';
 import { parseDate } from '@shared/utils/format';
 import api from '@shared/services/api';
+import type { TaskNote } from '@shared/types';
 import RichTextEditor from '../../components/RichTextEditor';
 
 const PRIORITIES = ['High', 'Medium', 'Low'] as const;
@@ -30,6 +32,9 @@ const TaskForm: React.FC = () => {
   const [priority, setPriority] = useState<string>('Medium');
   const [dueDate, setDueDate] = useState<Date | null>(null);
   const [dueDatePickerVisible, setDueDatePickerVisible] = useState(false);
+  const [notes, setNotes] = useState<TaskNote[]>([]);
+  const [noteContent, setNoteContent] = useState('');
+  const [noteSubmitting, setNoteSubmitting] = useState(false);
 
   const goBack = useCallback(() => {
     if (window.history.length > 1) {
@@ -57,11 +62,37 @@ const TaskForm: React.FC = () => {
     }
   }, [id, form, goBack]);
 
+  const fetchNotes = useCallback(async () => {
+    if (!id) return;
+    try {
+      const response = await api.get(`/tasks/items/${id}/notes`);
+      setNotes(response.data);
+    } catch {
+      Toast.show({ icon: 'fail', content: 'Failed to load notes' });
+    }
+  }, [id]);
+
   useEffect(() => {
     if (isEditing) {
       fetchTask();
+      fetchNotes();
     }
-  }, [fetchTask, isEditing]);
+  }, [fetchTask, fetchNotes, isEditing]);
+
+  const handleAddNote = async () => {
+    const trimmed = noteContent.trim();
+    if (!trimmed || !id) return;
+    setNoteSubmitting(true);
+    try {
+      const response = await api.post(`/tasks/items/${id}/notes`, { content: trimmed });
+      setNotes(prev => [response.data, ...prev]);
+      setNoteContent('');
+    } catch {
+      Toast.show({ icon: 'fail', content: 'Failed to add note' });
+    } finally {
+      setNoteSubmitting(false);
+    }
+  };
 
   const handleSubmit = async () => {
     const values = form.getFieldsValue();
@@ -195,6 +226,57 @@ const TaskForm: React.FC = () => {
           placeholder="Add a description..."
         />
       </div>
+
+      {/* Notes (append-only, timestamped log) — only when editing an existing task */}
+      {isEditing && (
+        <div style={{ padding: '16px 12px 0' }}>
+          <div style={{ fontSize: 14, color: '#666', marginBottom: 8 }}>Notes</div>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end', marginBottom: 12 }}>
+            <TextArea
+              value={noteContent}
+              onChange={setNoteContent}
+              placeholder="Add a note..."
+              autoSize={{ minRows: 1, maxRows: 4 }}
+              style={{ flex: 1, '--font-size': '14px', background: '#f5f5f5', borderRadius: 8, padding: '6px 10px' }}
+            />
+            <Button
+              size="small"
+              color="primary"
+              loading={noteSubmitting}
+              disabled={!noteContent.trim()}
+              onClick={handleAddNote}
+            >
+              Add
+            </Button>
+          </div>
+
+          {notes.length === 0 ? (
+            <div style={{ fontSize: 13, color: '#999', paddingBottom: 8 }}>No notes yet</div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, paddingBottom: 8 }}>
+              {notes.map(note => (
+                <div
+                  key={note.sysId}
+                  style={{
+                    border: '1px solid #f0f0f0',
+                    borderRadius: 8,
+                    padding: '8px 10px',
+                    background: '#fafafa',
+                  }}
+                >
+                  <div style={{ fontSize: 11, color: '#999', marginBottom: 2 }}>
+                    {parseDate(note.createTimestamp).format('MMM D, YYYY h:mm A')}
+                    {note.authorName ? ` · ${note.authorName}` : ''}
+                  </div>
+                  <div style={{ fontSize: 14, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                    {note.content}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {!isEditing && (
         <div style={{ padding: '16px 12px', display: 'flex', flexDirection: 'column', gap: 8 }}>
