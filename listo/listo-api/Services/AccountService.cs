@@ -29,39 +29,26 @@ public class AccountService : IAccountService
 
     public async Task<IEnumerable<AccountResponse>> GetAllAccountsAsync()
     {
-        var accounts = await _context.Accounts
-            .Include(a => a.AccountType)
-            .Include(a => a.AccountOwner)
-            .Include(a => a.Payments)
-            .Include(a => a.Cards)
-            .Where(a => !a.IsDiscontinued)
+        var accounts = await Project(ReadAccounts().Where(a => !a.IsDiscontinued))
             .ToListAsync();
 
-        return accounts.Select(a => MapToResponse(a));
+        return accounts.Select(MapToResponse);
     }
 
     public async Task<IEnumerable<AccountResponse>> GetDiscontinuedAccountsAsync()
     {
-        var accounts = await _context.Accounts
-            .Include(a => a.AccountType)
-            .Include(a => a.AccountOwner)
-            .Include(a => a.Payments)
-            .Include(a => a.Cards)
-            .Where(a => a.IsDiscontinued)
-            .OrderByDescending(a => a.DiscontinuedDate)
+        var accounts = await Project(ReadAccounts()
+                .Where(a => a.IsDiscontinued)
+                .OrderByDescending(a => a.DiscontinuedDate))
             .ToListAsync();
 
-        return accounts.Select(a => MapToResponse(a));
+        return accounts.Select(MapToResponse);
     }
 
     public async Task<AccountResponse?> GetAccountByIdAsync(long id)
     {
-        var account = await _context.Accounts
-            .Include(a => a.AccountType)
-            .Include(a => a.AccountOwner)
-            .Include(a => a.Payments)
-            .Include(a => a.Cards)
-            .FirstOrDefaultAsync(a => a.SysId == id);
+        var account = await Project(ReadAccounts().Where(a => a.SysId == id))
+            .FirstOrDefaultAsync();
         return account == null ? null : MapToResponse(account);
     }
 
@@ -95,18 +82,12 @@ public class AccountService : IAccountService
         _context.Accounts.Add(account);
         await _context.SaveChangesAsync();
 
-        await _context.Entry(account).Reference(a => a.AccountType).LoadAsync();
-        await _context.Entry(account).Reference(a => a.AccountOwner).LoadAsync();
-
-        return MapToResponse(account);
+        return (await GetAccountByIdAsync(account.SysId))!;
     }
 
     public async Task<AccountResponse?> UpdateAccountAsync(long id, UpdateAccountRequest request)
     {
-        var account = await _context.Accounts
-            .Include(a => a.AccountType)
-            .Include(a => a.AccountOwner)
-            .FirstOrDefaultAsync(a => a.SysId == id);
+        var account = await _context.Accounts.FirstOrDefaultAsync(a => a.SysId == id);
 
         if (account == null) return null;
 
@@ -137,10 +118,7 @@ public class AccountService : IAccountService
 
         await _context.SaveChangesAsync();
 
-        await _context.Entry(account).Reference(a => a.AccountType).LoadAsync();
-        await _context.Entry(account).Reference(a => a.AccountOwner).LoadAsync();
-
-        return MapToResponse(account);
+        return await GetAccountByIdAsync(id);
     }
 
     public async Task<bool> DiscontinueAccountAsync(long id)
@@ -156,10 +134,7 @@ public class AccountService : IAccountService
 
     public async Task<AccountResponse?> ReactivateAccountAsync(long id)
     {
-        var account = await _context.Accounts
-            .Include(a => a.AccountType)
-            .Include(a => a.AccountOwner)
-            .FirstOrDefaultAsync(a => a.SysId == id);
+        var account = await _context.Accounts.FirstOrDefaultAsync(a => a.SysId == id);
 
         if (account == null) return null;
 
@@ -167,19 +142,88 @@ public class AccountService : IAccountService
         account.DiscontinuedDate = null;
         await _context.SaveChangesAsync();
 
-        return MapToResponse(account);
+        return await GetAccountByIdAsync(id);
     }
 
-    private AccountResponse MapToResponse(Account account)
+    // Flattened read shape. Deliberately avoids Include on Payments and Cards:
+    // AccountCard carries the front/back image blobs, and eager-loading both
+    // collections makes EF emit a single cartesian join that ships every image
+    // once per payment row - hundreds of MB to produce a card count.
+    private record AccountProjection(
+        long SysId,
+        string Name,
+        long AccountTypeSysId,
+        string AccountTypeName,
+        long AccountOwnerSysId,
+        string AccountOwnerName,
+        decimal AmountDue,
+        DateTime? DueDate,
+        string? AccountNumber,
+        string? PhoneNumber,
+        string? WebAddress,
+        string? Username,
+        string? EncryptedPassword,
+        bool AutoPay,
+        bool ResetAmountDue,
+        AccountFlag AccountFlag,
+        string? Notes,
+        int CardCount,
+        bool IsDiscontinued,
+        DateTime? DiscontinuedDate,
+        DateTime? LastPaymentDate,
+        decimal? LastPaymentAmount,
+        long? DefaultPaymentMethodSysId,
+        long? DefaultBankAccountSysId
+    );
+
+    private IQueryable<Account> ReadAccounts() => _context.Accounts.AsNoTracking();
+
+    // Filtering and ordering must be applied to the Account query *before* this
+    // projection - EF cannot translate predicates against the constructed record.
+    private static IQueryable<AccountProjection> Project(IQueryable<Account> accounts) =>
+        accounts
+            .Select(a => new AccountProjection(
+                a.SysId,
+                a.Name,
+                a.AccountTypeSysId,
+                a.AccountType.Name,
+                a.AccountOwnerSysId,
+                a.AccountOwner.Name,
+                a.AmountDue,
+                a.DueDate,
+                a.AccountNumber,
+                a.PhoneNumber,
+                a.WebAddress,
+                a.Username,
+                a.EncryptedPassword,
+                a.AutoPay,
+                a.ResetAmountDue,
+                a.AccountFlag,
+                a.Notes,
+                a.Cards.Count,
+                a.IsDiscontinued,
+                a.DiscontinuedDate,
+                a.Payments
+                    .OrderByDescending(p => p.CreateTimestamp)
+                    .Select(p => (DateTime?)p.CreateTimestamp)
+                    .FirstOrDefault(),
+                a.Payments
+                    .OrderByDescending(p => p.CreateTimestamp)
+                    .Select(p => (decimal?)p.Amount)
+                    .FirstOrDefault(),
+                a.DefaultPaymentMethodSysId,
+                a.DefaultBankAccountSysId
+            ));
+
+    private AccountResponse MapToResponse(AccountProjection account)
     {
-        var lastPayment = account.Payments?.OrderByDescending(p => p.CreateTimestamp).FirstOrDefault();
         return new(
             account.SysId,
             account.Name,
             account.AccountTypeSysId,
-            account.AccountType.Name,
+            account.AccountTypeName,
             account.AccountOwnerSysId,
-            account.AccountOwner.Name,
+            account.AccountOwnerName,
             account.AmountDue,
             account.DueDate,
             account.AccountNumber,
@@ -193,11 +237,11 @@ public class AccountService : IAccountService
             account.ResetAmountDue,
             account.AccountFlag.ToString(),
             account.Notes,
-            account.Cards?.Count ?? 0,
+            account.CardCount,
             account.IsDiscontinued,
             account.DiscontinuedDate,
-            lastPayment?.CreateTimestamp,
-            lastPayment?.Amount,
+            account.LastPaymentDate,
+            account.LastPaymentAmount,
             account.DefaultPaymentMethodSysId,
             account.DefaultBankAccountSysId
         );
