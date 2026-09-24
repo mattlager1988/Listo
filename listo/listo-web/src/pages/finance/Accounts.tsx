@@ -76,7 +76,7 @@ interface Account {
   phoneNumber: string | null;
   webAddress: string | null;
   username: string | null;
-  password: string | null;
+  hasPassword: boolean;
   autoPay: boolean;
   resetAmountDue: boolean;
   accountFlag: string;
@@ -317,6 +317,7 @@ const Accounts: React.FC = () => {
   const [discontinuedLoading, setDiscontinuedLoading] = useState(false);
   const [showGridOptions, setShowGridOptions] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [selectedPassword, setSelectedPassword] = useState<string | null>(null);
   const [form] = Form.useForm();
   const [saveViewForm] = Form.useForm();
   const [paymentForm] = Form.useForm();
@@ -375,6 +376,8 @@ const Accounts: React.FC = () => {
     if (!account) return;
 
     try {
+      // Password is intentionally omitted - the grid no longer holds the secret,
+      // and the API leaves the stored password untouched when it is absent.
       const payload = {
         name: account.name,
         accountTypeSysId: account.accountTypeSysId,
@@ -387,16 +390,17 @@ const Accounts: React.FC = () => {
         phoneNumber: account.phoneNumber,
         webAddress: account.webAddress,
         username: account.username,
-        password: account.password,
         notes: account.notes,
         accountFlag: account.accountFlag,
         autoPay: account.autoPay,
         resetAmountDue: account.resetAmountDue,
       };
 
-      await api.put(`/finance/accounts/${sysId}`, payload);
+      const response = await api.put(`/finance/accounts/${sysId}`, payload);
       setEditingCell(null);
-      fetchAccounts();
+      // Patch the edited row in place; the PUT already returns the updated
+      // account, so there is no need to refetch the whole grid.
+      setAccounts(prev => prev.map(a => (a.sysId === sysId ? response.data : a)));
     } catch {
       message.error('Failed to update');
     }
@@ -494,6 +498,28 @@ const Accounts: React.FC = () => {
     fetchBankAccounts();
   }, [fetchAccounts, fetchLists, fetchSavedViews, fetchPendingPayments, fetchPaymentMethods, fetchBankAccounts]);
 
+  const selectedAccount = React.useMemo(() => {
+    if (selectedRowKeys.length !== 1) return null;
+    return accounts.find(a => a.sysId.toString() === selectedRowKeys[0]?.toString()) ?? null;
+  }, [accounts, selectedRowKeys]);
+
+  // Passwords are no longer part of the grid payload. Fetch the one for the
+  // selected row up front so the copy/launch handlers can write to the
+  // clipboard synchronously - execCommand('copy') needs the user gesture, and
+  // awaiting a request inside the click handler would forfeit it.
+  useEffect(() => {
+    if (!selectedAccount?.hasPassword) {
+      setSelectedPassword(null);
+      return;
+    }
+    let cancelled = false;
+    api
+      .get(`/finance/accounts/${selectedAccount.sysId}/password`)
+      .then(res => { if (!cancelled) setSelectedPassword(res.data.password ?? null); })
+      .catch(() => { if (!cancelled) setSelectedPassword(null); });
+    return () => { cancelled = true; };
+  }, [selectedAccount?.sysId, selectedAccount?.hasPassword]);
+
   const handleCreate = () => {
     setEditingAccount(null);
     form.resetFields();
@@ -502,10 +528,25 @@ const Accounts: React.FC = () => {
     setModalVisible(true);
   };
 
-  const handleEdit = (account: Account) => {
+  const handleEdit = async (account: Account) => {
+    // The form submits whatever is in the password box, so it has to be seeded
+    // with the real value. If that fetch fails, opening the form would risk
+    // saving an empty box over the stored password.
+    let password: string | null = null;
+    if (account.hasPassword) {
+      try {
+        const response = await api.get(`/finance/accounts/${account.sysId}/password`);
+        password = response.data.password ?? null;
+      } catch {
+        message.error('Failed to load the saved password');
+        return;
+      }
+    }
+
     setEditingAccount(account);
     form.setFieldsValue({
       ...account,
+      password,
       dueDate: account.dueDate ? parseDate(account.dueDate) : null,
     });
     setShowPassword(false);
@@ -817,13 +858,13 @@ const Accounts: React.FC = () => {
   };
 
   const handleLaunchAccount = () => {
-    const account = accounts.find(a => a.sysId.toString() === selectedRowKeys[0]?.toString());
+    const account = selectedAccount;
     if (!account || !account.webAddress) return;
 
     // Copy password to clipboard first (before opening URL changes focus)
-    if (account.password) {
+    if (selectedPassword) {
       const textArea = document.createElement('textarea');
-      textArea.value = account.password;
+      textArea.value = selectedPassword;
       textArea.style.position = 'fixed';
       textArea.style.left = '-9999px';
       document.body.appendChild(textArea);
@@ -1623,24 +1664,22 @@ const Accounts: React.FC = () => {
             type="text"
             size="small"
             icon={<KeyOutlined />}
-            disabled={
-              selectedRowKeys.length !== 1 ||
-              !accounts.find(a => a.sysId.toString() === selectedRowKeys[0]?.toString())?.password
-            }
+            disabled={!selectedAccount?.hasPassword}
             onClick={() => {
-              const account = accounts.find(a => a.sysId.toString() === selectedRowKeys[0]?.toString());
-              if (account?.password) {
-                const textArea = document.createElement('textarea');
-                textArea.value = account.password;
-                textArea.style.position = 'fixed';
-                textArea.style.left = '-9999px';
-                document.body.appendChild(textArea);
-                textArea.focus();
-                textArea.select();
-                document.execCommand('copy');
-                document.body.removeChild(textArea);
-                message.success('Password copied to clipboard');
+              if (!selectedPassword) {
+                message.warning('Password is still loading, try again');
+                return;
               }
+              const textArea = document.createElement('textarea');
+              textArea.value = selectedPassword;
+              textArea.style.position = 'fixed';
+              textArea.style.left = '-9999px';
+              document.body.appendChild(textArea);
+              textArea.focus();
+              textArea.select();
+              document.execCommand('copy');
+              document.body.removeChild(textArea);
+              message.success('Password copied to clipboard');
             }}
           />
         </Tooltip>

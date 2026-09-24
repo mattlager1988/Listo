@@ -33,6 +33,14 @@ public class AccountsController : ControllerBase
         return Ok(account);
     }
 
+    [HttpGet("{id}/password")]
+    public async Task<ActionResult<AccountPasswordResponse>> GetPassword(long id)
+    {
+        var password = await _accountService.GetAccountPasswordAsync(id);
+        if (password == null) return NotFound();
+        return Ok(password);
+    }
+
     [HttpPost]
     public async Task<ActionResult<AccountResponse>> Create([FromBody] CreateAccountRequest request)
     {

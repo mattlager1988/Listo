@@ -10,6 +10,7 @@ public interface IAccountService
     Task<IEnumerable<AccountResponse>> GetAllAccountsAsync();
     Task<IEnumerable<AccountResponse>> GetDiscontinuedAccountsAsync();
     Task<AccountResponse?> GetAccountByIdAsync(long id);
+    Task<AccountPasswordResponse?> GetAccountPasswordAsync(long id);
     Task<AccountResponse> CreateAccountAsync(CreateAccountRequest request);
     Task<AccountResponse?> UpdateAccountAsync(long id, UpdateAccountRequest request);
     Task<bool> DiscontinueAccountAsync(long id);
@@ -50,6 +51,22 @@ public class AccountService : IAccountService
         var account = await Project(ReadAccounts().Where(a => a.SysId == id))
             .FirstOrDefaultAsync();
         return account == null ? null : MapToResponse(account);
+    }
+
+    public async Task<AccountPasswordResponse?> GetAccountPasswordAsync(long id)
+    {
+        var row = await _context.Accounts
+            .AsNoTracking()
+            .Where(a => a.SysId == id)
+            .Select(a => new { a.EncryptedPassword })
+            .FirstOrDefaultAsync();
+
+        if (row == null) return null;
+
+        return new AccountPasswordResponse(
+            string.IsNullOrEmpty(row.EncryptedPassword)
+                ? null
+                : _encryptionService.Decrypt(row.EncryptedPassword));
     }
 
     public async Task<AccountResponse> CreateAccountAsync(CreateAccountRequest request)
@@ -162,7 +179,7 @@ public class AccountService : IAccountService
         string? PhoneNumber,
         string? WebAddress,
         string? Username,
-        string? EncryptedPassword,
+        bool HasPassword,
         bool AutoPay,
         bool ResetAmountDue,
         AccountFlag AccountFlag,
@@ -195,7 +212,7 @@ public class AccountService : IAccountService
                 a.PhoneNumber,
                 a.WebAddress,
                 a.Username,
-                a.EncryptedPassword,
+                a.EncryptedPassword != null && a.EncryptedPassword != "",
                 a.AutoPay,
                 a.ResetAmountDue,
                 a.AccountFlag,
@@ -230,9 +247,7 @@ public class AccountService : IAccountService
             account.PhoneNumber,
             account.WebAddress,
             account.Username,
-            string.IsNullOrEmpty(account.EncryptedPassword)
-                ? null
-                : _encryptionService.Decrypt(account.EncryptedPassword),
+            account.HasPassword,
             account.AutoPay,
             account.ResetAmountDue,
             account.AccountFlag.ToString(),

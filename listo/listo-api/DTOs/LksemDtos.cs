@@ -47,7 +47,7 @@ public record AccountResponse(
     string? PhoneNumber,
     string? WebAddress,
     string? Username,
-    string? Password, // Decrypted for display
+    bool HasPassword, // The secret itself is fetched on demand from GET accounts/{id}/password
     bool AutoPay,
     bool ResetAmountDue,
     string AccountFlag,
@@ -98,6 +98,10 @@ public record UpdateAccountRequest(
     long? DefaultPaymentMethodSysId,
     long? DefaultBankAccountSysId
 );
+
+// Returned only by GET accounts/{id}/password, so the decrypted secret is
+// never carried in list/detail payloads that merely render the grid.
+public record AccountPasswordResponse(string? Password);
 
 // Saved View DTOs
 public record SavedViewResponse(

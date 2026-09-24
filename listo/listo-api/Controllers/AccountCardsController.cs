@@ -32,7 +32,49 @@ public class AccountCardsController : ControllerBase
         return $"****{cardNumber[^4..]}";
     }
 
-    private AccountCardResponse MapToResponse(AccountCard card)
+    // Card metadata without the front/back image blobs - callers only need to
+    // know whether an image exists, and fetch it separately from GetImage.
+    private record CardProjection(
+        long SysId,
+        long AccountSysId,
+        string Name,
+        string? EncryptedCardNumber,
+        string? ExpirationDate,
+        string? EncryptedCvv,
+        string? PhoneNumber,
+        bool HasFrontImage,
+        bool HasBackImage,
+        DateTime CreateTimestamp
+    );
+
+    private static IQueryable<CardProjection> Project(IQueryable<AccountCard> cards) =>
+        cards.Select(c => new CardProjection(
+            c.SysId,
+            c.AccountSysId,
+            c.Name,
+            c.EncryptedCardNumber,
+            c.ExpirationDate,
+            c.EncryptedCvv,
+            c.PhoneNumber,
+            c.FrontImage != null,
+            c.BackImage != null,
+            c.CreateTimestamp
+        ));
+
+    private static CardProjection ToProjection(AccountCard c) => new(
+        c.SysId,
+        c.AccountSysId,
+        c.Name,
+        c.EncryptedCardNumber,
+        c.ExpirationDate,
+        c.EncryptedCvv,
+        c.PhoneNumber,
+        c.FrontImage != null,
+        c.BackImage != null,
+        c.CreateTimestamp
+    );
+
+    private AccountCardResponse MapToResponse(CardProjection card)
     {
         var cardNumber = !string.IsNullOrEmpty(card.EncryptedCardNumber)
             ? _encryptionService.Decrypt(card.EncryptedCardNumber)
@@ -50,8 +92,8 @@ public class AccountCardsController : ControllerBase
             card.ExpirationDate,
             cvv,
             card.PhoneNumber,
-            card.FrontImage != null,
-            card.BackImage != null,
+            card.HasFrontImage,
+            card.HasBackImage,
             card.CreateTimestamp
         );
     }
@@ -59,9 +101,10 @@ public class AccountCardsController : ControllerBase
     [HttpGet]
     public async Task<ActionResult<IEnumerable<AccountCardResponse>>> GetCards(long accountId)
     {
-        var cards = await _context.AccountCards
-            .Where(c => c.AccountSysId == accountId)
-            .OrderBy(c => c.Name)
+        var cards = await Project(_context.AccountCards
+                .AsNoTracking()
+                .Where(c => c.AccountSysId == accountId)
+                .OrderBy(c => c.Name))
             .ToListAsync();
 
         return Ok(cards.Select(MapToResponse));
@@ -70,8 +113,10 @@ public class AccountCardsController : ControllerBase
     [HttpGet("{id}")]
     public async Task<ActionResult<AccountCardResponse>> GetCard(long accountId, long id)
     {
-        var card = await _context.AccountCards
-            .FirstOrDefaultAsync(c => c.SysId == id && c.AccountSysId == accountId);
+        var card = await Project(_context.AccountCards
+                .AsNoTracking()
+                .Where(c => c.SysId == id && c.AccountSysId == accountId))
+            .FirstOrDefaultAsync();
 
         if (card == null) return NotFound();
 
@@ -86,33 +131,23 @@ public class AccountCardsController : ControllerBase
             return BadRequest(new { message = "Side must be 'front' or 'back'" });
         }
 
-        var card = await _context.AccountCards
-            .FirstOrDefaultAsync(c => c.SysId == id && c.AccountSysId == accountId);
+        // Read only the requested side so the other image is not pulled too.
+        var cardQuery = _context.AccountCards
+            .AsNoTracking()
+            .Where(c => c.SysId == id && c.AccountSysId == accountId);
 
-        if (card == null) return NotFound();
+        var image = side == "front"
+            ? await cardQuery.Select(c => new { Data = c.FrontImage, Mime = c.FrontImageMimeType }).FirstOrDefaultAsync()
+            : await cardQuery.Select(c => new { Data = c.BackImage, Mime = c.BackImageMimeType }).FirstOrDefaultAsync();
 
-        byte[]? encryptedData;
-        string? mimeType;
-
-        if (side == "front")
-        {
-            encryptedData = card.FrontImage;
-            mimeType = card.FrontImageMimeType;
-        }
-        else
-        {
-            encryptedData = card.BackImage;
-            mimeType = card.BackImageMimeType;
-        }
-
-        if (encryptedData == null || string.IsNullOrEmpty(mimeType))
+        if (image?.Data == null || string.IsNullOrEmpty(image.Mime))
         {
             return NotFound();
         }
 
         // Decrypt the image data
-        var imageData = _encryptionService.DecryptBytes(encryptedData);
-        return File(imageData, mimeType);
+        var imageData = _encryptionService.DecryptBytes(image.Data);
+        return File(imageData, image.Mime);
     }
 
     [HttpPost]
@@ -138,7 +173,7 @@ public class AccountCardsController : ControllerBase
         _context.AccountCards.Add(card);
         await _context.SaveChangesAsync();
 
-        return CreatedAtAction(nameof(GetCard), new { accountId, id = card.SysId }, MapToResponse(card));
+        return CreatedAtAction(nameof(GetCard), new { accountId, id = card.SysId }, MapToResponse(ToProjection(card)));
     }
 
     [HttpPut("{id}")]
@@ -167,7 +202,7 @@ public class AccountCardsController : ControllerBase
 
         await _context.SaveChangesAsync();
 
-        return Ok(MapToResponse(card));
+        return Ok(MapToResponse(ToProjection(card)));
     }
 
     [HttpDelete("{id}")]

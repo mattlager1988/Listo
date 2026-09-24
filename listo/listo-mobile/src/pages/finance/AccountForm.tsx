@@ -64,6 +64,13 @@ const AccountForm: React.FC = () => {
       const response = await api.get(`/finance/accounts/${id}`);
       setAccount(response.data);
       const a = response.data as Account;
+      // The form submits the password box as-is, so seed it with the stored
+      // secret (fetched separately - it is not part of the account payload).
+      let password: string | null = null;
+      if (a.hasPassword) {
+        const passwordRes = await api.get(`/finance/accounts/${id}/password`);
+        password = passwordRes.data.password ?? null;
+      }
       form.setFieldsValue({
         name: a.name,
         accountTypeSysId: a.accountTypeSysId,
@@ -74,7 +81,7 @@ const AccountForm: React.FC = () => {
         phoneNumber: a.phoneNumber,
         webAddress: a.webAddress,
         username: a.username,
-        password: a.password,
+        password,
         notes: a.notes,
         accountFlag: a.accountFlag,
         autoPay: a.autoPay,

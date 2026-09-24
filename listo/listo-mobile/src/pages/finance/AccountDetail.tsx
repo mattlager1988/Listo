@@ -33,6 +33,7 @@ const AccountDetail: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [actionSheetVisible, setActionSheetVisible] = useState(false);
+  const [password, setPassword] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
     if (!id) return;
@@ -44,6 +45,20 @@ const AccountDetail: React.FC = () => {
       ]);
       setAccount(accountRes.data);
       setPayments(paymentsRes.data);
+
+      // Passwords are not part of the account payload. Pull this one up front
+      // so the copy actions stay synchronous - execCommand('copy') only works
+      // inside the tap that triggered it.
+      if ((accountRes.data as Account).hasPassword) {
+        try {
+          const passwordRes = await api.get(`/finance/accounts/${id}/password`);
+          setPassword(passwordRes.data.password ?? null);
+        } catch {
+          setPassword(null);
+        }
+      } else {
+        setPassword(null);
+      }
     } catch {
       setError(true);
     } finally {
@@ -115,8 +130,8 @@ const AccountDetail: React.FC = () => {
       key: 'launch',
       onClick: () => {
         setActionSheetVisible(false);
-        if (account.password) {
-          copyToClipboard(account.password, 'Password');
+        if (password) {
+          copyToClipboard(password, 'Password');
         }
         const url = account.webAddress!.startsWith('http') ? account.webAddress! : `https://${account.webAddress!}`;
         const link = document.createElement('a');
@@ -133,10 +148,10 @@ const AccountDetail: React.FC = () => {
       key: 'username',
       onClick: () => { setActionSheetVisible(false); copyToClipboard(account.username!, 'Username'); },
     }] : []),
-    ...(account.password ? [{
+    ...(password ? [{
       text: 'Copy Password',
       key: 'password',
-      onClick: () => { setActionSheetVisible(false); copyToClipboard(account.password!, 'Password'); },
+      onClick: () => { setActionSheetVisible(false); copyToClipboard(password, 'Password'); },
     }] : []),
     {
       text: 'Discontinue',

@@ -11,7 +11,8 @@ export interface Account {
   phoneNumber: string | null;
   webAddress: string | null;
   username: string | null;
-  password: string | null;
+  /** The secret itself comes from GET /finance/accounts/{id}/password, on demand. */
+  hasPassword: boolean;
   autoPay: boolean;
   resetAmountDue: boolean;
   accountFlag: string;
