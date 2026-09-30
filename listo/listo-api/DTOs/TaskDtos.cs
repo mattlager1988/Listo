@@ -58,6 +58,8 @@ public record TaskItemResponse(
     int SortOrder,
     bool IsCompleted,
     DateTime? CompletedDate,
+    string? FlagColor,
+    DateTime? LastNoteDate,  // CreateTimestamp of the most recent note, null if none
     long? TaskBoardSysId,
     string? TaskBoardName,
     long? TaskBoardColumnSysId,
@@ -83,6 +85,11 @@ public record UpdateTaskItemRequest(
 
 public record AssignTaskToBoardRequest(
     long TaskBoardSysId
+);
+
+// Sets or clears a task's colour flag. Null/empty FlagColor unflags the task.
+public record SetTaskFlagRequest(
+    string? FlagColor
 );
 
 public record MoveTaskRequest(
