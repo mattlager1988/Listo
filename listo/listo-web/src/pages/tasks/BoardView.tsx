@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Button, Card, Tag, Space, message, Popconfirm, Tooltip, Spin, Empty, Segmented } from 'antd';
+import { Button, Card, Tag, Space, message, Popconfirm, Tooltip, Spin, Empty, Segmented, Dropdown } from 'antd';
+import type { MenuProps } from 'antd';
 import {
   ArrowLeftOutlined,
   SettingOutlined,
@@ -13,6 +14,10 @@ import {
   ReloadOutlined,
   TableOutlined,
   AppstoreOutlined,
+  FlagOutlined,
+  FlagFilled,
+  MessageOutlined,
+  StopOutlined,
 } from '@ant-design/icons';
 import { ProTable } from '@ant-design/pro-components';
 import {
@@ -49,6 +54,8 @@ interface TaskItem {
   sortOrder: number;
   isCompleted: boolean;
   completedDate?: string;
+  flagColor?: string | null;
+  lastNoteDate?: string | null;
   taskBoardSysId?: number;
   taskBoardName?: string;
   taskBoardColumnSysId?: number;
@@ -90,6 +97,28 @@ const priorityColors: Record<string, string> = {
 
 const PRIORITY_ORDER = ['High', 'Medium', 'Low'];
 
+// Flag colours available from the card context menu. The `key` is what the API
+// stores; keep it in sync with ValidFlagColors in TaskItemService.cs and with
+// the mobile palette in @shared/utils/taskFlags.ts.
+interface FlagColor {
+  key: string;
+  label: string;
+  hex: string;
+  tint: string;
+}
+
+const FLAG_COLORS: FlagColor[] = [
+  { key: 'red', label: 'Red', hex: '#ff4d4f', tint: '#fff1f0' },
+  { key: 'orange', label: 'Orange', hex: '#fa8c16', tint: '#fff7e6' },
+  { key: 'yellow', label: 'Yellow', hex: '#fadb14', tint: '#feffe6' },
+  { key: 'green', label: 'Green', hex: '#52c41a', tint: '#f6ffed' },
+  { key: 'blue', label: 'Blue', hex: '#1890ff', tint: '#e6f4ff' },
+  { key: 'purple', label: 'Purple', hex: '#722ed1', tint: '#f9f0ff' },
+];
+
+const getFlag = (key?: string | null): FlagColor | undefined =>
+  key ? FLAG_COLORS.find(c => c.key === key) : undefined;
+
 // Droppable column container for empty columns
 const DroppableColumn: React.FC<{ id: string; children: React.ReactNode }> = ({ id, children }) => {
   const { setNodeRef } = useDroppable({ id });
@@ -103,8 +132,10 @@ const SortableTaskCard: React.FC<{
   onComplete: (id: number) => void;
   onBacklog: (id: number) => void;
   onDelete: (id: number) => void;
+  onSetPriority: (id: number, priority: string) => void;
+  onSetFlag: (id: number, flagColor: string | null) => void;
   isDragOverlay?: boolean;
-}> = ({ task, onEdit, onComplete, onBacklog, onDelete, isDragOverlay }) => {
+}> = ({ task, onEdit, onComplete, onBacklog, onDelete, onSetPriority, onSetFlag, isDragOverlay }) => {
   const {
     attributes,
     listeners,
@@ -134,6 +165,60 @@ const SortableTaskCard: React.FC<{
     );
   };
 
+  const flag = getFlag(task.flagColor);
+
+  const contextMenuItems: MenuProps['items'] = [
+    {
+      key: 'priority',
+      label: 'Priority',
+      icon: <ExclamationCircleOutlined />,
+      children: PRIORITY_ORDER.map(p => ({
+        key: `priority-${p}`,
+        label: (
+          <Space size={6}>
+            <Tag color={priorityColors[p]} style={{ margin: 0 }}>{p}</Tag>
+            {task.priority === p && <CheckOutlined style={{ fontSize: 11, color: '#52c41a' }} />}
+          </Space>
+        ),
+        onClick: () => onSetPriority(task.sysId, p),
+      })),
+    },
+    {
+      key: 'flag',
+      label: task.flagColor ? 'Change Flag' : 'Flag',
+      icon: flag
+        ? <FlagFilled style={{ color: flag.hex }} />
+        : <FlagOutlined />,
+      children: [
+        ...FLAG_COLORS.map(c => ({
+          key: `flag-${c.key}`,
+          label: (
+            <Space size={6}>
+              <FlagFilled style={{ color: c.hex }} />
+              {c.label}
+              {task.flagColor === c.key && <CheckOutlined style={{ fontSize: 11, color: '#52c41a' }} />}
+            </Space>
+          ),
+          onClick: () => onSetFlag(task.sysId, c.key),
+        })),
+        { type: 'divider' as const },
+        {
+          key: 'flag-clear',
+          label: 'Remove Flag',
+          icon: <StopOutlined />,
+          disabled: !task.flagColor,
+          onClick: () => onSetFlag(task.sysId, null),
+        },
+      ],
+    },
+    { type: 'divider' },
+    { key: 'edit', label: 'Edit', icon: <EditOutlined />, onClick: () => onEdit(task) },
+    { key: 'complete', label: 'Complete', icon: <CheckOutlined />, onClick: () => onComplete(task.sysId) },
+    { key: 'backlog', label: 'Move to Backlog', icon: <RollbackOutlined />, onClick: () => onBacklog(task.sysId) },
+    { type: 'divider' },
+    { key: 'delete', label: 'Delete', icon: <DeleteOutlined />, danger: true, onClick: () => onDelete(task.sysId) },
+  ];
+
   const cardContent = (
     <Card
       size="small"
@@ -141,6 +226,8 @@ const SortableTaskCard: React.FC<{
         marginBottom: 8,
         cursor: isDragOverlay ? 'grabbing' : 'grab',
         boxShadow: isDragOverlay ? '0 4px 12px rgba(0,0,0,0.15)' : undefined,
+        background: flag?.tint,
+        borderLeft: flag ? `3px solid ${flag.hex}` : undefined,
       }}
       bodyStyle={{ padding: '8px 12px' }}
       onClick={(e) => {
@@ -149,6 +236,7 @@ const SortableTaskCard: React.FC<{
       }}
     >
       <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 4, wordBreak: 'break-word' }}>
+        {flag && <FlagFilled style={{ color: flag.hex, fontSize: 11, marginRight: 5 }} />}
         {task.name}
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -156,6 +244,14 @@ const SortableTaskCard: React.FC<{
           {task.priority}
         </Tag>
         {getDueDateDisplay()}
+        {task.lastNoteDate && (
+          <Tooltip title="Last comment logged">
+            <span style={{ fontSize: 11, color: '#8c8c8c' }}>
+              <MessageOutlined style={{ marginRight: 2 }} />
+              {dayjs(task.lastNoteDate).format('MMM D')}
+            </span>
+          </Tooltip>
+        )}
         <div style={{ flex: 1 }} />
         <Space size={0} style={{ opacity: 0.6 }} className="card-actions">
           <Tooltip title="Complete">
@@ -181,7 +277,9 @@ const SortableTaskCard: React.FC<{
 
   return (
     <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
-      {cardContent}
+      <Dropdown menu={{ items: contextMenuItems }} trigger={['contextMenu']}>
+        {cardContent}
+      </Dropdown>
     </div>
   );
 };
@@ -395,6 +493,29 @@ const BoardView: React.FC = () => {
     }
   };
 
+  const handleSetPriority = async (taskId: number, priority: string) => {
+    const previous = tasks.find(t => t.sysId === taskId)?.priority;
+    if (previous === priority) return;
+    setTasks(prev => prev.map(t => (t.sysId === taskId ? { ...t, priority } : t)));
+    try {
+      await api.put(`/tasks/items/${taskId}`, { priority });
+    } catch {
+      setTasks(prev => prev.map(t => (t.sysId === taskId ? { ...t, priority: previous! } : t)));
+      message.error('Failed to update priority');
+    }
+  };
+
+  const handleSetFlag = async (taskId: number, flagColor: string | null) => {
+    const previous = tasks.find(t => t.sysId === taskId)?.flagColor ?? null;
+    setTasks(prev => prev.map(t => (t.sysId === taskId ? { ...t, flagColor } : t)));
+    try {
+      await api.post(`/tasks/items/${taskId}/flag`, { flagColor });
+    } catch {
+      setTasks(prev => prev.map(t => (t.sysId === taskId ? { ...t, flagColor: previous } : t)));
+      message.error('Failed to update flag');
+    }
+  };
+
   const handleEditTask = (task: TaskItem) => {
     setEditingTask(task);
     setFormModalOpen(true);
@@ -490,7 +611,13 @@ const BoardView: React.FC = () => {
             </Space>
           );
         }
-        return record.name;
+        const flag = getFlag(record.flagColor);
+        return (
+          <>
+            {flag && <FlagFilled style={{ color: flag.hex, fontSize: 11, marginRight: 5 }} />}
+            {record.name}
+          </>
+        );
       },
     },
     {
@@ -535,6 +662,17 @@ const BoardView: React.FC = () => {
             {due.format('MM/DD/YYYY')}
           </span>
         );
+      },
+    },
+    {
+      title: 'Last Comment',
+      dataIndex: 'lastNoteDate',
+      key: 'lastNoteDate',
+      width: 120,
+      render: (_: unknown, record: GridRow) => {
+        if ('isGroupHeader' in record) return null;
+        if (!record.lastNoteDate) return <span style={{ color: '#bfbfbf' }}>—</span>;
+        return dayjs(record.lastNoteDate).format('MM/DD/YYYY');
       },
     },
     {
@@ -719,7 +857,7 @@ const BoardView: React.FC = () => {
                   },
                   style: {
                     cursor: 'isGroupHeader' in record ? 'default' : 'pointer',
-                    background: 'isGroupHeader' in record ? '#f5f5f5' : undefined,
+                    background: 'isGroupHeader' in record ? '#f5f5f5' : getFlag(record.flagColor)?.tint,
                     fontWeight: 'isGroupHeader' in record ? 600 : undefined,
                   },
                 };
@@ -781,6 +919,8 @@ const BoardView: React.FC = () => {
                               onComplete={handleComplete}
                               onBacklog={handleMoveToBacklog}
                               onDelete={handleDelete}
+                              onSetPriority={handleSetPriority}
+                              onSetFlag={handleSetFlag}
                             />
                           ))}
                           {columnTasks.length === 0 && (
@@ -803,6 +943,8 @@ const BoardView: React.FC = () => {
                   onComplete={() => {}}
                   onBacklog={() => {}}
                   onDelete={() => {}}
+                  onSetPriority={() => {}}
+                  onSetFlag={() => {}}
                   isDragOverlay
                 />
               ) : null}

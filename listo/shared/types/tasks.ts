@@ -7,6 +7,10 @@ export interface TaskItem {
   sortOrder: number;
   isCompleted: boolean;
   completedDate?: string;
+  /** Colour flag key (red, orange, yellow, green, blue, purple) or null when unflagged. */
+  flagColor?: string | null;
+  /** Timestamp of the most recent note logged against the task, null if none. */
+  lastNoteDate?: string | null;
   taskBoardSysId?: number;
   taskBoardName?: string;
   taskBoardColumnSysId?: number;

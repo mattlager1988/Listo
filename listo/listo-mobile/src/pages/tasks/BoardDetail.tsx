@@ -15,6 +15,7 @@ import {
 import type { Action } from 'antd-mobile/es/components/action-sheet';
 import dayjs from 'dayjs';
 import { parseDate } from '@shared/utils/format';
+import { TASK_FLAG_COLORS, getTaskFlagColor } from '@shared/utils/taskFlags';
 import api from '@shared/services/api';
 import type { TaskItem, BoardDetail as BoardDetailType, BoardColumn } from '@shared/types';
 
@@ -23,6 +24,23 @@ const priorityColors: Record<string, string> = {
   Medium: '#faad14',
   Low: '#1890ff',
 };
+
+const PRIORITY_ORDER = ['High', 'Medium', 'Low'];
+
+// Small filled circle used to preview a flag colour in the action sheet.
+const ColorDot: React.FC<{ hex: string }> = ({ hex }) => (
+  <span
+    style={{
+      display: 'inline-block',
+      width: 10,
+      height: 10,
+      borderRadius: '50%',
+      background: hex,
+      marginRight: 8,
+      verticalAlign: 'middle',
+    }}
+  />
+);
 
 const BoardDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -37,6 +55,8 @@ const BoardDetail: React.FC = () => {
 
   // Task actions
   const [taskActionSheetVisible, setTaskActionSheetVisible] = useState(false);
+  const [priorityActionSheetVisible, setPriorityActionSheetVisible] = useState(false);
+  const [flagActionSheetVisible, setFlagActionSheetVisible] = useState(false);
   const [selectedTask, setSelectedTask] = useState<TaskItem | null>(null);
 
   const fetchData = useCallback(async () => {
@@ -104,6 +124,29 @@ const BoardDetail: React.FC = () => {
     }
   };
 
+  const handleSetPriority = async (task: TaskItem, priority: string) => {
+    setPriorityActionSheetVisible(false);
+    if (task.priority === priority) return;
+    try {
+      await api.put(`/tasks/items/${task.sysId}`, { priority });
+      Toast.show({ icon: 'success', content: `Priority set to ${priority}` });
+      fetchData();
+    } catch {
+      Toast.show({ icon: 'fail', content: 'Failed to update priority' });
+    }
+  };
+
+  const handleSetFlag = async (task: TaskItem, flagColor: string | null) => {
+    setFlagActionSheetVisible(false);
+    try {
+      await api.post(`/tasks/items/${task.sysId}/flag`, { flagColor });
+      Toast.show({ icon: 'success', content: flagColor ? 'Task flagged' : 'Flag removed' });
+      fetchData();
+    } catch {
+      Toast.show({ icon: 'fail', content: 'Failed to update flag' });
+    }
+  };
+
   const handleCompleteTask = async (task: TaskItem) => {
     setTaskActionSheetVisible(false);
     try {
@@ -157,6 +200,24 @@ const BoardDetail: React.FC = () => {
           navigate(`/tasks/${selectedTask.sysId}/edit`);
         },
       },
+      {
+        text: 'Set Priority',
+        key: 'priority',
+        description: selectedTask.priority,
+        onClick: () => {
+          setTaskActionSheetVisible(false);
+          setPriorityActionSheetVisible(true);
+        },
+      },
+      {
+        text: selectedTask.flagColor ? 'Change Flag' : 'Flag',
+        key: 'flag',
+        description: getTaskFlagColor(selectedTask.flagColor)?.label,
+        onClick: () => {
+          setTaskActionSheetVisible(false);
+          setFlagActionSheetVisible(true);
+        },
+      },
     ];
 
     // Add "Move to [Column]" for each other column
@@ -188,6 +249,46 @@ const BoardDetail: React.FC = () => {
         onClick: () => handleDeleteTask(selectedTask),
       },
     );
+
+    return actions;
+  };
+
+  const getPriorityActions = (): Action[] => {
+    if (!selectedTask) return [];
+    return PRIORITY_ORDER.map(p => ({
+      text: (
+        <span>
+          <ColorDot hex={priorityColors[p]} />
+          {p}
+        </span>
+      ),
+      key: `priority-${p}`,
+      description: selectedTask.priority === p ? 'Current' : undefined,
+      onClick: () => handleSetPriority(selectedTask, p),
+    }));
+  };
+
+  const getFlagActions = (): Action[] => {
+    if (!selectedTask) return [];
+    const actions: Action[] = TASK_FLAG_COLORS.map(c => ({
+      text: (
+        <span>
+          <ColorDot hex={c.hex} />
+          {c.label}
+        </span>
+      ),
+      key: `flag-${c.key}`,
+      description: selectedTask.flagColor === c.key ? 'Current' : undefined,
+      onClick: () => handleSetFlag(selectedTask, c.key),
+    }));
+
+    actions.push({
+      text: 'Remove Flag',
+      key: 'flag-clear',
+      danger: true,
+      disabled: !selectedTask.flagColor,
+      onClick: () => handleSetFlag(selectedTask, null),
+    });
 
     return actions;
   };
@@ -309,27 +410,41 @@ const BoardDetail: React.FC = () => {
                       </div>
                     ) : (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                        {columnTasks.map(task => (
-                          <Card
-                            key={task.sysId}
-                            onClick={() => handleTaskTap(task)}
-                            style={{ borderRadius: 8, cursor: 'pointer' }}
-                          >
-                            <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 4 }}>
-                              {task.name}
-                            </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                              <Tag
-                                color={priorityColors[task.priority]}
-                                fill="outline"
-                                style={{ '--font-size': '10px', '--padding-inline': '4px' } as React.CSSProperties}
-                              >
-                                {task.priority}
-                              </Tag>
-                              {getDueDateDisplay(task.dueDate)}
-                            </div>
-                          </Card>
-                        ))}
+                        {columnTasks.map(task => {
+                          const flag = getTaskFlagColor(task.flagColor);
+                          return (
+                            <Card
+                              key={task.sysId}
+                              onClick={() => handleTaskTap(task)}
+                              style={{
+                                borderRadius: 8,
+                                cursor: 'pointer',
+                                background: flag?.tint,
+                                borderLeft: flag ? `3px solid ${flag.hex}` : undefined,
+                              }}
+                            >
+                              <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 4 }}>
+                                {flag && <ColorDot hex={flag.hex} />}
+                                {task.name}
+                              </div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                <Tag
+                                  color={priorityColors[task.priority]}
+                                  fill="outline"
+                                  style={{ '--font-size': '10px', '--padding-inline': '4px' } as React.CSSProperties}
+                                >
+                                  {task.priority}
+                                </Tag>
+                                {getDueDateDisplay(task.dueDate)}
+                                {task.lastNoteDate && (
+                                  <span style={{ fontSize: 11, color: '#8c8c8c' }}>
+                                    Commented {dayjs(task.lastNoteDate).format('MMM D')}
+                                  </span>
+                                )}
+                              </div>
+                            </Card>
+                          );
+                        })}
                       </div>
                     )}
                   </Collapse.Panel>
@@ -353,6 +468,24 @@ const BoardDetail: React.FC = () => {
         visible={taskActionSheetVisible}
         actions={getTaskActions()}
         onClose={() => setTaskActionSheetVisible(false)}
+        cancelText="Cancel"
+      />
+
+      {/* Priority ActionSheet */}
+      <ActionSheet
+        visible={priorityActionSheetVisible}
+        actions={getPriorityActions()}
+        extra="Set Priority"
+        onClose={() => setPriorityActionSheetVisible(false)}
+        cancelText="Cancel"
+      />
+
+      {/* Flag ActionSheet */}
+      <ActionSheet
+        visible={flagActionSheetVisible}
+        actions={getFlagActions()}
+        extra="Flag Task"
+        onClose={() => setFlagActionSheetVisible(false)}
         cancelText="Cancel"
       />
     </>

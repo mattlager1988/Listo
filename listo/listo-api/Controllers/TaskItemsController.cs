@@ -96,6 +96,21 @@ public class TaskItemsController : ControllerBase
         }
     }
 
+    [HttpPost("{id}/flag")]
+    public async Task<ActionResult<TaskItemResponse>> SetFlag(long id, [FromBody] SetTaskFlagRequest request)
+    {
+        try
+        {
+            var task = await _taskService.SetFlagAsync(id, request);
+            if (task == null) return NotFound();
+            return Ok(task);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
     [HttpPost("{id}/backlog")]
     public async Task<ActionResult<TaskItemResponse>> MoveToBacklog(long id)
     {

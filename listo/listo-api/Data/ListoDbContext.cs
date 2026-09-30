@@ -844,6 +844,7 @@ public class ListoDbContext : DbContext
             entity.Property(e => e.SortOrder).HasColumnName("sort_order");
             entity.Property(e => e.IsCompleted).HasColumnName("is_completed");
             entity.Property(e => e.CompletedDate).HasColumnName("completed_date");
+            entity.Property(e => e.FlagColor).HasColumnName("flag_color").HasMaxLength(20);
             entity.Property(e => e.TaskBoardSysId).HasColumnName("task_board_sys_id");
             entity.Property(e => e.TaskBoardColumnSysId).HasColumnName("task_board_column_sys_id");
             entity.Property(e => e.CreateTimestamp).HasColumnName("create_timestamp");
