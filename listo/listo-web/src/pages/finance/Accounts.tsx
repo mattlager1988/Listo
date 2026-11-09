@@ -356,6 +356,9 @@ const Accounts: React.FC = () => {
   const [bankTransactions, setBankTransactions] = useState<LedgerTransaction[]>([]);
   const [bankTransactionsLoading, setBankTransactionsLoading] = useState(false);
   const [transactionForm] = Form.useForm();
+  const [archivedBankAccountsModalVisible, setArchivedBankAccountsModalVisible] = useState(false);
+  const [archivedBankAccounts, setArchivedBankAccounts] = useState<BankAccount[]>([]);
+  const [archivedBankAccountsLoading, setArchivedBankAccountsLoading] = useState(false);
 
   // Inline editing state
   const [editingCell, setEditingCell] = useState<{ sysId: number; field: 'dueDate' | 'amountDue' } | null>(null);
@@ -775,6 +778,47 @@ const Accounts: React.FC = () => {
       fetchBankAccounts();
     } catch {
       message.error('Failed to save bank account');
+    }
+  };
+
+  const handleArchiveBankAccount = async (bankAccount: BankAccount) => {
+    try {
+      await api.post(`/finance/bankaccounts/${bankAccount.sysId}/discontinue`);
+      message.success(`${bankAccount.name} archived`);
+      setBankTransactionsModalVisible(false);
+      setSelectedBankAccount(null);
+      setBankTransactions([]);
+      fetchBankAccounts();
+    } catch {
+      message.error('Failed to archive bank account');
+    }
+  };
+
+  const fetchArchivedBankAccounts = async () => {
+    setArchivedBankAccountsLoading(true);
+    try {
+      const response = await api.get('/finance/bankaccounts/discontinued');
+      setArchivedBankAccounts(response.data);
+    } catch {
+      message.error('Failed to fetch archived bank accounts');
+    } finally {
+      setArchivedBankAccountsLoading(false);
+    }
+  };
+
+  const handleOpenArchivedBankAccounts = () => {
+    setArchivedBankAccountsModalVisible(true);
+    fetchArchivedBankAccounts();
+  };
+
+  const handleRestoreBankAccount = async (bankAccount: BankAccount) => {
+    try {
+      await api.post(`/finance/bankaccounts/${bankAccount.sysId}/reactivate`);
+      message.success(`${bankAccount.name} restored`);
+      fetchArchivedBankAccounts();
+      fetchBankAccounts();
+    } catch {
+      message.error('Failed to restore bank account');
     }
   };
 
@@ -1462,6 +1506,24 @@ const Accounts: React.FC = () => {
             <PlusOutlined style={{ marginRight: 4 }} />
             Add Account
           </div>
+          <Tooltip title="View Archived Bank Accounts">
+            <div
+              style={{
+                background: '#fafafa',
+                border: '1px dashed #d9d9d9',
+                borderRadius: 8,
+                padding: '12px 16px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                color: '#8c8c8c',
+              }}
+              onClick={handleOpenArchivedBankAccounts}
+            >
+              <InboxOutlined />
+            </div>
+          </Tooltip>
         </div>
       )}
       {bankAccounts.length === 0 && (
@@ -1480,6 +1542,17 @@ const Accounts: React.FC = () => {
         >
           <BankOutlined style={{ fontSize: 24, color: '#8c8c8c', marginBottom: 8 }} />
           <div style={{ color: '#8c8c8c' }}>Add a bank account to track your ledger balance</div>
+          <Button
+            type="link"
+            size="small"
+            icon={<InboxOutlined />}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleOpenArchivedBankAccounts();
+            }}
+          >
+            View Archived
+          </Button>
         </div>
       )}
 
@@ -2554,6 +2627,61 @@ const Accounts: React.FC = () => {
         </Form>
       </Modal>
 
+      {/* Archived Bank Accounts Modal */}
+      <Modal
+        title="Archived Bank Accounts"
+        open={archivedBankAccountsModalVisible}
+        onCancel={() => setArchivedBankAccountsModalVisible(false)}
+        footer={
+          <Button onClick={() => setArchivedBankAccountsModalVisible(false)}>
+            Close
+          </Button>
+        }
+        width={600}
+      >
+        {archivedBankAccountsLoading ? (
+          <div style={{ textAlign: 'center', padding: '40px 0' }}>Loading...</div>
+        ) : archivedBankAccounts.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '40px 0', color: '#8c8c8c' }}>
+            No archived bank accounts
+          </div>
+        ) : (
+          <div style={{ maxHeight: 400, overflow: 'auto' }}>
+            {archivedBankAccounts.map(ba => (
+              <div
+                key={ba.sysId}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '12px 16px',
+                  borderBottom: '1px solid #f0f0f0',
+                }}
+              >
+                <div>
+                  <div style={{ fontWeight: 500 }}>{ba.name}</div>
+                  <div style={{ fontSize: 12, color: '#8c8c8c' }}>
+                    {ba.accountType}
+                    {ba.accountNumber && <> • ****{ba.accountNumber.slice(-4)}</>}
+                    {' • '}${ba.balance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    {ba.discontinuedDate && (
+                      <> • Archived {parseDate(ba.discontinuedDate).format('MM/DD/YYYY')}</>
+                    )}
+                  </div>
+                </div>
+                <Button
+                  type="text"
+                  icon={<UndoOutlined />}
+                  onClick={() => handleRestoreBankAccount(ba)}
+                >
+                  Restore
+                </Button>
+              </div>
+            ))}
+          </div>
+        )}
+      </Modal>
+
       {/* Bank Transactions Modal */}
       <Modal
         title={
@@ -2583,6 +2711,17 @@ const Accounts: React.FC = () => {
             }}>
               <EditOutlined /> Edit Account
             </Button>
+            <Popconfirm
+              title="Archive this bank account?"
+              description="It will be hidden from the balance cards and can be restored later."
+              okText="Archive"
+              okButtonProps={{ danger: true }}
+              onConfirm={() => selectedBankAccount && handleArchiveBankAccount(selectedBankAccount)}
+            >
+              <Button danger icon={<InboxOutlined />}>
+                Archive Account
+              </Button>
+            </Popconfirm>
             <Button onClick={() => {
               setBankTransactionsModalVisible(false);
               setSelectedBankAccount(null);
